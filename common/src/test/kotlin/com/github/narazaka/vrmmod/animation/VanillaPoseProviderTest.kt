@@ -145,6 +145,55 @@ class VanillaPoseProviderTest {
         assertTrue(hips!!.rotation.x > 0.5f, "Hips should pitch forward when swimming")
     }
 
+    @Test
+    fun `swimming has leg kick cycle`() {
+        val ctx = idleContext().copy(isSwimming = true, limbSwing = 1f, limbSwingAmount = 0.8f)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val rightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
+        val leftLeg = poses[HumanBone.LEFT_UPPER_LEG]
+        assertNotNull(rightLeg, "Swimming should move right leg")
+        assertNotNull(leftLeg, "Swimming should move left leg")
+        // Legs kick in opposite directions
+        assertTrue(
+            rightLeg!!.rotation.x * leftLeg!!.rotation.x < 0 ||
+                (abs(rightLeg.rotation.x) < 1e-4f && abs(leftLeg.rotation.x) < 1e-4f),
+            "Swimming legs should kick in opposite directions",
+        )
+    }
+
+    @Test
+    fun `swimming has arm stroke`() {
+        val ctx = idleContext().copy(isSwimming = true, limbSwing = 1f, limbSwingAmount = 0.8f)
+        val poses = provider.computePose(skeleton, ctx)
+
+        assertNotNull(poses[HumanBone.RIGHT_UPPER_ARM], "Swimming should move right arm")
+        assertNotNull(poses[HumanBone.LEFT_UPPER_ARM], "Swimming should move left arm")
+    }
+
+    @Test
+    fun `swimming preserves head tracking`() {
+        val ctx = idleContext().copy(isSwimming = true, limbSwing = 1f, limbSwingAmount = 0.5f, headYaw = 30f)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val head = poses[HumanBone.HEAD]
+        assertNotNull(head, "Swimming should still have head pose")
+    }
+
+    @Test
+    fun `swimming overrides normal walk`() {
+        // When swimming, walking bones should not follow the normal walk pattern
+        val swimCtx = idleContext().copy(isSwimming = true, limbSwing = 1f, limbSwingAmount = 1f)
+        val walkCtx = idleContext().copy(limbSwing = 1f, limbSwingAmount = 1f)
+
+        val swimPoses = provider.computePose(skeleton, swimCtx)
+        val walkPoses = provider.computePose(skeleton, walkCtx)
+
+        // Swimming should have HIPS bone, walking should not
+        assertNotNull(swimPoses[HumanBone.HIPS], "Swimming should set hips")
+        assertNull(walkPoses[HumanBone.HIPS], "Walking should not set hips")
+    }
+
     // ---- Elytra ----
 
     @Test
@@ -155,6 +204,46 @@ class VanillaPoseProviderTest {
         val hips = poses[HumanBone.HIPS]
         assertNotNull(hips, "Elytra should affect hips")
         assertTrue(hips!!.rotation.x > 0.5f, "Hips should pitch forward during elytra flight")
+    }
+
+    @Test
+    fun `elytra spreads arms`() {
+        val ctx = idleContext().copy(isFallFlying = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val rightArm = poses[HumanBone.RIGHT_UPPER_ARM]
+        val leftArm = poses[HumanBone.LEFT_UPPER_ARM]
+        assertNotNull(rightArm, "Elytra should affect right arm")
+        assertNotNull(leftArm, "Elytra should affect left arm")
+        // Arms should have Z rotation (spread outward) with opposite signs
+        assertTrue(rightArm!!.rotation.z < 0f, "Right arm should spread out (negative Z)")
+        assertTrue(leftArm!!.rotation.z > 0f, "Left arm should spread out (positive Z)")
+    }
+
+    @Test
+    fun `elytra pulls legs back`() {
+        val ctx = idleContext().copy(isFallFlying = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val rightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
+        val leftLeg = poses[HumanBone.LEFT_UPPER_LEG]
+        assertNotNull(rightLeg, "Elytra should affect right leg")
+        assertNotNull(leftLeg, "Elytra should affect left leg")
+        // Both legs should pitch slightly back (negative X)
+        assertTrue(rightLeg!!.rotation.x < 0f, "Right leg should pitch back during elytra")
+        assertTrue(leftLeg!!.rotation.x < 0f, "Left leg should pitch back during elytra")
+    }
+
+    @Test
+    fun `elytra overrides swimming`() {
+        // If both flags are set, elytra should take priority (checked in when block)
+        val ctx = idleContext().copy(isSwimming = true, isFallFlying = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        // Elytra has arms spread (Z rotation), swimming has arm stroke (X rotation)
+        val rightArm = poses[HumanBone.RIGHT_UPPER_ARM]
+        assertNotNull(rightArm, "Should have right arm pose")
+        assertTrue(abs(rightArm!!.rotation.z) > 0.1f, "Arms should be spread (elytra), not stroking (swim)")
     }
 
     // ---- Riding ----
@@ -168,5 +257,62 @@ class VanillaPoseProviderTest {
         assertNotNull(poses[HumanBone.LEFT_UPPER_LEG], "Riding should affect left leg")
         assertNotNull(poses[HumanBone.RIGHT_LOWER_LEG], "Riding should affect right knee")
         assertNotNull(poses[HumanBone.LEFT_LOWER_LEG], "Riding should affect left knee")
+    }
+
+    @Test
+    fun `riding legs have Z spread`() {
+        val ctx = idleContext().copy(isRiding = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val rightLeg = poses[HumanBone.RIGHT_UPPER_LEG]!!.rotation
+        val leftLeg = poses[HumanBone.LEFT_UPPER_LEG]!!.rotation
+
+        // Legs should spread in opposite Z directions
+        assertTrue(rightLeg.z < 0f, "Right leg should spread outward (negative Z)")
+        assertTrue(leftLeg.z > 0f, "Left leg should spread outward (positive Z)")
+    }
+
+    @Test
+    fun `riding knees are bent`() {
+        val ctx = idleContext().copy(isRiding = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        val rightKnee = poses[HumanBone.RIGHT_LOWER_LEG]!!.rotation
+        val leftKnee = poses[HumanBone.LEFT_LOWER_LEG]!!.rotation
+
+        // Knees should be bent forward (positive X)
+        assertTrue(rightKnee.x > 0.1f, "Right knee should bend forward")
+        assertTrue(leftKnee.x > 0.1f, "Left knee should bend forward")
+    }
+
+    @Test
+    fun `riding positions arms`() {
+        val ctx = idleContext().copy(isRiding = true)
+        val poses = provider.computePose(skeleton, ctx)
+
+        assertNotNull(poses[HumanBone.RIGHT_UPPER_ARM], "Riding should position right arm")
+        assertNotNull(poses[HumanBone.LEFT_UPPER_ARM], "Riding should position left arm")
+    }
+
+    @Test
+    fun `riding overrides normal walk even with limb swing`() {
+        val ctx = idleContext().copy(isRiding = true, limbSwing = 2f, limbSwingAmount = 1f)
+        val poses = provider.computePose(skeleton, ctx)
+
+        // Should have LOWER_LEG bones (riding-specific), which normal walk does not set
+        assertNotNull(poses[HumanBone.RIGHT_LOWER_LEG], "Riding should set lower legs even with limb swing")
+    }
+
+    // ---- Priority: swimming > sneaking ----
+
+    @Test
+    fun `swimming takes priority over sneaking`() {
+        val ctx = idleContext().copy(isSwimming = true, isSneaking = true, limbSwing = 1f, limbSwingAmount = 0.5f)
+        val poses = provider.computePose(skeleton, ctx)
+
+        // Swimming sets HIPS, sneaking does not
+        assertNotNull(poses[HumanBone.HIPS], "Swimming should set hips even when sneaking")
+        // Sneaking sets SPINE, swimming does not
+        assertNull(poses[HumanBone.SPINE], "Spine should not have sneak lean when swimming")
     }
 }

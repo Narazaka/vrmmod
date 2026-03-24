@@ -20,8 +20,8 @@ class VanillaPoseProvider : PoseProvider {
         applyHead(poses, context)
 
         when {
-            context.isSwimming -> applySwimming(poses, context)
             context.isFallFlying -> applyElytra(poses, context)
+            context.isSwimming -> applySwimming(poses, context)
             context.isRiding -> applyRiding(poses, context)
             else -> {
                 applyLegs(poses, context)
