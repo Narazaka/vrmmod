@@ -28,6 +28,8 @@ object VrmRenderer {
     /** Fixed delta time per frame (1 tick = 1/20 second). */
     private const val DELTA_TIME = 1f / 20f
 
+    private var springBoneDebugLogged = false
+
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *
@@ -55,6 +57,14 @@ object VrmRenderer {
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
             val springRotations = simulator.update(worldMatrices, DELTA_TIME)
+            if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
+                springBoneDebugLogged = true
+                val log = com.github.narazaka.vrmmod.VrmMod.logger
+                log.info("[VRM SpringBone] rotations count: {}", springRotations.size)
+                springRotations.entries.take(3).forEach { (nodeIdx, rot) ->
+                    log.info("[VRM SpringBone] node {}: rot=({}, {}, {}, {})", nodeIdx, rot.x, rot.y, rot.z, rot.w)
+                }
+            }
             // Apply spring bone rotations as local rotation overrides
             for ((nodeIndex, rotation) in springRotations) {
                 val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue

@@ -200,6 +200,19 @@ class VrmParserTest {
     }
 
     @Test
+    fun `springbone nodes are in joint list`() {
+        val skeleton = vrmModel.skeleton
+        val jointSet = skeleton.jointNodeIndices.toSet()
+        val springNodes = vrmModel.springBone.springs.flatMap { it.joints.map { j -> j.nodeIndex } }.toSet()
+        val inJoints = springNodes.filter { it in jointSet }
+        val notInJoints = springNodes.filter { it !in jointSet }
+        println("SpringBone nodes total: ${springNodes.size}")
+        println("In joint list: ${inJoints.size} (${inJoints.sorted().take(10)}...)")
+        println("NOT in joint list: ${notInJoints.size} (${notInJoints.sorted().take(10)}...)")
+        println("Joint list size: ${skeleton.jointNodeIndices.size}")
+    }
+
+    @Test
     fun `expressions are parsed`() {
         // Expressions may or may not be present in the test VRM
         println("Expressions: ${vrmModel.expressions.size} (${vrmModel.expressions.map { it.name }})")

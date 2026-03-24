@@ -124,22 +124,32 @@ class SpringBoneSimulator(
                 val worldRot = Quaternionf()
                 worldMatrix.getNormalizedRotation(worldRot)
 
-                // 2a: Inertia (Verlet)
+                // Compute the rest (target) tail position in world space:
+                // parentWorldRotation * initialLocalRotation * boneAxis * boneLength + headPos
+                val restTail = Vector3f(state.boneAxis)
+                    .mul(state.boneLength)
+                val restWorldRot = Quaternionf(worldRot).mul(state.initialLocalRotation)
+                restTail.rotate(restWorldRot)
+                restTail.add(headPos)
+
+                // 2a: Inertia (Verlet integration with drag)
                 val inertia = Vector3f(state.currentTail).sub(state.prevTail)
                     .mul(1f - joint.dragForce)
 
-                // 2b: Stiffness force
-                val stiffnessDir = Vector3f(state.boneAxis)
-                stiffnessDir.rotate(worldRot)
-                stiffnessDir.mul(joint.stiffness * deltaTime)
+                // 2b: Stiffness force: pull toward rest position
+                // UniVRM: stiffnessForce = (restTail - currentTail) * stiffness * deltaTime
+                // But since we normalize to boneLength later, the force direction matters more
+                val stiffnessForce = Vector3f(restTail).sub(state.currentTail)
+                    .mul(joint.stiffness * deltaTime)
 
-                // 2c: External force (gravity)
-                val externalForce = Vector3f(joint.gravityDir).mul(joint.gravityPower * deltaTime)
+                // 2c: External force (gravity), scaled by deltaTime
+                val externalForce = Vector3f(joint.gravityDir)
+                    .mul(joint.gravityPower * deltaTime * state.boneLength)
 
                 // 2d: Next tail
                 val nextTail = Vector3f(state.currentTail)
                     .add(inertia)
-                    .add(stiffnessDir)
+                    .add(stiffnessForce)
                     .add(externalForce)
 
                 // 2e: Length constraint
