@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
 import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.joml.Vector3f
 
 /**
@@ -47,6 +48,8 @@ object VrmRenderer {
         packedLight: Int,
     ) {
         val model = state.model
+        val scale = estimateScale(state)
+        val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
 
         // Compute bone poses from the animation provider
         val bonePoseMap = state.poseProvider.computePose(model.skeleton, poseContext)
@@ -56,7 +59,16 @@ object VrmRenderer {
         val simulator = state.springBoneSimulator
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-            val springRotations = simulator.update(worldMatrices, DELTA_TIME)
+
+            // Build model-to-world transform matching the entity's rendering transform:
+            // bodyYaw rotation + 180-degree Y rotation + Z-flip + uniform scale
+            val modelToWorld = Matrix4f()
+                .rotateY(-bodyYawRad)
+                .rotateY(Math.PI.toFloat())
+                .scale(1f, 1f, -1f)
+                .scale(scale, scale, scale)
+
+            val springRotations = simulator.update(worldMatrices, DELTA_TIME, modelToWorld)
             if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
                 springBoneDebugLogged = true
                 val log = com.github.narazaka.vrmmod.VrmMod.logger
@@ -86,7 +98,6 @@ object VrmRenderer {
         poseStack.pushPose()
 
         // Body rotation in MC space
-        val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
         poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
 
         // VRM model faces +Z. After Z-flip it faces -Z (north in MC).
@@ -96,7 +107,6 @@ object VrmRenderer {
         poseStack.scale(1f, 1f, -1f)
 
         // Scale model to approximately player height (~1.8 blocks).
-        val scale = estimateScale(state)
         poseStack.scale(scale, scale, scale)
 
         val pose = poseStack.last()
