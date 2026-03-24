@@ -39,6 +39,8 @@ tasks.processResources {
 
 tasks.shadowJar {
     exclude("architectury.common.json")
+    // Exclude Jackson (transitive dep of JglTF) - NeoForge already provides it
+    exclude("com/fasterxml/**")
     configurations = listOf(shadowCommon)
     archiveClassifier.set("dev-shadow")
 }

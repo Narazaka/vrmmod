@@ -40,6 +40,9 @@ tasks.processResources {
 
 tasks.shadowJar {
     exclude("architectury.common.json")
+    // Exclude Jackson/Gson (transitive deps of JglTF) - MC/loader already provides them
+    exclude("com/fasterxml/**")
+    exclude("com/google/gson/**")
     configurations = listOf(shadowCommon)
     archiveClassifier.set("dev-shadow")
 }
