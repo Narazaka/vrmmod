@@ -1,20 +1,48 @@
 package com.github.narazaka.vrmmod.vrm
 
-/**
- * VRM 1.0 spring bone physics (stub).
- */
-data class VrmSpringBone(
-    val springs: List<Spring> = emptyList(),
-    val colliders: List<Collider> = emptyList(),
-) {
-    data class Spring(
-        val name: String = "",
-        val jointNodeIndices: List<Int> = emptyList(),
-        val colliderGroupIndices: List<Int> = emptyList(),
-    )
+import org.joml.Vector3f
 
-    data class Collider(
-        val nodeIndex: Int = -1,
-        val shapeType: String = "sphere",
-    )
+data class VrmSpringBone(
+    val colliders: List<SpringBoneCollider> = emptyList(),
+    val colliderGroups: List<SpringBoneColliderGroup> = emptyList(),
+    val springs: List<Spring> = emptyList(),
+)
+
+data class SpringBoneCollider(
+    val nodeIndex: Int,
+    val shape: ColliderShape,
+)
+
+sealed class ColliderShape {
+    data class Sphere(
+        val offset: Vector3f = Vector3f(),
+        val radius: Float = 0f,
+    ) : ColliderShape()
+
+    data class Capsule(
+        val offset: Vector3f = Vector3f(),
+        val radius: Float = 0f,
+        val tail: Vector3f = Vector3f(),
+    ) : ColliderShape()
 }
+
+data class SpringBoneColliderGroup(
+    val name: String = "",
+    val colliderIndices: List<Int> = emptyList(),
+)
+
+data class Spring(
+    val name: String = "",
+    val joints: List<SpringJoint> = emptyList(),
+    val colliderGroupIndices: List<Int> = emptyList(),
+    val centerNodeIndex: Int = -1,
+)
+
+data class SpringJoint(
+    val nodeIndex: Int,
+    val hitRadius: Float = 0f,
+    val stiffness: Float = 1f,
+    val gravityPower: Float = 0f,
+    val gravityDir: Vector3f = Vector3f(0f, -1f, 0f),
+    val dragForce: Float = 0.5f,
+)

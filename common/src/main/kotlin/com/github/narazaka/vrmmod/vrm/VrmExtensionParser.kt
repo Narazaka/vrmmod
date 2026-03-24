@@ -108,6 +108,119 @@ object VrmExtensionParser {
     }
 
     /**
+     * Parses the VRMC_springBone extension into [VrmSpringBone].
+     */
+    fun parseSpringBone(extensionMap: Any?): VrmSpringBone {
+        if (extensionMap == null) return VrmSpringBone()
+        val json = toJsonObject(extensionMap)
+
+        val colliders = json.getAsJsonArray("colliders")?.map { element ->
+            val obj = element.asJsonObject
+            val nodeIndex = obj.get("node")?.asInt ?: 0
+            val shapeObj = obj.getAsJsonObject("shape")
+            val shape = parseColliderShape(shapeObj)
+            SpringBoneCollider(nodeIndex = nodeIndex, shape = shape)
+        } ?: emptyList()
+
+        val colliderGroups = json.getAsJsonArray("colliderGroups")?.map { element ->
+            val obj = element.asJsonObject
+            val name = obj.getString("name", "")
+            val colliderIndices = obj.getAsJsonArray("colliders")
+                ?.map { it.asInt }
+                ?: emptyList()
+            SpringBoneColliderGroup(name = name, colliderIndices = colliderIndices)
+        } ?: emptyList()
+
+        val springs = json.getAsJsonArray("springs")?.map { element ->
+            val obj = element.asJsonObject
+            val name = obj.getString("name", "")
+            val centerNodeIndex = obj.get("center")?.let {
+                if (it.isJsonNull) -1 else it.asInt
+            } ?: -1
+            val joints = obj.getAsJsonArray("joints")?.map { jointEl ->
+                val j = jointEl.asJsonObject
+                SpringJoint(
+                    nodeIndex = j.get("node")?.asInt ?: 0,
+                    hitRadius = j.get("hitRadius")?.asFloat ?: 0f,
+                    stiffness = j.get("stiffness")?.asFloat ?: 1f,
+                    gravityPower = j.get("gravityPower")?.asFloat ?: 0f,
+                    gravityDir = j.get("gravityDir")?.let { parseVector3f(it) }
+                        ?: org.joml.Vector3f(0f, -1f, 0f),
+                    dragForce = j.get("dragForce")?.asFloat ?: 0.5f,
+                )
+            } ?: emptyList()
+            val colliderGroupIndices = obj.getAsJsonArray("colliderGroups")
+                ?.map { it.asInt }
+                ?: emptyList()
+            Spring(
+                name = name,
+                joints = joints,
+                colliderGroupIndices = colliderGroupIndices,
+                centerNodeIndex = centerNodeIndex,
+            )
+        } ?: emptyList()
+
+        return VrmSpringBone(
+            colliders = colliders,
+            colliderGroups = colliderGroups,
+            springs = springs,
+        )
+    }
+
+    private fun parseColliderShape(shapeObj: JsonObject?): ColliderShape {
+        if (shapeObj == null) return ColliderShape.Sphere()
+
+        val sphereEl = shapeObj.get("sphere")
+        if (sphereEl != null && sphereEl.isJsonObject) {
+            val sphereObj = sphereEl.asJsonObject
+            return ColliderShape.Sphere(
+                offset = parseVector3f(sphereObj.get("offset")),
+                radius = sphereObj.get("radius")?.asFloat ?: 0f,
+            )
+        }
+
+        val capsuleEl = shapeObj.get("capsule")
+        if (capsuleEl != null && capsuleEl.isJsonObject) {
+            val capsuleObj = capsuleEl.asJsonObject
+            return ColliderShape.Capsule(
+                offset = parseVector3f(capsuleObj.get("offset")),
+                radius = capsuleObj.get("radius")?.asFloat ?: 0f,
+                tail = parseVector3f(capsuleObj.get("tail")),
+            )
+        }
+
+        return ColliderShape.Sphere()
+    }
+
+    /**
+     * Parses a Vector3f from either a JSON array [x,y,z] or a JSON object {x,y,z}.
+     */
+    private fun parseVector3f(element: JsonElement?): org.joml.Vector3f {
+        if (element == null) return org.joml.Vector3f()
+        if (element.isJsonArray) {
+            val arr = element.asJsonArray
+            return org.joml.Vector3f(
+                arr.getOrNull(0)?.asFloat ?: 0f,
+                arr.getOrNull(1)?.asFloat ?: 0f,
+                arr.getOrNull(2)?.asFloat ?: 0f,
+            )
+        }
+        if (element.isJsonObject) {
+            val obj = element.asJsonObject
+            return org.joml.Vector3f(
+                obj.get("x")?.asFloat ?: 0f,
+                obj.get("y")?.asFloat ?: 0f,
+                obj.get("z")?.asFloat ?: 0f,
+            )
+        }
+        return org.joml.Vector3f()
+    }
+
+    private fun com.google.gson.JsonArray.getOrNull(index: Int): JsonElement? {
+        return if (index in 0 until size()) get(index) else null
+    }
+
+    /**
      * Helper to safely get a string from a JsonObject.
      */
     private fun JsonObject.getString(key: String, default: String = ""): String {

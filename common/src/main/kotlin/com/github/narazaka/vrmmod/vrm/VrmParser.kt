@@ -55,6 +55,10 @@ object VrmParser {
         val humanoid = vrmJson?.let { VrmExtensionParser.parseHumanoid(it) } ?: VrmHumanoid()
         val expressions = VrmExtensionParser.parseExpressions(vrmJson)
 
+        // Parse VRMC_springBone extension
+        val springBoneExtension = extensions?.get("VRMC_springBone")
+        val springBone = VrmExtensionParser.parseSpringBone(springBoneExtension)
+
         // Extract geometry and skeleton from high-level model
         val meshes = extractMeshes(model)
         val skeleton = extractSkeleton(model)
@@ -67,6 +71,7 @@ object VrmParser {
             skeleton = skeleton,
             textures = textures,
             expressions = expressions,
+            springBone = springBone,
         )
     }
 
