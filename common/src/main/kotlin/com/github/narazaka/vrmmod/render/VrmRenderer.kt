@@ -25,10 +25,6 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
-    private var debugLogged = false
-    private var modeLogged = false
-    private var debugFrameCounter = 0
-
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *
@@ -52,41 +48,10 @@ object VrmRenderer {
         val nodeOverrides = convertToNodeOverrides(model, bonePoseMap)
 
         // Compute skinning matrices
-        // TODO: temporarily disabled for debugging mesh distortion
-        val skinningMatrices = if (false && model.skeleton.jointNodeIndices.isNotEmpty()) {
+        val skinningMatrices = if (model.skeleton.jointNodeIndices.isNotEmpty()) {
             VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides)
         } else {
             emptyList()
-        }
-
-        // Debug: log once
-        if (!debugLogged) {
-            debugLogged = true
-            val log = com.github.narazaka.vrmmod.VrmMod.logger
-            log.info("[VRM DEBUG] bonePoseMap size: {}, nodeOverrides size: {}, skinningMatrices size: {}",
-                bonePoseMap.size, nodeOverrides.size, skinningMatrices.size)
-            log.info("[VRM DEBUG] bones in poseMap: {}", bonePoseMap.keys)
-            log.info("[VRM DEBUG] skeleton joints: {}, nodes: {}", model.skeleton.jointNodeIndices.size, model.skeleton.nodes.size)
-            log.info("[VRM DEBUG] poseContext: limbSwing={}, limbSwingAmount={}, sneaking={}, headYaw={}, headPitch={}, swimming={}, fallFlying={}, riding={}, swinging={}, sprinting={}",
-                poseContext.limbSwing, poseContext.limbSwingAmount, poseContext.isSneaking,
-                poseContext.headYaw, poseContext.headPitch, poseContext.isSwimming,
-                poseContext.isFallFlying, poseContext.isRiding, poseContext.isSwinging, poseContext.isSprinting)
-            for ((meshIdx, mesh) in model.meshes.withIndex()) {
-                for ((primIdx, prim) in mesh.primitives.withIndex()) {
-                    log.info("[VRM DEBUG] mesh {} prim {}: verts={}, tris={}, joints={}, weights={}, imageIdx={}",
-                        meshIdx, primIdx, prim.vertexCount, prim.indices.size / 3,
-                        prim.joints.size / 4, prim.weights.size / 4, prim.imageIndex)
-                }
-            }
-        }
-
-        // Periodic pose debug (every 200 frames) to track limbSwing values during movement
-        debugFrameCounter++
-        if (debugFrameCounter % 200 == 0) {
-            val log = com.github.narazaka.vrmmod.VrmMod.logger
-            log.info("[VRM POSE] frame={} limbSwing={} limbSwingAmount={} sneaking={} headYaw={} headPitch={}",
-                debugFrameCounter, poseContext.limbSwing, poseContext.limbSwingAmount,
-                poseContext.isSneaking, poseContext.headYaw, poseContext.headPitch)
         }
 
         poseStack.pushPose()
@@ -101,24 +66,17 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
-        // DEBUG: only draw first primitive of first mesh to isolate issue
-        val debugPrim = model.meshes.firstOrNull()?.primitives?.firstOrNull()
-        if (debugPrim != null) {
-            val texture = resolveTexture(state, debugPrim.imageIndex)
+        // Group primitives by texture to avoid buffer interleaving
+        val allPrimitives = model.meshes.flatMap { it.primitives }
+        val grouped = allPrimitives.groupBy { resolveTexture(state, it.imageIndex) }
+
+        for ((texture, primitives) in grouped) {
             val renderType = RenderType.entityCutoutNoCull(texture)
-
-            // Debug: log RenderType mode to check QUADS vs TRIANGLES
-            if (!modeLogged) {
-                modeLogged = true
-                val log = com.github.narazaka.vrmmod.VrmMod.logger
-                log.info("[VRM DEBUG] RenderType mode: {}", renderType.mode())
-                log.info("[VRM DEBUG] RenderType mode name: {}", renderType.mode().name)
-                log.info("[VRM DEBUG] RenderType format: {}", renderType.format())
-            }
-
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
-            drawPrimitive(debugPrim, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode)
+            for (primitive in primitives) {
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode)
+            }
         }
 
         poseStack.popPose()
