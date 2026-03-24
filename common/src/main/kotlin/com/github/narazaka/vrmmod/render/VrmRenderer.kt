@@ -1,15 +1,20 @@
 package com.github.narazaka.vrmmod.render
 
+import com.github.narazaka.vrmmod.animation.BonePoseMap
+import com.github.narazaka.vrmmod.animation.PoseContext
 import com.github.narazaka.vrmmod.vrm.HumanBone
+import com.github.narazaka.vrmmod.vrm.VrmModel
 import com.github.narazaka.vrmmod.vrm.VrmPrimitive
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
+import org.joml.Matrix4f
+import org.joml.Vector3f
 
 /**
- * Renders a VRM model in T-pose (no skinning) using Minecraft's
+ * Renders a VRM model with skeletal animation using Minecraft's
  * VertexConsumer rendering pipeline.
  */
 object VrmRenderer {
@@ -21,22 +26,33 @@ object VrmRenderer {
     private const val DEFAULT_SCALE = 0.9f
 
     /**
-     * Renders the VRM model described by [state] at the current PoseStack position.
+     * Renders the VRM model with animation driven by [poseContext].
      *
-     * The model is drawn as a static T-pose with no bone skinning applied.
-     *
-     * @param state the VRM state containing model data and texture locations
+     * @param state the VRM state containing model data, textures, and pose provider
+     * @param poseContext the current animation context (from player render state)
      * @param poseStack the current matrix stack
      * @param bufferSource the buffer source to obtain VertexConsumers from
      * @param packedLight the packed light value for lighting
      */
     fun render(
         state: VrmState,
+        poseContext: PoseContext,
         poseStack: PoseStack,
         bufferSource: MultiBufferSource,
         packedLight: Int,
     ) {
         val model = state.model
+
+        // Compute bone poses from the animation provider
+        val bonePoseMap = state.poseProvider.computePose(model.skeleton, poseContext)
+        val nodeOverrides = convertToNodeOverrides(model, bonePoseMap)
+
+        // Compute skinning matrices
+        val skinningMatrices = if (model.skeleton.jointNodeIndices.isNotEmpty()) {
+            VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides)
+        } else {
+            emptyList()
+        }
 
         poseStack.pushPose()
 
@@ -57,11 +73,72 @@ object VrmRenderer {
                     RenderType.entityCutoutNoCull(texture),
                 )
 
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight)
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices)
             }
         }
 
         poseStack.popPose()
+    }
+
+    /**
+     * Renders the VRM model as a static T-pose (no animation).
+     *
+     * This overload is kept for backward compatibility (e.g. when no
+     * render state is available).
+     */
+    fun render(
+        state: VrmState,
+        poseStack: PoseStack,
+        bufferSource: MultiBufferSource,
+        packedLight: Int,
+    ) {
+        val model = state.model
+
+        poseStack.pushPose()
+
+        poseStack.scale(1f, 1f, -1f)
+
+        val scale = estimateScale(state)
+        poseStack.scale(scale, scale, scale)
+
+        val pose = poseStack.last()
+
+        for (mesh in model.meshes) {
+            for (primitive in mesh.primitives) {
+                val texture = resolveTexture(state, primitive.materialIndex)
+                val vertexConsumer = bufferSource.getBuffer(
+                    RenderType.entityCutoutNoCull(texture),
+                )
+
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, emptyList())
+            }
+        }
+
+        poseStack.popPose()
+    }
+
+    /**
+     * Converts a [BonePoseMap] into per-node-index local transform overrides.
+     *
+     * For each animated bone, the override matrix combines the node's rest
+     * TRS with the pose's delta TRS.
+     */
+    private fun convertToNodeOverrides(model: VrmModel, bonePoseMap: BonePoseMap): Map<Int, Matrix4f> {
+        val overrides = mutableMapOf<Int, Matrix4f>()
+        for ((bone, pose) in bonePoseMap) {
+            val boneNode = model.humanoid.humanBones[bone] ?: continue
+            val nodeIndex = boneNode.nodeIndex
+            val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
+            val matrix = Matrix4f()
+                .translate(node.translation)
+                .translate(pose.translation)
+                .rotate(node.rotation)
+                .rotate(pose.rotation)
+                .scale(node.scale)
+                .scale(pose.scale)
+            overrides[nodeIndex] = matrix
+        }
+        return overrides
     }
 
     /**
@@ -77,8 +154,6 @@ object VrmRenderer {
             if (nodeIndex in nodes.indices) {
                 val hipsY = nodes[nodeIndex].translation.y
                 if (hipsY > 0f) {
-                    // Hips are roughly at half the model height.
-                    // Estimate full height as hipsY * 2, then scale to TARGET_HEIGHT.
                     return TARGET_HEIGHT / (hipsY * 2f)
                 }
             }
@@ -88,15 +163,12 @@ object VrmRenderer {
 
     /**
      * Resolves the texture ResourceLocation for a given material index.
-     * Falls back to the first texture or a missing texture placeholder.
      */
     private fun resolveTexture(state: VrmState, materialIndex: Int): ResourceLocation {
         val locations = state.textureLocations
         if (locations.isEmpty()) {
-            // Return a dummy location; the render will show missing texture
             return ResourceLocation.withDefaultNamespace("textures/misc/unknown_pack.png")
         }
-        // Use materialIndex if valid, otherwise fall back to first texture
         return if (materialIndex in locations.indices) {
             locations[materialIndex]
         } else {
@@ -106,12 +178,16 @@ object VrmRenderer {
 
     /**
      * Draws a single primitive's indexed triangles through the VertexConsumer.
+     *
+     * When [skinningMatrices] is non-empty and the primitive has joint/weight data,
+     * each vertex is transformed by the skinning engine before being emitted.
      */
     private fun drawPrimitive(
         primitive: VrmPrimitive,
         vertexConsumer: com.mojang.blaze3d.vertex.VertexConsumer,
         pose: PoseStack.Pose,
         packedLight: Int,
+        skinningMatrices: List<Matrix4f>,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -120,14 +196,22 @@ object VrmRenderer {
         val hasNormals = normals.size >= positions.size
         val hasUVs = texCoords.size >= (primitive.vertexCount * 2)
 
-        for (index in indices) {
-            val px = positions[index * 3]
-            val py = positions[index * 3 + 1]
-            val pz = positions[index * 3 + 2]
+        val hasSkinning = skinningMatrices.isNotEmpty() &&
+            primitive.joints.isNotEmpty() &&
+            primitive.weights.isNotEmpty()
 
-            val nx: Float
-            val ny: Float
-            val nz: Float
+        // Reusable arrays for per-vertex joint/weight data
+        val vertJoints = if (hasSkinning) IntArray(4) else null
+        val vertWeights = if (hasSkinning) FloatArray(4) else null
+
+        for (index in indices) {
+            var px = positions[index * 3]
+            var py = positions[index * 3 + 1]
+            var pz = positions[index * 3 + 2]
+
+            var nx: Float
+            var ny: Float
+            var nz: Float
             if (hasNormals) {
                 nx = normals[index * 3]
                 ny = normals[index * 3 + 1]
@@ -136,6 +220,37 @@ object VrmRenderer {
                 nx = 0f
                 ny = 1f
                 nz = 0f
+            }
+
+            if (hasSkinning) {
+                // Extract per-vertex joint indices and weights (4 influences per vertex)
+                for (i in 0 until 4) {
+                    val dataIdx = index * 4 + i
+                    vertJoints!![i] = if (dataIdx < primitive.joints.size) primitive.joints[dataIdx] else 0
+                    vertWeights!![i] = if (dataIdx < primitive.weights.size) primitive.weights[dataIdx] else 0f
+                }
+
+                val skinnedPos = VrmSkinningEngine.skinVertex(
+                    Vector3f(px, py, pz),
+                    vertJoints!!,
+                    vertWeights!!,
+                    skinningMatrices,
+                )
+                px = skinnedPos.x
+                py = skinnedPos.y
+                pz = skinnedPos.z
+
+                if (hasNormals) {
+                    val skinnedNormal = VrmSkinningEngine.skinNormal(
+                        Vector3f(nx, ny, nz),
+                        vertJoints,
+                        vertWeights,
+                        skinningMatrices,
+                    )
+                    nx = skinnedNormal.x
+                    ny = skinnedNormal.y
+                    nz = skinnedNormal.z
+                }
             }
 
             val u: Float

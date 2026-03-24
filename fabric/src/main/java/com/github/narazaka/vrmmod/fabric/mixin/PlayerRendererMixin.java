@@ -1,5 +1,6 @@
 package com.github.narazaka.vrmmod.fabric.mixin;
 
+import com.github.narazaka.vrmmod.animation.PoseContext;
 import com.github.narazaka.vrmmod.render.VrmPlayerManager;
 import com.github.narazaka.vrmmod.render.VrmRenderer;
 import com.github.narazaka.vrmmod.render.VrmState;
@@ -57,8 +58,37 @@ public class PlayerRendererMixin {
             return; // No VRM model; fall back to vanilla rendering
         }
 
-        // Render the VRM model and cancel vanilla rendering
-        VrmRenderer.INSTANCE.render(state, poseStack, bufferSource, packedLight);
+        // Build animation context from the render state
+        PoseContext poseContext = buildPoseContext(renderState);
+
+        // Render the VRM model with animation and cancel vanilla rendering
+        VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight);
         ci.cancel();
+    }
+
+    /**
+     * Extracts animation-relevant fields from the MC render state into a PoseContext.
+     */
+    private static PoseContext buildPoseContext(PlayerRenderState renderState) {
+        float headYaw = renderState.yRot - renderState.bodyRot;
+        float headPitch = renderState.xRot;
+        boolean isSwinging = renderState.attackTime > 0f;
+        // MC 1.21.4 HumanoidRenderState has speedValue but no isSprinting flag;
+        // use speedValue threshold as a heuristic.
+        boolean isSprinting = renderState.speedValue > 0.9f;
+
+        return new PoseContext(
+                /* partialTick */       0f, // render state values are already interpolated
+                /* limbSwing */         renderState.walkAnimationPos,
+                /* limbSwingAmount */   renderState.walkAnimationSpeed,
+                /* isSwinging */        isSwinging,
+                /* isSneaking */        renderState.isCrouching,
+                /* isSprinting */       isSprinting,
+                /* isSwimming */        renderState.isVisuallySwimming,
+                /* isFallFlying */      renderState.isFallFlying,
+                /* isRiding */          renderState.isPassenger,
+                /* headYaw */           headYaw,
+                /* headPitch */         headPitch
+        );
     }
 }
