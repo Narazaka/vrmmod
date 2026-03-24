@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -18,13 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.UUID;
 
-/**
- * Mixin that intercepts PlayerRenderer to substitute VRM model rendering
- * when a VRM model is loaded for the player.
- *
- * Uses extractRenderState to capture player UUID before render() is called,
- * since render() only receives PlayerRenderState (no entity reference).
- */
 @Mixin(PlayerRenderer.class)
 public class PlayerRendererMixin {
 
@@ -32,8 +26,8 @@ public class PlayerRendererMixin {
     private UUID vrmmod$currentPlayerUUID;
 
     /**
-     * Captures the player's UUID during render state extraction,
-     * before render() is called.
+     * Capture player UUID during extractRenderState (which has access to the entity).
+     * render() only receives PlayerRenderState, not the entity.
      */
     @Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V",
             at = @At("HEAD"))
@@ -41,20 +35,28 @@ public class PlayerRendererMixin {
         this.vrmmod$currentPlayerUUID = player.getUUID();
     }
 
-    @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+    /**
+     * Intercept render() inherited from LivingEntityRenderer.
+     * PlayerRenderer does NOT override render(), so we target the parent signature
+     * with LivingEntityRenderState (type-erased).
+     */
+    @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
             at = @At("HEAD"), cancellable = true)
     private void vrmmod$onRender(
-            PlayerRenderState renderState,
+            LivingEntityRenderState livingRenderState,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
             CallbackInfo ci
     ) {
+        if (!(livingRenderState instanceof PlayerRenderState renderState)) {
+            return;
+        }
+
         UUID uuid = this.vrmmod$currentPlayerUUID;
         if (uuid == null) return;
 
-        // Skip VRM rendering for the LOCAL player in first-person view only.
-        // Other players' VRM models should still be visible.
+        // Skip VRM rendering for the LOCAL player in first-person view only
         Minecraft mc = Minecraft.getInstance();
         if (mc.options.getCameraType().isFirstPerson()
                 && mc.player != null && uuid.equals(mc.player.getUUID())) {
@@ -64,10 +66,7 @@ public class PlayerRendererMixin {
         VrmState state = VrmPlayerManager.INSTANCE.get(uuid);
         if (state == null) return;
 
-        // Build animation context from the render state
         PoseContext poseContext = buildPoseContext(renderState);
-
-        // Render the VRM model with animation and cancel vanilla rendering
         VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight);
         ci.cancel();
     }
@@ -79,17 +78,17 @@ public class PlayerRendererMixin {
         boolean isSprinting = renderState.speedValue > 0.9f;
 
         return new PoseContext(
-                /* partialTick */       0f,
-                /* limbSwing */         renderState.walkAnimationPos,
-                /* limbSwingAmount */   renderState.walkAnimationSpeed,
-                /* isSwinging */        isSwinging,
-                /* isSneaking */        renderState.isCrouching,
-                /* isSprinting */       isSprinting,
-                /* isSwimming */        renderState.isVisuallySwimming,
-                /* isFallFlying */      renderState.isFallFlying,
-                /* isRiding */          renderState.isPassenger,
-                /* headYaw */           headYaw,
-                /* headPitch */         headPitch
+                0f,
+                renderState.walkAnimationPos,
+                renderState.walkAnimationSpeed,
+                isSwinging,
+                renderState.isCrouching,
+                isSprinting,
+                renderState.isVisuallySwimming,
+                renderState.isFallFlying,
+                renderState.isPassenger,
+                headYaw,
+                headPitch
         );
     }
 }
