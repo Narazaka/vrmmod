@@ -3,6 +3,9 @@ loaderVersion = "[5,)"
 license = "MIT"
 issueTrackerURL = ""
 
+[[mixins]]
+config = "vrmmod.mixins.json"
+
 [[mods]]
 modId = "vrmmod"
 version = "${version}"
