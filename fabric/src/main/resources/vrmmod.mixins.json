@@ -2,9 +2,11 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.github.narazaka.vrmmod.fabric.mixin",
+  "refmap": "fabric-fabric-refmap.json",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "PlayerRendererMixin"
+    "PlayerRendererMixin",
+    "LivingEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
