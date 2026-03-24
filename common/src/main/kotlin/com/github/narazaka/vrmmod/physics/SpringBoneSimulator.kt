@@ -53,12 +53,18 @@ class SpringBoneSimulator(
             val joints = spring.joints
             val centerNodeIndex = spring.centerNodeIndex
 
-            // Compute center inverse if center is specified
-            val centerInverse: Matrix4f? = if (centerNodeIndex >= 0) {
-                val centerWorld = worldMatrices.getOrNull(centerNodeIndex)
-                centerWorld?.let { Matrix4f(it).invert() }
+            // Compute the fromModelSpace transform for initial storage
+            val fromModelSpace: Matrix4f = if (centerNodeIndex >= 0) {
+                val centerModel = worldMatrices.getOrNull(centerNodeIndex)
+                if (centerModel != null) {
+                    val centerWorldMat = Matrix4f(modelToWorld).mul(centerModel)
+                    val toModel = Matrix4f(modelToWorld).invert().mul(centerWorldMat)
+                    Matrix4f(toModel).invert()
+                } else {
+                    Matrix4f()
+                }
             } else {
-                null
+                Matrix4f(modelToWorld)
             }
 
             for (jointIdx in joints.indices) {
@@ -105,20 +111,11 @@ class SpringBoneSimulator(
                     state.boneAxis.set(0f, 1f, 0f)
                 }
 
-                // Store tail in appropriate space
-                if (centerInverse != null) {
-                    // Store in center space
-                    val tailInCenter = Vector3f(tailPos)
-                    centerInverse.transformPosition(tailInCenter)
-                    state.currentTail.set(tailInCenter)
-                    state.prevTail.set(tailInCenter)
-                } else {
-                    // Store in world space (using modelToWorld)
-                    val tailInWorld = Vector3f(tailPos)
-                    modelToWorld.transformPosition(tailInWorld)
-                    state.currentTail.set(tailInWorld)
-                    state.prevTail.set(tailInWorld)
-                }
+                // Store tail in stored space
+                val tailStored = Vector3f(tailPos)
+                fromModelSpace.transformPosition(tailStored)
+                state.currentTail.set(tailStored)
+                state.prevTail.set(tailStored)
             }
         }
         initialized = true
@@ -150,20 +147,27 @@ class SpringBoneSimulator(
             val joints = spring.joints
             val centerNodeIndex = spring.centerNodeIndex
 
-            // Compute center transforms if center is specified
-            val centerWorld: Matrix4f?
-            val centerInverse: Matrix4f?
+            // For ALL springs, we work in entity world space.
+            // If center is specified, we store tail in center-world space
+            // (center's model matrix * modelToWorld) so entity movement is tracked.
+            val toModelSpace: Matrix4f  // converts stored space -> model space
+            val fromModelSpace: Matrix4f  // converts model space -> stored space
             if (centerNodeIndex >= 0) {
-                val cw = worldMatrices.getOrNull(centerNodeIndex)
-                centerWorld = cw
-                centerInverse = cw?.let { Matrix4f(it).invert() }
+                val centerModel = worldMatrices.getOrNull(centerNodeIndex)
+                if (centerModel != null) {
+                    // center world = modelToWorld * centerModel
+                    val centerWorldMat = Matrix4f(modelToWorld).mul(centerModel)
+                    toModelSpace = Matrix4f(modelToWorld).invert().mul(centerWorldMat)
+                    fromModelSpace = Matrix4f(toModelSpace).invert()
+                } else {
+                    toModelSpace = Matrix4f()
+                    fromModelSpace = Matrix4f()
+                }
             } else {
-                centerWorld = null
-                centerInverse = null
+                // No center: store in entity world space
+                toModelSpace = Matrix4f(modelToWorld).invert()
+                fromModelSpace = Matrix4f(modelToWorld)
             }
-
-            // Inverse of modelToWorld for converting back from world to model space
-            val worldToModel = Matrix4f(modelToWorld).invert()
 
             val colliders = resolveColliders(spring.colliderGroupIndices, worldMatrices)
 
@@ -182,21 +186,10 @@ class SpringBoneSimulator(
                 worldMatrix.getNormalizedRotation(worldRot)
 
                 // Convert stored tail positions to model space for physics
-                val currentTail: Vector3f
-                val prevTail: Vector3f
-                if (centerWorld != null) {
-                    // Stored in center space -> convert to model space
-                    currentTail = Vector3f(state.currentTail)
-                    centerWorld.transformPosition(currentTail)
-                    prevTail = Vector3f(state.prevTail)
-                    centerWorld.transformPosition(prevTail)
-                } else {
-                    // Stored in entity world space -> convert to model space
-                    currentTail = Vector3f(state.currentTail)
-                    worldToModel.transformPosition(currentTail)
-                    prevTail = Vector3f(state.prevTail)
-                    worldToModel.transformPosition(prevTail)
-                }
+                val currentTail = Vector3f(state.currentTail)
+                toModelSpace.transformPosition(currentTail)
+                val prevTail = Vector3f(state.prevTail)
+                toModelSpace.transformPosition(prevTail)
 
                 // 2a: Inertia (Verlet integration with drag)
                 val inertia = Vector3f(currentTail).sub(prevTail)
@@ -227,24 +220,13 @@ class SpringBoneSimulator(
                 // 2f: Collider collision
                 resolveCollisions(nextTail, headPos, state.boneLength, joint.hitRadius, colliders)
 
-                // 2g: Store tail back in appropriate space
-                if (centerInverse != null) {
-                    // Convert model space -> center space for storage
-                    val nextInCenter = Vector3f(nextTail)
-                    centerInverse.transformPosition(nextInCenter)
-                    val curInCenter = Vector3f(currentTail)
-                    centerInverse.transformPosition(curInCenter)
-                    state.prevTail.set(curInCenter)
-                    state.currentTail.set(nextInCenter)
-                } else {
-                    // Convert model space -> entity world space for storage
-                    val nextInWorld = Vector3f(nextTail)
-                    modelToWorld.transformPosition(nextInWorld)
-                    val curInWorld = Vector3f(currentTail)
-                    modelToWorld.transformPosition(curInWorld)
-                    state.prevTail.set(curInWorld)
-                    state.currentTail.set(nextInWorld)
-                }
+                // 2g: Store tail back in stored space
+                val nextStored = Vector3f(nextTail)
+                fromModelSpace.transformPosition(nextStored)
+                val curStored = Vector3f(currentTail)
+                fromModelSpace.transformPosition(curStored)
+                state.prevTail.set(curStored)
+                state.currentTail.set(nextStored)
 
                 // 2h: Compute rotation override (in model space)
                 val invWorldRot = Quaternionf(worldRot).conjugate()
