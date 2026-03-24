@@ -39,6 +39,8 @@ data class PoseContext(
     val headYaw: Float,
     /** Head pitch, in degrees. */
     val headPitch: Float,
+    /** Body yaw in world space, in degrees. Used for model Y rotation. */
+    val bodyYaw: Float = 0f,
 )
 
 /**

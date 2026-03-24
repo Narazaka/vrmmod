@@ -62,18 +62,22 @@ class VanillaPoseProvider : PoseProvider {
         )
     }
 
-    // ---- Arms (walking swing, opposite phase to legs) ----
+    // ---- Arms (idle rest + walking swing) ----
 
     private fun applyArms(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
+        // VRM T-pose has arms horizontal. Rotate down ~75 degrees to a natural rest pose.
+        val restAngle = Math.toRadians(75.0).toFloat()
+
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // VRM T-pose has arms extended; we rotate around the shoulder X axis
+        // Right arm: rotate Z to bring arm down, then X for walk swing
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(swing),
+            rotation = Quaternionf().rotateZ(restAngle).rotateX(swing),
         )
+        // Left arm: rotate Z opposite direction to bring arm down
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(-swing),
+            rotation = Quaternionf().rotateZ(-restAngle).rotateX(-swing),
         )
     }
 
@@ -103,6 +107,24 @@ class VanillaPoseProvider : PoseProvider {
                 rotation = Quaternionf(headPose.rotation).rotateX(-leanRad),
             )
         }
+        // Bend knees slightly for crouching
+        val kneeBend = Math.toRadians(30.0).toFloat()
+        val hipBend = Math.toRadians(20.0).toFloat()
+
+        val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
+        val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
+        poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
+            rotation = Quaternionf(existingRightLeg?.rotation ?: Quaternionf()).rotateX(hipBend),
+        )
+        poses[HumanBone.LEFT_UPPER_LEG] = BonePose(
+            rotation = Quaternionf(existingLeftLeg?.rotation ?: Quaternionf()).rotateX(hipBend),
+        )
+        poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
+            rotation = Quaternionf().rotateX(-kneeBend),
+        )
+        poses[HumanBone.LEFT_LOWER_LEG] = BonePose(
+            rotation = Quaternionf().rotateX(-kneeBend),
+        )
     }
 
     // ---- Swimming ----

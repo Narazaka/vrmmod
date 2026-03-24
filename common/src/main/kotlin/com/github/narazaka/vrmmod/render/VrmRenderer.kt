@@ -56,6 +56,10 @@ object VrmRenderer {
 
         poseStack.pushPose()
 
+        // Rotate model to face the player's body direction
+        val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
+
         // glTF uses right-handed coordinates; Minecraft uses left-handed.
         // Flip Z axis to convert.
         poseStack.scale(1f, 1f, -1f)

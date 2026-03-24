@@ -70,7 +70,8 @@ public class LivingEntityRendererMixin {
                 /* isFallFlying */      renderState.isFallFlying,
                 /* isRiding */          renderState.isPassenger,
                 /* headYaw */           headYaw,
-                /* headPitch */         headPitch
+                /* headPitch */         headPitch,
+                /* bodyYaw */           renderState.bodyRot
         );
     }
 }
