@@ -98,15 +98,13 @@ object VrmRenderer {
             val boneNode = model.humanoid.humanBones[bone] ?: continue
             val nodeIndex = boneNode.nodeIndex
             val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
-            // Apply pose rotation in parent space (before rest rotation):
-            // finalLocal = T_rest * T_pose * R_pose * R_rest * S_rest * S_pose
-            // This makes the pose rotation act in the parent's coordinate space,
-            // not the bone's local rest-pose space.
+            // Apply pose rotation in bone's local rest-pose space:
+            // finalLocal = T_rest * T_pose * R_rest * R_pose * S_rest * S_pose
             val matrix = Matrix4f()
                 .translate(node.translation)
                 .translate(pose.translation)
-                .rotate(pose.rotation)
                 .rotate(node.rotation)
+                .rotate(pose.rotation)
                 .scale(node.scale)
                 .scale(pose.scale)
             overrides[nodeIndex] = matrix

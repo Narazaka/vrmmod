@@ -41,7 +41,8 @@ class VanillaPoseProvider : PoseProvider {
         val yawRad = Math.toRadians(ctx.headYaw.toDouble()).toFloat()
         val pitchRad = Math.toRadians(ctx.headPitch.toDouble()).toFloat()
 
-        // VRM head: Y-axis = yaw (left-right, negated for VRM coordinate), X-axis = pitch
+        // Head rotation: yaw (Y-axis) and pitch (X-axis)
+        // Use negative yaw for VRM coordinate convention
         poses[HumanBone.HEAD] = BonePose(
             rotation = Quaternionf().rotateY(-yawRad).rotateX(pitchRad),
         )
@@ -71,13 +72,13 @@ class VanillaPoseProvider : PoseProvider {
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // In parent space: X = forward/back swing, Z = arm hang down
-        // Quaternion composition: rotateX first, then rotateZ
+        // Local space: Z rotation brings arm down, then X swings forward/back
+        // in the arm's local frame (which is now pointing downward)
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(-swing).rotateZ(restAngle),
+            rotation = Quaternionf().rotateZ(restAngle).rotateX(swing),
         )
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(swing).rotateZ(-restAngle),
+            rotation = Quaternionf().rotateZ(-restAngle).rotateX(swing),
         )
     }
 
