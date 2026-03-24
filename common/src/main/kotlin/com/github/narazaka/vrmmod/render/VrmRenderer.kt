@@ -25,6 +25,9 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
+    private var debugLogged = false
+    private var debugFrameCounter = 0
+
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *
@@ -54,6 +57,36 @@ object VrmRenderer {
             emptyList()
         }
 
+        // Debug: log once
+        if (!debugLogged) {
+            debugLogged = true
+            val log = com.github.narazaka.vrmmod.VrmMod.logger
+            log.info("[VRM DEBUG] bonePoseMap size: {}, nodeOverrides size: {}, skinningMatrices size: {}",
+                bonePoseMap.size, nodeOverrides.size, skinningMatrices.size)
+            log.info("[VRM DEBUG] bones in poseMap: {}", bonePoseMap.keys)
+            log.info("[VRM DEBUG] skeleton joints: {}, nodes: {}", model.skeleton.jointNodeIndices.size, model.skeleton.nodes.size)
+            log.info("[VRM DEBUG] poseContext: limbSwing={}, limbSwingAmount={}, sneaking={}, headYaw={}, headPitch={}, swimming={}, fallFlying={}, riding={}, swinging={}, sprinting={}",
+                poseContext.limbSwing, poseContext.limbSwingAmount, poseContext.isSneaking,
+                poseContext.headYaw, poseContext.headPitch, poseContext.isSwimming,
+                poseContext.isFallFlying, poseContext.isRiding, poseContext.isSwinging, poseContext.isSprinting)
+            for ((meshIdx, mesh) in model.meshes.withIndex()) {
+                for ((primIdx, prim) in mesh.primitives.withIndex()) {
+                    log.info("[VRM DEBUG] mesh {} prim {}: verts={}, tris={}, joints={}, weights={}, imageIdx={}",
+                        meshIdx, primIdx, prim.vertexCount, prim.indices.size / 3,
+                        prim.joints.size / 4, prim.weights.size / 4, prim.imageIndex)
+                }
+            }
+        }
+
+        // Periodic pose debug (every 200 frames) to track limbSwing values during movement
+        debugFrameCounter++
+        if (debugFrameCounter % 200 == 0) {
+            val log = com.github.narazaka.vrmmod.VrmMod.logger
+            log.info("[VRM POSE] frame={} limbSwing={} limbSwingAmount={} sneaking={} headYaw={} headPitch={}",
+                debugFrameCounter, poseContext.limbSwing, poseContext.limbSwingAmount,
+                poseContext.isSneaking, poseContext.headYaw, poseContext.headPitch)
+        }
+
         poseStack.pushPose()
 
         // glTF uses right-handed coordinates; Minecraft uses left-handed.
@@ -66,13 +99,17 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
-        for (mesh in model.meshes) {
-            for (primitive in mesh.primitives) {
-                val texture = resolveTexture(state, primitive.imageIndex)
-                val vertexConsumer = bufferSource.getBuffer(
-                    RenderType.entityCutoutNoCull(texture),
-                )
+        // Group all primitives by their RenderType (texture) to avoid buffer
+        // interleaving.  Minecraft's BufferSource flushes the previous buffer
+        // when getBuffer() is called with a *different* RenderType, which would
+        // corrupt partially-submitted triangle data.
+        val allPrimitives = model.meshes.flatMap { it.primitives }
+        val grouped = allPrimitives.groupBy { resolveTexture(state, it.imageIndex) }
 
+        for ((texture, primitives) in grouped) {
+            val renderType = RenderType.entityCutoutNoCull(texture)
+            val vertexConsumer = bufferSource.getBuffer(renderType)
+            for (primitive in primitives) {
                 drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices)
             }
         }

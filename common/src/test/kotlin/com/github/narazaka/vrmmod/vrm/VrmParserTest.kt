@@ -90,6 +90,65 @@ class VrmParserTest {
     }
 
     @Test
+    fun `indices are within vertex range`() {
+        for ((meshIdx, mesh) in vrmModel.meshes.withIndex()) {
+            for ((primIdx, prim) in mesh.primitives.withIndex()) {
+                if (prim.indices.isEmpty() || prim.positions.isEmpty()) continue
+                val maxIndex = prim.indices.max()
+                val vertexCount = prim.vertexCount
+                assertTrue(
+                    maxIndex < vertexCount,
+                    "Mesh $meshIdx prim $primIdx: max index $maxIndex >= vertexCount $vertexCount"
+                )
+                assertTrue(prim.indices.min() >= 0, "Mesh $meshIdx prim $primIdx: negative index")
+                // Check positions array size matches vertexCount * 3
+                assertEquals(
+                    vertexCount * 3, prim.positions.size,
+                    "Mesh $meshIdx prim $primIdx: positions size ${prim.positions.size} != vertexCount*3 ${vertexCount * 3}"
+                )
+                // indices count should be multiple of 3 (triangles)
+                assertEquals(
+                    0, prim.indices.size % 3,
+                    "Mesh $meshIdx prim $primIdx: indices count ${prim.indices.size} not multiple of 3"
+                )
+                println("Mesh $meshIdx prim $primIdx: ${prim.vertexCount} verts, ${prim.indices.size / 3} tris, maxIdx=$maxIndex, joints=${prim.joints.size / 4} weights=${prim.weights.size / 4}")
+            }
+        }
+    }
+
+    @Test
+    fun `index ranges per primitive show shared vs separate vertex buffers`() {
+        for ((meshIdx, mesh) in vrmModel.meshes.withIndex()) {
+            println("=== Mesh $meshIdx: ${mesh.name}, ${mesh.primitives.size} primitives ===")
+            for ((primIdx, prim) in mesh.primitives.withIndex()) {
+                if (prim.indices.isEmpty()) {
+                    println("  prim $primIdx: no indices")
+                    continue
+                }
+                val minIdx = prim.indices.min()
+                val maxIdx = prim.indices.max()
+                println("  prim $primIdx: vertexCount=${prim.vertexCount}, indexCount=${prim.indices.size}, " +
+                    "indexRange=[$minIdx..$maxIdx], imageIndex=${prim.imageIndex}")
+            }
+            // Check if multiple primitives share vertex data
+            val vertexCounts = mesh.primitives.map { it.vertexCount }.distinct()
+            if (vertexCounts.size == 1 && mesh.primitives.size > 1) {
+                println("  NOTE: All ${mesh.primitives.size} primitives share vertexCount=${vertexCounts[0]} -- likely shared vertex buffer")
+                // Check if index ranges overlap
+                val ranges = mesh.primitives.filter { it.indices.isNotEmpty() }.map { it.indices.min()..it.indices.max() }
+                for (i in ranges.indices) {
+                    for (j in i + 1 until ranges.size) {
+                        val overlap = ranges[i].first <= ranges[j].last && ranges[j].first <= ranges[i].last
+                        if (overlap) {
+                            println("  WARNING: prim $i range ${ranges[i]} overlaps with prim $j range ${ranges[j]}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `expressions are parsed`() {
         // Expressions may or may not be present in the test VRM
         println("Expressions: ${vrmModel.expressions.size} (${vrmModel.expressions.map { it.name }})")
