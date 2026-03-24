@@ -23,3 +23,9 @@ run/
 
 # Loom
 remappedSrc/
+
+# Claude Code
+.claude/
+
+# Extracted class files
+de/
