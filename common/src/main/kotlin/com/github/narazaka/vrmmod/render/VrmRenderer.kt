@@ -30,6 +30,7 @@ object VrmRenderer {
     private const val DELTA_TIME = 1f / 20f
 
     private var springBoneDebugLogged = false
+    private var springBoneFrameCount = 0
 
     /**
      * Renders the VRM model with animation driven by [poseContext].
@@ -60,14 +61,14 @@ object VrmRenderer {
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // Build model-to-world transform matching the entity's rendering transform:
-            // bodyYaw rotation + 180-degree Y rotation + Z-flip + uniform scale
-            val modelToWorld = Matrix4f()
+            // Use poseStack's current matrix as the base for modelToWorld.
+            // At this point poseStack contains the entity's world position from MC.
+            // We then apply our model transforms on top.
+            val modelToWorld = Matrix4f(poseStack.last().pose())
                 .rotateY(-bodyYawRad)
                 .rotateY(Math.PI.toFloat())
                 .scale(1f, 1f, -1f)
                 .scale(scale, scale, scale)
-
             val springRotations = simulator.update(worldMatrices, DELTA_TIME, modelToWorld)
             if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
                 springBoneDebugLogged = true
