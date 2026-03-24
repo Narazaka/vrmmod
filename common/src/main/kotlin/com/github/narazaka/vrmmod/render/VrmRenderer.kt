@@ -25,6 +25,9 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
+    /** Fixed delta time per frame (1 tick = 1/20 second). */
+    private const val DELTA_TIME = 1f / 20f
+
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *
@@ -45,7 +48,23 @@ object VrmRenderer {
 
         // Compute bone poses from the animation provider
         val bonePoseMap = state.poseProvider.computePose(model.skeleton, poseContext)
-        val nodeOverrides = convertToNodeOverrides(model, bonePoseMap)
+        val nodeOverrides = convertToNodeOverrides(model, bonePoseMap).toMutableMap()
+
+        // SpringBone simulation
+        val simulator = state.springBoneSimulator
+        if (simulator != null) {
+            val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+            val springRotations = simulator.update(worldMatrices, DELTA_TIME)
+            // Apply spring bone rotations as local rotation overrides
+            for ((nodeIndex, rotation) in springRotations) {
+                val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
+                val matrix = Matrix4f()
+                    .translate(node.translation)
+                    .rotate(rotation)
+                    .scale(node.scale)
+                nodeOverrides[nodeIndex] = matrix
+            }
+        }
 
         // Compute skinning matrices
         val skinningMatrices = if (model.skeleton.jointNodeIndices.isNotEmpty()) {

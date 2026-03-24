@@ -1,6 +1,7 @@
 package com.github.narazaka.vrmmod.render
 
 import com.github.narazaka.vrmmod.VrmMod
+import com.github.narazaka.vrmmod.physics.SpringBoneSimulator
 import com.github.narazaka.vrmmod.vrm.VrmParser
 import net.minecraft.client.Minecraft
 import java.io.File
@@ -52,9 +53,15 @@ object VrmPlayerManager {
                         playerUUID,
                         model.textures,
                     )
+                    val simulator = if (model.springBone.springs.isNotEmpty()) {
+                        SpringBoneSimulator(model.springBone, model.skeleton)
+                    } else {
+                        null
+                    }
                     val state = VrmState(
                         model = model,
                         textureLocations = textureLocations,
+                        springBoneSimulator = simulator,
                     )
                     states[playerUUID] = state
                     VrmMod.logger.info(
