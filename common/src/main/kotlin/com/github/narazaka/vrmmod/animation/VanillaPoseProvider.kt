@@ -134,11 +134,10 @@ class VanillaPoseProvider : PoseProvider {
             )
         }
 
-        // Crouching posture: upper leg tilts forward, lower leg bends back more
-        // so the foot stays roughly under the body.
-        // upper leg forward + lower leg back at a larger angle = knees bent, feet on ground
-        val upperLegForward = Math.toRadians(35.0).toFloat()
-        val lowerLegBack = Math.toRadians(70.0).toFloat()  // > upper to bring foot back down
+        // Crouching posture: slight knee bend.
+        // Keep angles small — VRM has realistic proportions.
+        val upperLegForward = Math.toRadians(15.0).toFloat()
+        val lowerLegBack = Math.toRadians(30.0).toFloat()
 
         val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
         val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
