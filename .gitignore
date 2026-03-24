@@ -23,6 +23,3 @@ run/
 
 # Loom
 remappedSrc/
-
-# Test data (VRM files are large binary)
-testdata/*.vrm
