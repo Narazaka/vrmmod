@@ -1,0 +1,101 @@
+package com.github.narazaka.vrmmod.render
+
+import com.github.narazaka.vrmmod.VrmMod
+import com.github.narazaka.vrmmod.vrm.VrmParser
+import net.minecraft.client.Minecraft
+import net.minecraft.client.player.AbstractClientPlayer
+import java.io.File
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+
+/**
+ * Manages per-player VRM model loading, storage, and cleanup.
+ *
+ * VRM files are parsed asynchronously, then texture registration and
+ * state creation happen on the render thread.
+ */
+object VrmPlayerManager {
+
+    private val states = ConcurrentHashMap<UUID, VrmState>()
+    private val loading = ConcurrentHashMap<UUID, CompletableFuture<*>>()
+
+    /**
+     * Returns the [VrmState] for the given player, or null if not loaded.
+     */
+    fun get(player: AbstractClientPlayer): VrmState? {
+        return states[player.uuid]
+    }
+
+    /**
+     * Asynchronously loads a VRM file for the given player.
+     *
+     * Parsing happens off-thread; texture registration and state storage
+     * happen on the Minecraft render thread.
+     *
+     * @param playerUUID the UUID of the player
+     * @param file the VRM file to load
+     */
+    fun loadLocal(playerUUID: UUID, file: File) {
+        // Skip if already loaded or currently loading
+        if (states.containsKey(playerUUID) || loading.containsKey(playerUUID)) {
+            return
+        }
+
+        val future = CompletableFuture.supplyAsync {
+            VrmMod.logger.info("Parsing VRM file for player {}: {}", playerUUID, file.name)
+            VrmParser.parse(file.inputStream())
+        }.thenAccept { model ->
+            // Schedule texture registration on the render thread
+            Minecraft.getInstance().execute {
+                try {
+                    val textureLocations = VrmTextureManager.registerTextures(
+                        playerUUID,
+                        model.textures,
+                    )
+                    val state = VrmState(
+                        model = model,
+                        textureLocations = textureLocations,
+                    )
+                    states[playerUUID] = state
+                    VrmMod.logger.info(
+                        "VRM model loaded for player {}: {} ({} textures)",
+                        playerUUID,
+                        model.meta.name,
+                        textureLocations.size,
+                    )
+                } catch (e: Exception) {
+                    VrmMod.logger.error("Failed to register VRM textures for player {}", playerUUID, e)
+                } finally {
+                    loading.remove(playerUUID)
+                }
+            }
+        }.exceptionally { throwable ->
+            VrmMod.logger.error("Failed to parse VRM file for player {}", playerUUID, throwable)
+            loading.remove(playerUUID)
+            null
+        }
+
+        loading[playerUUID] = future
+    }
+
+    /**
+     * Unloads the VRM model and textures for the given player.
+     */
+    fun unload(playerUUID: UUID) {
+        loading.remove(playerUUID)?.cancel(false)
+        states.remove(playerUUID)
+        VrmTextureManager.unregisterTextures(playerUUID)
+    }
+
+    /**
+     * Unloads all VRM models and textures.
+     */
+    fun clear() {
+        for (uuid in loading.keys.toList()) {
+            loading.remove(uuid)?.cancel(false)
+        }
+        states.clear()
+        VrmTextureManager.clear()
+    }
+}
