@@ -3,7 +3,10 @@ package com.github.narazaka.vrmmod.animation
 import com.github.narazaka.vrmmod.vrm.HumanBone
 import com.github.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Quaternionf
+import org.joml.Vector3f
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.sin
 
 /**
@@ -52,12 +55,23 @@ class VanillaPoseProvider : PoseProvider {
         // Vanilla: cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount
         val swing = cos(ctx.limbSwing * 0.6662f) * 1.4f * ctx.limbSwingAmount
 
-        // Right leg swings forward when left goes back
+        // Upper legs swing forward/back
         poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(swing),
         )
         poses[HumanBone.LEFT_UPPER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(-swing),
+        )
+
+        // Lower legs: bend knee when leg is forward (positive X rotation = forward)
+        // When upper leg swings forward, lower leg bends back slightly (natural walk)
+        val rightKnee = max(0f, swing) * 0.5f
+        val leftKnee = max(0f, -swing) * 0.5f
+        poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
+            rotation = Quaternionf().rotateX(rightKnee),
+        )
+        poses[HumanBone.LEFT_LOWER_LEG] = BonePose(
+            rotation = Quaternionf().rotateX(leftKnee),
         )
     }
 
@@ -70,35 +84,47 @@ class VanillaPoseProvider : PoseProvider {
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // Parent space (poseRot * restRot in convertToNodeOverrides):
-        // X = forward/back swing in parent space, Z = arm hang down in parent space
+        // Parent space: X = forward/back swing, Z = arm hang down
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
             rotation = Quaternionf().rotateX(-swing).rotateZ(restAngle),
         )
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
             rotation = Quaternionf().rotateX(swing).rotateZ(-restAngle),
         )
+
+        // Lower arms: slight natural bend at elbow (~15 degrees)
+        val elbowBend = Math.toRadians(15.0).toFloat()
+        poses[HumanBone.RIGHT_LOWER_ARM] = BonePose(
+            rotation = Quaternionf().rotateX(elbowBend),
+        )
+        poses[HumanBone.LEFT_LOWER_ARM] = BonePose(
+            rotation = Quaternionf().rotateX(elbowBend),
+        )
     }
 
     // ---- Attack swing ----
 
     private fun applySwingAttack(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Swing the right arm down (negative X rotation)
         val existing = poses[HumanBone.RIGHT_UPPER_ARM]
         val baseRot = existing?.rotation ?: Quaternionf()
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
             rotation = Quaternionf(baseRot).rotateX(-1.2f),
+        )
+        // Bend elbow more during attack
+        poses[HumanBone.RIGHT_LOWER_ARM] = BonePose(
+            rotation = Quaternionf().rotateX(Math.toRadians(45.0).toFloat()),
         )
     }
 
     // ---- Sneaking ----
 
     private fun applySneaking(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Lean spine forward ~25 degrees
-        val leanRad = Math.toRadians(25.0).toFloat()
+        // Lean spine forward
+        val leanRad = Math.toRadians(20.0).toFloat()
         poses[HumanBone.SPINE] = BonePose(
             rotation = Quaternionf().rotateX(leanRad),
         )
+
         // Compensate head so it stays looking forward
         val headPose = poses[HumanBone.HEAD]
         if (headPose != null) {
@@ -106,9 +132,15 @@ class VanillaPoseProvider : PoseProvider {
                 rotation = Quaternionf(headPose.rotation).rotateX(-leanRad),
             )
         }
-        // Bend knees slightly for crouching
-        val kneeBend = Math.toRadians(30.0).toFloat()
-        val hipBend = Math.toRadians(20.0).toFloat()
+
+        // Lower hips to reduce floating appearance
+        poses[HumanBone.HIPS] = BonePose(
+            translation = Vector3f(0f, -0.06f, 0f),
+        )
+
+        // Bend upper legs forward and lower legs back for crouching
+        val hipBend = Math.toRadians(25.0).toFloat()
+        val kneeBend = Math.toRadians(45.0).toFloat()
 
         val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
         val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
@@ -129,7 +161,6 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Swimming ----
 
     private fun applySwimming(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Rotate hips to horizontal (~80 degrees forward pitch)
         val hipPitch = Math.toRadians(80.0).toFloat()
         poses[HumanBone.HIPS] = BonePose(
             rotation = Quaternionf().rotateX(hipPitch),
@@ -153,7 +184,7 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(armStroke - 0.5f),
         )
 
-        // Head compensates for hip pitch to look forward
+        // Head compensates for hip pitch
         applyHead(poses, ctx)
         val headPose = poses[HumanBone.HEAD]!!
         poses[HumanBone.HEAD] = headPose.copy(
@@ -164,13 +195,12 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Elytra ----
 
     private fun applyElytra(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Hips pitched forward
         val hipPitch = Math.toRadians(70.0).toFloat()
         poses[HumanBone.HIPS] = BonePose(
             rotation = Quaternionf().rotateX(hipPitch),
         )
 
-        // Arms spread (rotated up/outward in Z)
+        // Arms spread
         val armSpread = Math.toRadians(30.0).toFloat()
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
             rotation = Quaternionf().rotateZ(-armSpread),
@@ -199,7 +229,6 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Riding ----
 
     private fun applyRiding(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Legs spread and bent forward
         val legSpread = Math.toRadians(30.0).toFloat()
         val legPitch = Math.toRadians(-40.0).toFloat()
 
@@ -210,7 +239,6 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(legPitch).rotateZ(legSpread),
         )
 
-        // Lower legs bent back
         val kneeBend = Math.toRadians(50.0).toFloat()
         poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(kneeBend),
@@ -219,12 +247,13 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(kneeBend),
         )
 
-        // Arms rest at sides
+        // Arms resting at sides
+        val restAngle = Math.toRadians(75.0).toFloat()
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(Math.toRadians(-20.0).toFloat()),
+            rotation = Quaternionf().rotateZ(restAngle),
         )
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateX(Math.toRadians(-20.0).toFloat()),
+            rotation = Quaternionf().rotateZ(-restAngle),
         )
     }
 }
