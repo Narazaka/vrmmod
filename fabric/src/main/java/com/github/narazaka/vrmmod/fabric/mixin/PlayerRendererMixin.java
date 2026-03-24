@@ -10,53 +10,59 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.entity.state.PlayerRenderState;
-import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
-import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 /**
- * Mixin that intercepts PlayerRenderer.render() to substitute VRM model rendering
+ * Mixin that intercepts PlayerRenderer to substitute VRM model rendering
  * when a VRM model is loaded for the player.
+ *
+ * Uses extractRenderState to capture player UUID before render() is called,
+ * since render() only receives PlayerRenderState (no entity reference).
  */
 @Mixin(PlayerRenderer.class)
 public class PlayerRendererMixin {
 
-    @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("HEAD"), cancellable = true)
+    @Unique
+    private UUID vrmmod$currentPlayerUUID;
+
+    /**
+     * Captures the player's UUID during render state extraction,
+     * before render() is called.
+     */
+    @Inject(method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;F)V",
+            at = @At("HEAD"))
+    private void vrmmod$capturePlayer(AbstractClientPlayer player, PlayerRenderState state, float partialTick, CallbackInfo ci) {
+        this.vrmmod$currentPlayerUUID = player.getUUID();
+    }
+
+    @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At("HEAD"), cancellable = true)
     private void vrmmod$onRender(
-            LivingEntityRenderState livingRenderState,
+            PlayerRenderState renderState,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
             CallbackInfo ci
     ) {
-        // The render state is actually a PlayerRenderState when called from PlayerRenderer
-        if (!(livingRenderState instanceof PlayerRenderState renderState)) {
-            return;
-        }
+        UUID uuid = this.vrmmod$currentPlayerUUID;
+        if (uuid == null) return;
 
-        // Don't render VRM in first-person view
-        if (Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
-            return;
-        }
-
-        // Look up the player entity from the render state's entity ID
+        // Skip VRM rendering for the LOCAL player in first-person view only.
+        // Other players' VRM models should still be visible.
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) {
-            return;
-        }
-        Entity entity = mc.level.getEntity(renderState.id);
-        if (!(entity instanceof AbstractClientPlayer player)) {
+        if (mc.options.getCameraType().isFirstPerson()
+                && mc.player != null && uuid.equals(mc.player.getUUID())) {
             return;
         }
 
-        // Check if a VRM model is loaded for this player
-        VrmState state = VrmPlayerManager.INSTANCE.get(player);
-        if (state == null) {
-            return; // No VRM model; fall back to vanilla rendering
-        }
+        VrmState state = VrmPlayerManager.INSTANCE.get(uuid);
+        if (state == null) return;
 
         // Build animation context from the render state
         PoseContext poseContext = buildPoseContext(renderState);
@@ -66,19 +72,14 @@ public class PlayerRendererMixin {
         ci.cancel();
     }
 
-    /**
-     * Extracts animation-relevant fields from the MC render state into a PoseContext.
-     */
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
         float headYaw = renderState.yRot - renderState.bodyRot;
         float headPitch = renderState.xRot;
         boolean isSwinging = renderState.attackTime > 0f;
-        // MC 1.21.4 HumanoidRenderState has speedValue but no isSprinting flag;
-        // use speedValue threshold as a heuristic.
         boolean isSprinting = renderState.speedValue > 0.9f;
 
         return new PoseContext(
-                /* partialTick */       0f, // render state values are already interpolated
+                /* partialTick */       0f,
                 /* limbSwing */         renderState.walkAnimationPos,
                 /* limbSwingAmount */   renderState.walkAnimationSpeed,
                 /* isSwinging */        isSwinging,

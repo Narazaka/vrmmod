@@ -81,43 +81,6 @@ object VrmRenderer {
     }
 
     /**
-     * Renders the VRM model as a static T-pose (no animation).
-     *
-     * This overload is kept for backward compatibility (e.g. when no
-     * render state is available).
-     */
-    fun render(
-        state: VrmState,
-        poseStack: PoseStack,
-        bufferSource: MultiBufferSource,
-        packedLight: Int,
-    ) {
-        val model = state.model
-
-        poseStack.pushPose()
-
-        poseStack.scale(1f, 1f, -1f)
-
-        val scale = estimateScale(state)
-        poseStack.scale(scale, scale, scale)
-
-        val pose = poseStack.last()
-
-        for (mesh in model.meshes) {
-            for (primitive in mesh.primitives) {
-                val texture = resolveTexture(state, primitive.materialIndex)
-                val vertexConsumer = bufferSource.getBuffer(
-                    RenderType.entityCutoutNoCull(texture),
-                )
-
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, emptyList())
-            }
-        }
-
-        poseStack.popPose()
-    }
-
-    /**
      * Converts a [BonePoseMap] into per-node-index local transform overrides.
      *
      * For each animated bone, the override matrix combines the node's rest

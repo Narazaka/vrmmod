@@ -3,7 +3,6 @@ package com.github.narazaka.vrmmod.render
 import com.github.narazaka.vrmmod.VrmMod
 import com.github.narazaka.vrmmod.vrm.VrmParser
 import net.minecraft.client.Minecraft
-import net.minecraft.client.player.AbstractClientPlayer
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -21,10 +20,10 @@ object VrmPlayerManager {
     private val loading = ConcurrentHashMap<UUID, CompletableFuture<*>>()
 
     /**
-     * Returns the [VrmState] for the given player, or null if not loaded.
+     * Returns the [VrmState] for the given player UUID, or null if not loaded.
      */
-    fun get(player: AbstractClientPlayer): VrmState? {
-        return states[player.uuid]
+    fun get(playerUUID: UUID): VrmState? {
+        return states[playerUUID]
     }
 
     /**

@@ -26,8 +26,15 @@ data class VrmModConfig(
         fun load(configDir: File): VrmModConfig {
             val configFile = File(configDir, "vrmmod.json")
             if (!configFile.exists()) {
-                VrmMod.logger.info("No config file found at {}, using defaults", configFile.absolutePath)
-                return VrmModConfig()
+                VrmMod.logger.info("No config file found at {}, creating default", configFile.absolutePath)
+                val default = VrmModConfig()
+                try {
+                    configFile.parentFile.mkdirs()
+                    configFile.writeText(gson.toJson(default))
+                } catch (e: Exception) {
+                    VrmMod.logger.warn("Failed to write default config", e)
+                }
+                return default
             }
             return try {
                 val text = configFile.readText()
