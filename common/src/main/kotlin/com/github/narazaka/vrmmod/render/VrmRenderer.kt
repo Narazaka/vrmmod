@@ -56,9 +56,9 @@ object VrmRenderer {
 
         poseStack.pushPose()
 
-        // NOTE: bodyRot rotation is already applied to poseStack by
-        // LivingEntityRenderer before our mixin intercepts, so we do NOT
-        // apply it again here.
+        // Rotate model to face the player's body direction
+        val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
 
         // glTF uses right-handed coordinates; Minecraft uses left-handed.
         // Flip Z axis to convert.

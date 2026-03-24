@@ -42,9 +42,10 @@ class VanillaPoseProvider : PoseProvider {
         val pitchRad = Math.toRadians(ctx.headPitch.toDouble()).toFloat()
 
         // Head rotation: yaw (Y-axis) and pitch (X-axis)
-        // Use negative yaw for VRM coordinate convention
+        // Z-flip (scale 1,1,-1) in the renderer inverts Y rotation direction,
+        // so use positive yaw here
         poses[HumanBone.HEAD] = BonePose(
-            rotation = Quaternionf().rotateY(-yawRad).rotateX(pitchRad),
+            rotation = Quaternionf().rotateY(yawRad).rotateX(pitchRad),
         )
     }
 
