@@ -71,13 +71,13 @@ class VanillaPoseProvider : PoseProvider {
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // Arms: first apply walk swing (X rotation in shoulder space),
-        // then rotate Z to bring arm down. Order matters: X swing first, then Z rest.
+        // In parent space: X = forward/back swing, Z = arm hang down
+        // Quaternion composition: rotateX first, then rotateZ
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(restAngle).rotateX(-swing),
+            rotation = Quaternionf().rotateX(-swing).rotateZ(restAngle),
         )
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(-restAngle).rotateX(swing),
+            rotation = Quaternionf().rotateX(swing).rotateZ(-restAngle),
         )
     }
 
