@@ -56,15 +56,15 @@ object VrmRenderer {
 
         poseStack.pushPose()
 
-        // glTF/VRM uses right-hand Y-up with +Z forward.
-        // Minecraft render space also Y-up but +Z is south (away from camera default).
-        // Flip Z first, then apply body rotation so the rotation happens
-        // consistently in Minecraft's coordinate space.
-        poseStack.scale(1f, 1f, -1f)
-
-        // Rotate model to face the player's body direction (in MC space, after Z-flip)
+        // Body rotation in MC space
         val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
         poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
+
+        // VRM model faces +Z. After Z-flip it faces -Z (north in MC).
+        // MC entities face south (+Z) at yaw=0, so rotate 180 degrees,
+        // then Z-flip to convert coordinate system.
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
+        poseStack.scale(1f, 1f, -1f)
 
         // Scale model to approximately player height (~1.8 blocks).
         val scale = estimateScale(state)
