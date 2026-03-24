@@ -149,6 +149,29 @@ class VrmParserTest {
     }
 
     @Test
+    fun `dump hips children to check spine vs leg hierarchy`() {
+        val skeleton = vrmModel.skeleton
+        val humanoid = vrmModel.humanoid
+        val hipsNode = humanoid.humanBones[HumanBone.HIPS]!!
+        val hipsIdx = hipsNode.nodeIndex
+        val hips = skeleton.nodes[hipsIdx]
+        println("HIPS node $hipsIdx '${hips.name}' children: ${hips.childIndices}")
+        for (childIdx in hips.childIndices) {
+            val child = skeleton.nodes[childIdx]
+            println("  child $childIdx '${child.name}' children: ${child.childIndices}")
+        }
+        // Find SPINE's parent
+        val spineNode = humanoid.humanBones[HumanBone.SPINE]!!
+        val spineIdx = spineNode.nodeIndex
+        val spineParent = skeleton.nodes.indexOfFirst { it.childIndices.contains(spineIdx) }
+        println("SPINE node $spineIdx parent: $spineParent (${if (spineParent >= 0) skeleton.nodes[spineParent].name else "none"})")
+        // Find UPPER_LEG's parent
+        val rightLegNode = humanoid.humanBones[HumanBone.RIGHT_UPPER_LEG]!!
+        val rightLegParent = skeleton.nodes.indexOfFirst { it.childIndices.contains(rightLegNode.nodeIndex) }
+        println("RIGHT_UPPER_LEG node ${rightLegNode.nodeIndex} parent: $rightLegParent (${if (rightLegParent >= 0) skeleton.nodes[rightLegParent].name else "none"})")
+    }
+
+    @Test
     fun `dump humanoid bone rest rotations`() {
         val skeleton = vrmModel.skeleton
         val humanoid = vrmModel.humanoid

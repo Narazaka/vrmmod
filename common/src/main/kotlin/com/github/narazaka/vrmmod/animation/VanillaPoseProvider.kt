@@ -134,10 +134,10 @@ class VanillaPoseProvider : PoseProvider {
             )
         }
 
-        // Crouching posture: slight knee bend.
-        // Keep angles small — VRM has realistic proportions.
-        val upperLegForward = Math.toRadians(15.0).toFloat()
-        val lowerLegBack = Math.toRadians(30.0).toFloat()
+        // Crouching posture: upper leg forward, lower leg bends at knee.
+        // Negative X = forward for upper leg in parent space (VRM convention).
+        val upperLegForward = Math.toRadians(-45.0).toFloat()
+        val lowerLegBack = Math.toRadians(60.0).toFloat()
 
         val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
         val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
