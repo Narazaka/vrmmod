@@ -27,5 +27,9 @@ remappedSrc/
 # Claude Code
 .claude/
 
-# Extracted class files
+# Extracted class files (from javap/jar xf by subagents)
 de/
+com/
+net/
+*.class
+rendertype_full.txt
