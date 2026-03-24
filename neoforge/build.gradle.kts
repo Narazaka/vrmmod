@@ -24,6 +24,10 @@ dependencies {
 
     common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
+
+    // JglTF must be bundled into the mod jar (not provided by MC or NeoForge)
+    implementation("de.javagl:jgltf-model:2.0.4")
+    shadowCommon("de.javagl:jgltf-model:2.0.4")
 }
 
 tasks.processResources {

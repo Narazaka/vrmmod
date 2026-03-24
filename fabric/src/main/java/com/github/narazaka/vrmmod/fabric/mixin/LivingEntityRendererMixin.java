@@ -15,15 +15,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.github.narazaka.vrmmod.render.VrmRenderContext;
+
 import java.util.UUID;
 
-/**
- * Intercepts render() on LivingEntityRenderer (where it is actually declared)
- * to substitute VRM model rendering for players.
- *
- * PlayerRenderer inherits render() from LivingEntityRenderer without overriding,
- * so we must target LivingEntityRenderer directly.
- */
 @Mixin(LivingEntityRenderer.class)
 public class LivingEntityRendererMixin {
 

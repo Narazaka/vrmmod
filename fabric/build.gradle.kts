@@ -25,6 +25,10 @@ dependencies {
 
     common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionFabric")) { isTransitive = false }
+
+    // JglTF must be bundled into the mod jar (not provided by MC or Fabric)
+    implementation("de.javagl:jgltf-model:2.0.4")
+    shadowCommon("de.javagl:jgltf-model:2.0.4")
 }
 
 tasks.processResources {
