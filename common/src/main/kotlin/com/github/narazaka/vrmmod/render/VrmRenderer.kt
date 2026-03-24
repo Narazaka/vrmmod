@@ -68,7 +68,7 @@ object VrmRenderer {
 
         for (mesh in model.meshes) {
             for (primitive in mesh.primitives) {
-                val texture = resolveTexture(state, primitive.materialIndex)
+                val texture = resolveTexture(state, primitive.imageIndex)
                 val vertexConsumer = bufferSource.getBuffer(
                     RenderType.entityCutoutNoCull(texture),
                 )
@@ -125,15 +125,15 @@ object VrmRenderer {
     }
 
     /**
-     * Resolves the texture ResourceLocation for a given material index.
+     * Resolves the texture ResourceLocation for a given image index.
      */
-    private fun resolveTexture(state: VrmState, materialIndex: Int): ResourceLocation {
+    private fun resolveTexture(state: VrmState, imageIndex: Int): ResourceLocation {
         val locations = state.textureLocations
         if (locations.isEmpty()) {
             return ResourceLocation.withDefaultNamespace("textures/misc/unknown_pack.png")
         }
-        return if (materialIndex in locations.indices) {
-            locations[materialIndex]
+        return if (imageIndex in locations.indices) {
+            locations[imageIndex]
         } else {
             locations[0]
         }

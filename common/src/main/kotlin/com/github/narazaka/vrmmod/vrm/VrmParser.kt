@@ -11,6 +11,7 @@ import de.javagl.jgltf.model.AccessorFloatData
 import de.javagl.jgltf.model.AccessorByteData
 import de.javagl.jgltf.model.AccessorShortData
 import de.javagl.jgltf.model.AccessorIntData
+import de.javagl.jgltf.model.v2.MaterialModelV2
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -70,15 +71,23 @@ object VrmParser {
     }
 
     private fun extractMeshes(model: GltfModel): List<VrmMesh> {
+        val imageModels = model.imageModels
+        val materialModels = model.materialModels
         return model.meshModels.map { meshModel ->
             VrmMesh(
                 name = meshModel.name ?: "",
-                primitives = meshModel.meshPrimitiveModels.map { extractPrimitive(it) },
+                primitives = meshModel.meshPrimitiveModels.map {
+                    extractPrimitive(it, materialModels, imageModels)
+                },
             )
         }
     }
 
-    private fun extractPrimitive(primitive: MeshPrimitiveModel): VrmPrimitive {
+    private fun extractPrimitive(
+        primitive: MeshPrimitiveModel,
+        materialModels: List<de.javagl.jgltf.model.MaterialModel>,
+        imageModels: List<de.javagl.jgltf.model.ImageModel>,
+    ): VrmPrimitive {
         val positionAccessor = primitive.attributes["POSITION"]
         val normalAccessor = primitive.attributes["NORMAL"]
         val texCoordAccessor = primitive.attributes["TEXCOORD_0"]
@@ -105,10 +114,20 @@ object VrmParser {
             VrmMorphTarget(positionDeltas = posDeltas, normalDeltas = normDeltas)
         }
 
-        // Material index: get from the primitive's material
+        // Resolve material index in the global material list
         val materialIndex = primitive.materialModel?.let { mat ->
-            // No direct index accessor in JglTF model API - use -1 as default
-            -1
+            materialModels.indexOf(mat)
+        } ?: -1
+
+        // Resolve image index: material -> baseColorTexture -> imageModel -> index in imageModels
+        val imageIndex = primitive.materialModel?.let { mat ->
+            if (mat is MaterialModelV2) {
+                val textureModel = mat.baseColorTexture
+                val imageModel = textureModel?.imageModel
+                if (imageModel != null) imageModels.indexOf(imageModel) else -1
+            } else {
+                -1
+            }
         } ?: -1
 
         return VrmPrimitive(
@@ -120,6 +139,7 @@ object VrmParser {
             indices = indices,
             vertexCount = vertexCount,
             materialIndex = materialIndex,
+            imageIndex = imageIndex,
             morphTargets = morphTargets,
         )
     }

@@ -72,6 +72,24 @@ class VrmParserTest {
     }
 
     @Test
+    fun `primitives have valid imageIndex`() {
+        val allPrimitives = vrmModel.meshes.flatMap { it.primitives }
+        assertTrue(allPrimitives.isNotEmpty(), "Should have at least one primitive")
+
+        val textureCount = vrmModel.textures.size
+        val primsWithImage = allPrimitives.filter { it.imageIndex >= 0 }
+        assertTrue(primsWithImage.isNotEmpty(), "At least one primitive should have a valid imageIndex")
+
+        for (prim in primsWithImage) {
+            assertTrue(
+                prim.imageIndex < textureCount,
+                "imageIndex ${prim.imageIndex} should be < texture count $textureCount"
+            )
+        }
+        println("Primitives with valid imageIndex: ${primsWithImage.size}/${allPrimitives.size}, texture count: $textureCount")
+    }
+
+    @Test
     fun `expressions are parsed`() {
         // Expressions may or may not be present in the test VRM
         println("Expressions: ${vrmModel.expressions.size} (${vrmModel.expressions.map { it.name }})")

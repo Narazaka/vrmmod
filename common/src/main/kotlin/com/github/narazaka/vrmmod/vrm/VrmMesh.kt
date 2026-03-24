@@ -20,6 +20,8 @@ data class VrmPrimitive(
     val indices: IntArray = intArrayOf(),
     val vertexCount: Int,
     val materialIndex: Int = -1,
+    /** Index into VrmModel.textures (resolved from material -> baseColorTexture -> image). */
+    val imageIndex: Int = -1,
     val morphTargets: List<VrmMorphTarget> = emptyList(),
 ) {
     override fun equals(other: Any?): Boolean {
@@ -33,6 +35,7 @@ data class VrmPrimitive(
             indices.contentEquals(other.indices) &&
             vertexCount == other.vertexCount &&
             materialIndex == other.materialIndex &&
+            imageIndex == other.imageIndex &&
             morphTargets == other.morphTargets
     }
 
