@@ -120,8 +120,8 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Sneaking ----
 
     private fun applySneaking(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Lean spine forward
-        val leanRad = Math.toRadians(20.0).toFloat()
+        // Lean spine forward slightly
+        val leanRad = Math.toRadians(15.0).toFloat()
         poses[HumanBone.SPINE] = BonePose(
             rotation = Quaternionf().rotateX(leanRad),
         )
@@ -134,29 +134,8 @@ class VanillaPoseProvider : PoseProvider {
             )
         }
 
-        // Lower hips to reduce floating appearance
-        poses[HumanBone.HIPS] = BonePose(
-            translation = Vector3f(0f, -0.04f, 0f),
-        )
-
-        // Bend upper legs forward and lower legs back for crouching
-        val hipBend = Math.toRadians(10.0).toFloat()
-        val kneeBend = Math.toRadians(20.0).toFloat()
-
-        val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
-        val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
-        poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
-            rotation = Quaternionf(existingRightLeg?.rotation ?: Quaternionf()).rotateX(hipBend),
-        )
-        poses[HumanBone.LEFT_UPPER_LEG] = BonePose(
-            rotation = Quaternionf(existingLeftLeg?.rotation ?: Quaternionf()).rotateX(hipBend),
-        )
-        poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(kneeBend),
-        )
-        poses[HumanBone.LEFT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(kneeBend),
-        )
+        // MC handles the vertical offset for sneaking via entity position,
+        // so we only need a subtle pose. No hips translation needed.
     }
 
     // ---- Swimming ----
