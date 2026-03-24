@@ -54,7 +54,8 @@ public class LivingEntityRendererMixin {
     }
 
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
-        float headYaw = renderState.yRot - renderState.bodyRot;
+        // yRot appears to already be relative to body in MC 1.21.4 render state
+        float headYaw = renderState.yRot;
         float headPitch = renderState.xRot;
         boolean isSwinging = renderState.attackTime > 0f;
         boolean isSprinting = renderState.speedValue > 0.9f;

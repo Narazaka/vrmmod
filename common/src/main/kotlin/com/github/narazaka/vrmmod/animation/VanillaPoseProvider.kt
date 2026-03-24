@@ -41,11 +41,8 @@ class VanillaPoseProvider : PoseProvider {
         val yawRad = Math.toRadians(ctx.headYaw.toDouble()).toFloat()
         val pitchRad = Math.toRadians(ctx.headPitch.toDouble()).toFloat()
 
-        // Head rotation: yaw (Y-axis) and pitch (X-axis)
-        // Z-flip (scale 1,1,-1) in the renderer inverts Y rotation direction,
-        // so use positive yaw here
         poses[HumanBone.HEAD] = BonePose(
-            rotation = Quaternionf().rotateY(yawRad).rotateX(pitchRad),
+            rotation = Quaternionf().rotateY(-yawRad).rotateX(pitchRad),
         )
     }
 
