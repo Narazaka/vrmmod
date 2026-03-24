@@ -42,7 +42,7 @@ class VanillaPoseProvider : PoseProvider {
         val pitchRad = Math.toRadians(ctx.headPitch.toDouble()).toFloat()
 
         poses[HumanBone.HEAD] = BonePose(
-            rotation = Quaternionf().rotateY(-yawRad).rotateX(pitchRad),
+            rotation = Quaternionf().rotateY(yawRad).rotateX(pitchRad),
         )
     }
 
