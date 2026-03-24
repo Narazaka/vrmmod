@@ -200,6 +200,41 @@ class VrmParserTest {
     }
 
     @Test
+    fun `check which joints affect mesh vertices near bust`() {
+        // Check if bust spring bone nodes (13-16) have vertices weighted to them
+        val jointSet = vrmModel.skeleton.jointNodeIndices
+        val bustNodes = setOf(13, 14, 15, 16)
+        val bustJointIndices = bustNodes.mapNotNull { nodeIdx ->
+            val jIdx = jointSet.indexOf(nodeIdx)
+            if (jIdx >= 0) jIdx else null
+        }.toSet()
+        println("Bust node->joint mapping: ${bustNodes.zip(bustNodes.map { jointSet.indexOf(it) })}")
+
+        var totalBustWeighted = 0
+        for ((meshIdx, mesh) in vrmModel.meshes.withIndex()) {
+            for ((primIdx, prim) in mesh.primitives.withIndex()) {
+                if (prim.joints.isEmpty()) continue
+                var count = 0
+                for (v in 0 until prim.vertexCount) {
+                    for (i in 0 until 4) {
+                        val ji = prim.joints[v * 4 + i]
+                        val w = prim.weights[v * 4 + i]
+                        if (ji in bustJointIndices && w > 0.01f) {
+                            count++
+                            break
+                        }
+                    }
+                }
+                if (count > 0) {
+                    println("Mesh $meshIdx prim $primIdx: $count vertices weighted to bust joints")
+                    totalBustWeighted += count
+                }
+            }
+        }
+        println("Total vertices weighted to bust: $totalBustWeighted")
+    }
+
+    @Test
     fun `springbone nodes are in joint list`() {
         val skeleton = vrmModel.skeleton
         val jointSet = skeleton.jointNodeIndices.toSet()
