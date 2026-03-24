@@ -6,5 +6,6 @@ import net.fabricmc.api.ClientModInitializer
 class VrmModFabric : ClientModInitializer {
     override fun onInitializeClient() {
         VrmMod.init()
+        VrmMod.initClient()
     }
 }

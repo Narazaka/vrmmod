@@ -30,3 +30,6 @@ type = "required"
 versionRange = "[15.0.0,)"
 ordering = "NONE"
 side = "CLIENT"
+
+[[mixins]]
+config = "vrmmod.mixins.json"
