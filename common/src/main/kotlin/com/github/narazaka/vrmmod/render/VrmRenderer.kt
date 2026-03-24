@@ -56,9 +56,9 @@ object VrmRenderer {
 
         poseStack.pushPose()
 
-        // Rotate model to face the player's body direction
-        val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
-        poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
+        // NOTE: bodyRot rotation is already applied to poseStack by
+        // LivingEntityRenderer before our mixin intercepts, so we do NOT
+        // apply it again here.
 
         // glTF uses right-handed coordinates; Minecraft uses left-handed.
         // Flip Z axis to convert.
@@ -98,13 +98,13 @@ object VrmRenderer {
             val boneNode = model.humanoid.humanBones[bone] ?: continue
             val nodeIndex = boneNode.nodeIndex
             val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
-            // Apply pose rotation in bone's local rest-pose space:
-            // finalLocal = T_rest * T_pose * R_rest * R_pose * S_rest * S_pose
+            // Apply pose rotation in parent space (before rest rotation):
+            // finalLocal = T_rest * T_pose * R_pose * R_rest * S_rest * S_pose
             val matrix = Matrix4f()
                 .translate(node.translation)
                 .translate(pose.translation)
-                .rotate(node.rotation)
                 .rotate(pose.rotation)
+                .rotate(node.rotation)
                 .scale(node.scale)
                 .scale(pose.scale)
             overrides[nodeIndex] = matrix

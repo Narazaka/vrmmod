@@ -72,13 +72,13 @@ class VanillaPoseProvider : PoseProvider {
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // Local space: Z rotation brings arm down, then X swings forward/back
-        // in the arm's local frame (which is now pointing downward)
+        // Parent space (poseRot * restRot in convertToNodeOverrides):
+        // X = forward/back swing in parent space, Z = arm hang down in parent space
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(restAngle).rotateX(swing),
+            rotation = Quaternionf().rotateX(-swing).rotateZ(restAngle),
         )
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(-restAngle).rotateX(swing),
+            rotation = Quaternionf().rotateX(swing).rotateZ(-restAngle),
         )
     }
 

@@ -149,6 +149,34 @@ class VrmParserTest {
     }
 
     @Test
+    fun `dump humanoid bone rest rotations`() {
+        val skeleton = vrmModel.skeleton
+        val humanoid = vrmModel.humanoid
+        for ((bone, boneNode) in humanoid.humanBones) {
+            val node = skeleton.nodes[boneNode.nodeIndex]
+            val r = node.rotation
+            val isIdentity = r.x == 0f && r.y == 0f && r.z == 0f && r.w == 1f
+            if (!isIdentity) {
+                println("BONE ${bone.vrmName} (node ${boneNode.nodeIndex} '${node.name}'): rotation=(${r.x}, ${r.y}, ${r.z}, ${r.w})")
+            }
+        }
+        // Also dump HEAD and its parents
+        val headNode = humanoid.humanBones[HumanBone.HEAD]
+        if (headNode != null) {
+            println("--- HEAD chain ---")
+            var nodeIdx = headNode.nodeIndex
+            while (nodeIdx >= 0) {
+                val node = skeleton.nodes[nodeIdx]
+                val r = node.rotation
+                println("  node $nodeIdx '${node.name}': rot=(${r.x}, ${r.y}, ${r.z}, ${r.w}), trans=(${node.translation.x}, ${node.translation.y}, ${node.translation.z})")
+                // Find parent
+                val parent = skeleton.nodes.indexOfFirst { it.childIndices.contains(nodeIdx) }
+                nodeIdx = parent
+            }
+        }
+    }
+
+    @Test
     fun `expressions are parsed`() {
         // Expressions may or may not be present in the test VRM
         println("Expressions: ${vrmModel.expressions.size} (${vrmModel.expressions.map { it.name }})")
