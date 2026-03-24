@@ -41,9 +41,9 @@ class VanillaPoseProvider : PoseProvider {
         val yawRad = Math.toRadians(ctx.headYaw.toDouble()).toFloat()
         val pitchRad = Math.toRadians(ctx.headPitch.toDouble()).toFloat()
 
-        // VRM head: Y-axis = yaw (left-right), X-axis = pitch (up-down)
+        // VRM head: Y-axis = yaw (left-right, negated for VRM coordinate), X-axis = pitch
         poses[HumanBone.HEAD] = BonePose(
-            rotation = Quaternionf().rotateY(yawRad).rotateX(pitchRad),
+            rotation = Quaternionf().rotateY(-yawRad).rotateX(pitchRad),
         )
     }
 
@@ -71,13 +71,13 @@ class VanillaPoseProvider : PoseProvider {
         // Arms swing opposite to legs, smaller amplitude
         val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
 
-        // Right arm: rotate Z to bring arm down, then X for walk swing
+        // Arms: first apply walk swing (X rotation in shoulder space),
+        // then rotate Z to bring arm down. Order matters: X swing first, then Z rest.
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(restAngle).rotateX(swing),
+            rotation = Quaternionf().rotateZ(restAngle).rotateX(-swing),
         )
-        // Left arm: rotate Z opposite direction to bring arm down
         poses[HumanBone.LEFT_UPPER_ARM] = BonePose(
-            rotation = Quaternionf().rotateZ(-restAngle).rotateX(-swing),
+            rotation = Quaternionf().rotateZ(-restAngle).rotateX(swing),
         )
     }
 
@@ -120,10 +120,10 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf(existingLeftLeg?.rotation ?: Quaternionf()).rotateX(hipBend),
         )
         poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(-kneeBend),
+            rotation = Quaternionf().rotateX(kneeBend),
         )
         poses[HumanBone.LEFT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(-kneeBend),
+            rotation = Quaternionf().rotateX(kneeBend),
         )
     }
 
