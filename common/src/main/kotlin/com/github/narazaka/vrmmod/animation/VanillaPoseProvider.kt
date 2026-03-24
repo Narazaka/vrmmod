@@ -149,10 +149,10 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf(existingLeftLeg?.rotation ?: Quaternionf()).rotateX(upperLegForward),
         )
         poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(-lowerLegBack),
+            rotation = Quaternionf().rotateX(lowerLegBack),
         )
         poses[HumanBone.LEFT_LOWER_LEG] = BonePose(
-            rotation = Quaternionf().rotateX(-lowerLegBack),
+            rotation = Quaternionf().rotateX(lowerLegBack),
         )
     }
 
