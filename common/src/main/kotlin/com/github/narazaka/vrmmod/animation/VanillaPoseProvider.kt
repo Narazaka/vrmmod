@@ -52,8 +52,9 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Legs (walking) ----
 
     private fun applyLegs(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Vanilla: cos(limbSwing * 0.6662) * 1.4 * limbSwingAmount
-        val swing = cos(ctx.limbSwing * 0.6662f) * 1.4f * ctx.limbSwingAmount
+        // Vanilla MC uses 1.4 but MC's box model has short legs.
+        // VRM has realistic proportions so a smaller amplitude looks natural.
+        val swing = cos(ctx.limbSwing * 0.6662f) * 0.5f * ctx.limbSwingAmount
 
         // Upper legs swing forward/back
         poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
@@ -81,8 +82,8 @@ class VanillaPoseProvider : PoseProvider {
         // VRM T-pose has arms horizontal. Rotate down ~75 degrees to a natural rest pose.
         val restAngle = Math.toRadians(75.0).toFloat()
 
-        // Arms swing opposite to legs, smaller amplitude
-        val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.8f * ctx.limbSwingAmount
+        // Arms swing opposite to legs, smaller amplitude than legs
+        val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.3f * ctx.limbSwingAmount
 
         // Parent space: X = forward/back swing, Z = arm hang down
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
@@ -135,12 +136,12 @@ class VanillaPoseProvider : PoseProvider {
 
         // Lower hips to reduce floating appearance
         poses[HumanBone.HIPS] = BonePose(
-            translation = Vector3f(0f, -0.06f, 0f),
+            translation = Vector3f(0f, -0.04f, 0f),
         )
 
         // Bend upper legs forward and lower legs back for crouching
-        val hipBend = Math.toRadians(25.0).toFloat()
-        val kneeBend = Math.toRadians(45.0).toFloat()
+        val hipBend = Math.toRadians(10.0).toFloat()
+        val kneeBend = Math.toRadians(20.0).toFloat()
 
         val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
         val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
