@@ -26,8 +26,8 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
-    /** Fixed delta time per frame (1 tick = 1/20 second). */
-    private const val DELTA_TIME = 1f / 20f
+    /** Fixed delta time per render frame (~60fps). */
+    private const val DELTA_TIME = 1f / 60f
 
     private var springBoneDebugLogged = false
     private var springBoneFrameCount = 0
