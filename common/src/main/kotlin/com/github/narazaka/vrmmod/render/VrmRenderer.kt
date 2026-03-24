@@ -26,6 +26,7 @@ object VrmRenderer {
     private const val DEFAULT_SCALE = 0.9f
 
     private var debugLogged = false
+    private var modeLogged = false
     private var debugFrameCounter = 0
 
     /**
@@ -51,7 +52,8 @@ object VrmRenderer {
         val nodeOverrides = convertToNodeOverrides(model, bonePoseMap)
 
         // Compute skinning matrices
-        val skinningMatrices = if (model.skeleton.jointNodeIndices.isNotEmpty()) {
+        // TODO: temporarily disabled for debugging mesh distortion
+        val skinningMatrices = if (false && model.skeleton.jointNodeIndices.isNotEmpty()) {
             VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides)
         } else {
             emptyList()
@@ -99,19 +101,24 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
-        // Group all primitives by their RenderType (texture) to avoid buffer
-        // interleaving.  Minecraft's BufferSource flushes the previous buffer
-        // when getBuffer() is called with a *different* RenderType, which would
-        // corrupt partially-submitted triangle data.
-        val allPrimitives = model.meshes.flatMap { it.primitives }
-        val grouped = allPrimitives.groupBy { resolveTexture(state, it.imageIndex) }
-
-        for ((texture, primitives) in grouped) {
+        // DEBUG: only draw first primitive of first mesh to isolate issue
+        val debugPrim = model.meshes.firstOrNull()?.primitives?.firstOrNull()
+        if (debugPrim != null) {
+            val texture = resolveTexture(state, debugPrim.imageIndex)
             val renderType = RenderType.entityCutoutNoCull(texture)
-            val vertexConsumer = bufferSource.getBuffer(renderType)
-            for (primitive in primitives) {
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices)
+
+            // Debug: log RenderType mode to check QUADS vs TRIANGLES
+            if (!modeLogged) {
+                modeLogged = true
+                val log = com.github.narazaka.vrmmod.VrmMod.logger
+                log.info("[VRM DEBUG] RenderType mode: {}", renderType.mode())
+                log.info("[VRM DEBUG] RenderType mode name: {}", renderType.mode().name)
+                log.info("[VRM DEBUG] RenderType format: {}", renderType.format())
             }
+
+            val vertexConsumer = bufferSource.getBuffer(renderType)
+            val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
+            drawPrimitive(debugPrim, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode)
         }
 
         poseStack.popPose()
@@ -179,6 +186,10 @@ object VrmRenderer {
     /**
      * Draws a single primitive's indexed triangles through the VertexConsumer.
      *
+     * When [isQuadMode] is true (Minecraft entity RenderTypes use QUADS), each
+     * triangle (v0, v1, v2) is emitted as a degenerate quad (v0, v1, v2, v2)
+     * so that the vertex data aligns with the 4-vertex-per-primitive expectation.
+     *
      * When [skinningMatrices] is non-empty and the primitive has joint/weight data,
      * each vertex is transformed by the skinning engine before being emitted.
      */
@@ -188,6 +199,7 @@ object VrmRenderer {
         pose: PoseStack.Pose,
         packedLight: Int,
         skinningMatrices: List<Matrix4f>,
+        isQuadMode: Boolean,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -204,72 +216,82 @@ object VrmRenderer {
         val vertJoints = if (hasSkinning) IntArray(4) else null
         val vertWeights = if (hasSkinning) FloatArray(4) else null
 
-        for (index in indices) {
-            var px = positions[index * 3]
-            var py = positions[index * 3 + 1]
-            var pz = positions[index * 3 + 2]
+        // Process triangles: indices are triplets (i0, i1, i2)
+        val triCount = indices.size / 3
+        for (tri in 0 until triCount) {
+            val baseIdx = tri * 3
+            // Emit 3 vertices of the triangle, plus a 4th (duplicate of v2) if QUADS mode
+            val verticesInPrimitive = if (isQuadMode) 4 else 3
+            for (v in 0 until verticesInPrimitive) {
+                // For the 4th vertex in quad mode, repeat the 3rd vertex (index 2)
+                val indexSlot = if (v < 3) v else 2
+                val index = indices[baseIdx + indexSlot]
 
-            var nx: Float
-            var ny: Float
-            var nz: Float
-            if (hasNormals) {
-                nx = normals[index * 3]
-                ny = normals[index * 3 + 1]
-                nz = normals[index * 3 + 2]
-            } else {
-                nx = 0f
-                ny = 1f
-                nz = 0f
-            }
+                var px = positions[index * 3]
+                var py = positions[index * 3 + 1]
+                var pz = positions[index * 3 + 2]
 
-            if (hasSkinning) {
-                // Extract per-vertex joint indices and weights (4 influences per vertex)
-                for (i in 0 until 4) {
-                    val dataIdx = index * 4 + i
-                    vertJoints!![i] = if (dataIdx < primitive.joints.size) primitive.joints[dataIdx] else 0
-                    vertWeights!![i] = if (dataIdx < primitive.weights.size) primitive.weights[dataIdx] else 0f
+                var nx: Float
+                var ny: Float
+                var nz: Float
+                if (hasNormals) {
+                    nx = normals[index * 3]
+                    ny = normals[index * 3 + 1]
+                    nz = normals[index * 3 + 2]
+                } else {
+                    nx = 0f
+                    ny = 1f
+                    nz = 0f
                 }
 
-                val skinnedPos = VrmSkinningEngine.skinVertex(
-                    Vector3f(px, py, pz),
-                    vertJoints!!,
-                    vertWeights!!,
-                    skinningMatrices,
-                )
-                px = skinnedPos.x
-                py = skinnedPos.y
-                pz = skinnedPos.z
+                if (hasSkinning) {
+                    for (i in 0 until 4) {
+                        val dataIdx = index * 4 + i
+                        vertJoints!![i] = if (dataIdx < primitive.joints.size) primitive.joints[dataIdx] else 0
+                        vertWeights!![i] = if (dataIdx < primitive.weights.size) primitive.weights[dataIdx] else 0f
+                    }
 
-                if (hasNormals) {
-                    val skinnedNormal = VrmSkinningEngine.skinNormal(
-                        Vector3f(nx, ny, nz),
-                        vertJoints,
-                        vertWeights,
+                    val skinnedPos = VrmSkinningEngine.skinVertex(
+                        Vector3f(px, py, pz),
+                        vertJoints!!,
+                        vertWeights!!,
                         skinningMatrices,
                     )
-                    nx = skinnedNormal.x
-                    ny = skinnedNormal.y
-                    nz = skinnedNormal.z
+                    px = skinnedPos.x
+                    py = skinnedPos.y
+                    pz = skinnedPos.z
+
+                    if (hasNormals) {
+                        val skinnedNormal = VrmSkinningEngine.skinNormal(
+                            Vector3f(nx, ny, nz),
+                            vertJoints,
+                            vertWeights,
+                            skinningMatrices,
+                        )
+                        nx = skinnedNormal.x
+                        ny = skinnedNormal.y
+                        nz = skinnedNormal.z
+                    }
                 }
-            }
 
-            val u: Float
-            val v: Float
-            if (hasUVs) {
-                u = texCoords[index * 2]
-                v = texCoords[index * 2 + 1]
-            } else {
-                u = 0f
-                v = 0f
-            }
+                val u: Float
+                val vCoord: Float
+                if (hasUVs) {
+                    u = texCoords[index * 2]
+                    vCoord = texCoords[index * 2 + 1]
+                } else {
+                    u = 0f
+                    vCoord = 0f
+                }
 
-            vertexConsumer
-                .addVertex(pose, px, py, pz)
-                .setColor(255, 255, 255, 255)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(packedLight)
-                .setNormal(pose, nx, ny, nz)
+                vertexConsumer
+                    .addVertex(pose, px, py, pz)
+                    .setColor(255, 255, 255, 255)
+                    .setUv(u, vCoord)
+                    .setOverlay(OverlayTexture.NO_OVERLAY)
+                    .setLight(packedLight)
+                    .setNormal(pose, nx, ny, nz)
+            }
         }
     }
 }
