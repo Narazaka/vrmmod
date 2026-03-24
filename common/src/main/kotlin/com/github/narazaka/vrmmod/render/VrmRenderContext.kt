@@ -3,10 +3,17 @@ package com.github.narazaka.vrmmod.render
 import java.util.UUID
 
 /**
- * Shared thread-local state for passing the player UUID from
+ * Shared thread-local state for passing data from
  * PlayerRendererMixin (extractRenderState) to LivingEntityRendererMixin (render).
  */
 object VrmRenderContext {
     @JvmField
     val CURRENT_PLAYER_UUID: ThreadLocal<UUID> = ThreadLocal()
+
+    @JvmField
+    val ENTITY_X: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
+    @JvmField
+    val ENTITY_Y: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
+    @JvmField
+    val ENTITY_Z: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
 }

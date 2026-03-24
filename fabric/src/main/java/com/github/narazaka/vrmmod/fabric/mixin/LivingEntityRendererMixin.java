@@ -72,7 +72,10 @@ public class LivingEntityRendererMixin {
                 renderState.isPassenger,
                 headYaw,
                 headPitch,
-                renderState.bodyRot
+                renderState.bodyRot,
+                VrmRenderContext.ENTITY_X.get(),
+                VrmRenderContext.ENTITY_Y.get(),
+                VrmRenderContext.ENTITY_Z.get()
         );
     }
 }

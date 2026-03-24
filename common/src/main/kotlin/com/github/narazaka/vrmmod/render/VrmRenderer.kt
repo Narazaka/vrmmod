@@ -61,10 +61,10 @@ object VrmRenderer {
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // Use poseStack's current matrix as the base for modelToWorld.
-            // At this point poseStack contains the entity's world position from MC.
-            // We then apply our model transforms on top.
-            val modelToWorld = Matrix4f(poseStack.last().pose())
+            // modelToWorld includes entity world position + model transforms.
+            // entityPos comes from PoseContext (set by Mixin from player position).
+            val modelToWorld = Matrix4f()
+                .translate(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
                 .rotateY(-bodyYawRad)
                 .rotateY(Math.PI.toFloat())
                 .scale(1f, 1f, -1f)
