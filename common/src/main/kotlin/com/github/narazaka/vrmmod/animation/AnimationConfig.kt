@@ -55,6 +55,7 @@ data class AnimationConfig(
             "run" to StateConfig("Running_A"),
             "jump" to StateConfig("Jump_Idle"),
             "sneak" to StateConfig("Sneaking"),
+            "sneakWalk" to StateConfig("Sneaking"),
             "swim" to StateConfig("Crawling"),
             "ride" to StateConfig("Sitting_Idle"),
             "elytra" to StateConfig("Jump_Idle"),

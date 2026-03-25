@@ -165,6 +165,7 @@ class AnimationPoseProvider(
             context.isSwimming -> "swim"
             context.isRiding -> "ride"
             !context.isOnGround -> "jump"
+            context.isSneaking && context.limbSwingAmount > config.walkThreshold -> "sneakWalk"
             context.isSneaking -> "sneak"
             context.limbSwingAmount > config.runThreshold -> "run"
             context.limbSwingAmount > config.walkThreshold -> "walk"

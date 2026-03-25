@@ -109,4 +109,70 @@ class VrmaAnalysisTest {
             println("[$i] name='${anim.name}', channels=${anim.channels.size}, duration=${maxTime}s")
         }
     }
+
+    @Test
+    fun `analyze all vrma files in large folder`() {
+        val vrmLargeDir = Path.of("../../vrm-anims/vrma-large")
+        val files = vrmLargeDir.toFile().listFiles { f -> f.extension == "vrma" } ?: return
+
+        println("\n=== VRMA Large Folder Analysis ===")
+        println("Found ${files.size} files\n")
+
+        for (file in files.sorted()) {
+            println("=== ${file.name} ===")
+            try {
+                val bytes = file.readBytes()
+                val model = GltfModelReader().readWithoutReferences(ByteArrayInputStream(bytes))
+
+                // Animations - just show names
+                val anims = model.animationModels
+                println("  Animation names:")
+                for ((i, anim) in anims.withIndex()) {
+                    println("    [$i] ${anim.name}")
+                }
+            } catch (e: Exception) {
+                println("  ERROR: ${e.message}")
+            }
+            println()
+        }
+    }
+
+    @Test
+    fun `analyze all vrma files in quaternius folder`() {
+        val quaterniusDir = Path.of("../../vrm-anims/vrma-quaternius")
+        val files = quaterniusDir.toFile().listFiles { f -> f.extension == "vrma" } ?: return
+
+        println("\n=== VRMA Quaternius Folder Analysis ===")
+        println("Found ${files.size} files\n")
+
+        for (file in files.sorted()) {
+            println("=== ${file.name} ===")
+            try {
+                val bytes = file.readBytes()
+                val model = GltfModelReader().readWithoutReferences(ByteArrayInputStream(bytes))
+
+                // Animations with duration and channels
+                val anims = model.animationModels
+                println("  Animations:")
+                for ((i, anim) in anims.withIndex()) {
+                    // Calculate duration from samplers
+                    var maxTime = 0f
+                    for (channel in anim.channels) {
+                        val sampler = channel.sampler
+                        val inputData = sampler?.input?.accessorData
+                        if (inputData is de.javagl.jgltf.model.AccessorFloatData) {
+                            for (k in 0 until inputData.numElements) {
+                                val t = inputData.get(k, 0)
+                                if (t > maxTime) maxTime = t
+                            }
+                        }
+                    }
+                    println("    [$i] name='${anim.name}', duration=${maxTime}s, channels=${anim.channels.size}")
+                }
+            } catch (e: Exception) {
+                println("  ERROR: ${e.message}")
+            }
+            println()
+        }
+    }
 }
