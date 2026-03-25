@@ -2,6 +2,31 @@
 
 Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD です。VRM 1.0 および VRM 0.x 形式に対応しています。
 
+## 対応
+
+- **Fabric** (Minecraft 1.21.4)
+- **NeoForge** (Minecraft 1.21.4)
+
+## 依存 MOD
+
+### Fabric
+
+- [Fabric API](https://modrinth.com/mod/fabric-api)
+- [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
+- [Architectury API](https://modrinth.com/mod/architectury-api)
+- [Cloth Config](https://modrinth.com/mod/cloth-config)（設定画面）
+- [Mod Menu](https://modrinth.com/mod/modmenu)（任意。設定画面へのアクセス用）
+
+### NeoForge
+
+- [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge)
+- [Architectury API](https://modrinth.com/mod/architectury-api)
+- [Cloth Config](https://modrinth.com/mod/cloth-config)（設定画面）
+
+## インストール
+
+[Releases](https://github.com/Narazaka/vrmmod/releases) から `fabric-0.1.0.jar` または `neoforge-0.1.0.jar` をダウンロードし、依存 MOD と一緒にmodsフォルダに配置する。
+
 ## 機能
 
 ### VRM アバター表示
@@ -123,27 +148,6 @@ GUI から変更すると即座にモデルがリロードされます。
 ### VRMA アニメーションの用意
 
 独自の `.vrma` アニメーションファイルを使いたい場合は、アニメーションファイルを任意のディレクトリに配置し、`animationDir` にそのディレクトリパスを設定します。`vrmmod-animations.json` の `states` でステートごとにクリップ名を割り当ててください。
-
-## 対応プラットフォーム
-
-- **Fabric** (Minecraft 1.21.4)
-- **NeoForge** (Minecraft 1.21.4)
-
-## 依存 MOD
-
-### Fabric
-
-- [Fabric API](https://modrinth.com/mod/fabric-api)
-- [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
-- [Architectury API](https://modrinth.com/mod/architectury-api)
-- [Cloth Config](https://modrinth.com/mod/cloth-config)（設定画面）
-- [Mod Menu](https://modrinth.com/mod/modmenu)（任意。設定画面へのアクセス用）
-
-### NeoForge
-
-- [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge)
-- [Architectury API](https://modrinth.com/mod/architectury-api)
-- [Cloth Config](https://modrinth.com/mod/cloth-config)（設定画面）
 
 ## ライセンス
 
