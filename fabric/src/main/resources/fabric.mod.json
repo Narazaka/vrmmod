@@ -15,13 +15,13 @@
     "client": [
       {
         "adapter": "kotlin",
-        "value": "com.github.narazaka.vrmmod.fabric.VrmModFabric"
+        "value": "net.narazaka.vrmmod.fabric.VrmModFabric"
       }
     ],
     "modmenu": [
       {
         "adapter": "kotlin",
-        "value": "com.github.narazaka.vrmmod.fabric.VrmModMenuIntegration"
+        "value": "net.narazaka.vrmmod.fabric.VrmModMenuIntegration"
       }
     ]
   },

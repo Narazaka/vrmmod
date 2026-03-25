@@ -14,10 +14,10 @@
 
 | ファイル | 役割 |
 |---------|------|
-| **Create:** `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0Converter.kt` | v0 JSON → v1 JSON 変換ロジック全体 |
-| **Modify:** `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmParser.kt` | v0/v1 分岐追加（拡張キー判定） |
-| **Modify:** `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParser.kt` | SpringBone の v0 変換結果を受け取る軽微な調整（必要に応じて） |
-| **Create:** `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt` | 変換ロジックの単体テスト |
+| **Create:** `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmV0Converter.kt` | v0 JSON → v1 JSON 変換ロジック全体 |
+| **Modify:** `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmParser.kt` | v0/v1 分岐追加（拡張キー判定） |
+| **Modify:** `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParser.kt` | SpringBone の v0 変換結果を受け取る軽微な調整（必要に応じて） |
+| **Create:** `common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt` | 変換ロジックの単体テスト |
 
 ---
 
@@ -26,13 +26,13 @@
 v0 humanoid（配列形式 + 親指リネーム）→ v1 humanoid（オブジェクト形式）
 
 **Files:**
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0Converter.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmV0Converter.kt`
 
 - [ ] **Step 1: Write failing test for humanoid conversion**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import com.google.gson.JsonParser
 import org.junit.jupiter.api.Assertions.*
@@ -92,7 +92,7 @@ Expected: FAIL — `VrmV0Converter` not found
 - [ ] **Step 3: Implement VrmV0Converter with humanoid conversion**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
@@ -170,8 +170,8 @@ v0 `blendShapeMaster.blendShapeGroups` → v1 `expressions.preset` / `expression
 - v0 には override/isBinary がない → デフォルト値
 
 **Files:**
-- Modify: `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt`
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmV0Converter.kt`
+- Modify: `common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmV0ConverterTest.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmV0Converter.kt`
 
 - [ ] **Step 1: Write failing tests for expression conversion**
 
@@ -996,7 +996,7 @@ git commit -m "feat(v0): add convertAll to unify v0->v1 conversion"
 `VrmParser.parse()` で拡張キーを判定し、v0 なら `VrmV0Converter` 経由で v1 パスに合流させる。
 
 **Files:**
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmParser.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmParser.kt`
 
 - [ ] **Step 1: Modify VrmParser.parse() to detect v0 and convert**
 
@@ -1084,7 +1084,7 @@ git commit -m "feat(v0): integrate VrmV0Converter into VrmParser for v0/v1 auto-
 v0 変換後は `JsonObject` が直接渡されるが、既存の `parseSpringBone` は `Any?` を受けて `toJsonObject()` で変換する。`JsonObject` が渡された場合は変換をスキップする。
 
 **Files:**
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParser.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParser.kt`
 
 - [ ] **Step 1: Update parseSpringBone to handle JsonObject directly**
 
@@ -1115,7 +1115,7 @@ git commit -m "fix: allow parseSpringBone to accept JsonObject directly for v0 p
 expression と firstPerson の変換で mesh→node 逆引きに使用される。
 
 **Files:**
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmParser.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmParser.kt`
 
 - [ ] **Step 1: Add buildMeshToNodeMap helper**
 

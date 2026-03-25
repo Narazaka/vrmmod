@@ -24,7 +24,7 @@ vrmmod/
 ├── common/
 │   ├── build.gradle.kts                         # Common module build (JglTF dep, Kotlin)
 │   └── src/
-│       ├── main/kotlin/com/github/narazaka/vrmmod/
+│       ├── main/kotlin/net/narazaka/vrmmod/
 │       │   ├── VrmMod.kt                        # Mod entrypoint (common init)
 │       │   └── vrm/
 │       │       ├── VrmModel.kt                  # Top-level VRM model data class
@@ -37,13 +37,13 @@ vrmmod/
 │       │       ├── VrmSpringBone.kt             # SpringBone definitions (stub for Phase 1)
 │       │       ├── VrmParser.kt                 # Orchestrates JglTF + extension parsing
 │       │       └── VrmExtensionParser.kt        # Parses VRMC_vrm etc. from JSON extensions
-│       └── test/kotlin/com/github/narazaka/vrmmod/vrm/
+│       └── test/kotlin/net/narazaka/vrmmod/vrm/
 │           ├── VrmParserTest.kt                 # Parser integration test with sample .vrm
 │           └── VrmExtensionParserTest.kt        # Extension JSON parsing unit tests
 ├── fabric/
 │   ├── build.gradle.kts                         # Fabric module build
 │   └── src/main/
-│       ├── kotlin/com/github/narazaka/vrmmod/fabric/
+│       ├── kotlin/net/narazaka/vrmmod/fabric/
 │       │   └── VrmModFabric.kt                  # Fabric entrypoint
 │       └── resources/
 │           ├── fabric.mod.json                  # Fabric mod metadata
@@ -51,7 +51,7 @@ vrmmod/
 ├── neoforge/
 │   ├── build.gradle.kts                         # NeoForge module build
 │   └── src/main/
-│       ├── kotlin/com/github/narazaka/vrmmod/neoforge/
+│       ├── kotlin/net/narazaka/vrmmod/neoforge/
 │       │   └── VrmModNeoForge.kt                # NeoForge entrypoint
 │       └── resources/
 │           └── META-INF/
@@ -64,7 +64,7 @@ vrmmod/
 ### Phase 2: Static Rendering (T-Pose)
 
 ```
-common/src/main/kotlin/com/github/narazaka/vrmmod/
+common/src/main/kotlin/net/narazaka/vrmmod/
 ├── render/
 │   ├── VrmRenderer.kt              # Core VRM rendering logic (mesh → VertexConsumer)
 │   ├── VrmTextureManager.kt        # DynamicTexture registration/cleanup
@@ -72,12 +72,12 @@ common/src/main/kotlin/com/github/narazaka/vrmmod/
 ├── client/
 │   └── VrmModClient.kt             # Client-side init (register key, load model on join)
 fabric/src/main/
-├── java/com/github/narazaka/vrmmod/fabric/mixin/
+├── java/net/narazaka/vrmmod/fabric/mixin/
 │   └── PlayerRendererMixin.java     # Fabric Mixin for PlayerRenderer
 ├── resources/
 │   └── vrmmod.mixins.json          # Updated with Mixin class
 neoforge/src/main/
-├── java/com/github/narazaka/vrmmod/neoforge/mixin/
+├── java/net/narazaka/vrmmod/neoforge/mixin/
 │   └── PlayerRendererMixin.java     # NeoForge Mixin for PlayerRenderer
 ├── resources/META-INF/
 │   └── vrmmod.mixins.json          # Updated with Mixin class
@@ -86,7 +86,7 @@ neoforge/src/main/
 ### Phase 3: Bone Animation
 
 ```
-common/src/main/kotlin/com/github/narazaka/vrmmod/
+common/src/main/kotlin/net/narazaka/vrmmod/
 ├── animation/
 │   ├── PoseProvider.kt              # Interface + BonePose, BonePoseMap, PoseContext
 │   ├── VanillaPoseProvider.kt       # Maps MC player state → VRM humanoid bone poses
@@ -111,9 +111,9 @@ common/src/main/kotlin/com/github/narazaka/vrmmod/
 - Create: `neoforge/build.gradle.kts`
 - Create: `fabric/src/main/resources/fabric.mod.json`
 - Create: `neoforge/src/main/resources/META-INF/neoforge.mods.toml`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/VrmMod.kt`
-- Create: `fabric/src/main/kotlin/com/github/narazaka/vrmmod/fabric/VrmModFabric.kt`
-- Create: `neoforge/src/main/kotlin/com/github/narazaka/vrmmod/neoforge/VrmModNeoForge.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/VrmMod.kt`
+- Create: `fabric/src/main/kotlin/net/narazaka/vrmmod/fabric/VrmModFabric.kt`
+- Create: `neoforge/src/main/kotlin/net/narazaka/vrmmod/neoforge/VrmModNeoForge.kt`
 
 **重要な注意:** Architectury のビルド構成は複雑で、バージョン依存が多い。最新の Architectury テンプレートジェネレーター (https://generate.architectury.dev/) の出力を参考にすること。以下は概念的な構成であり、実際のバージョン番号やAPI名は生成時の最新版に合わせる必要がある。
 
@@ -136,7 +136,7 @@ kotlin.code.style=official
 # Mod
 mod_id=vrmmod
 mod_version=0.1.0
-mod_group=com.github.narazaka.vrmmod
+mod_group=net.narazaka.vrmmod
 mod_name=VRM Mod
 mod_description=VRM avatar mod for Minecraft
 mod_author=narazaka
@@ -314,7 +314,7 @@ dependencies {
     "client": [
       {
         "adapter": "kotlin",
-        "value": "com.github.narazaka.vrmmod.fabric.VrmModFabric"
+        "value": "net.narazaka.vrmmod.fabric.VrmModFabric"
       }
     ]
   },
@@ -338,7 +338,7 @@ NeoForge 向けの mod メタデータ。
 ```json
 {
   "required": true,
-  "package": "com.github.narazaka.vrmmod.fabric.mixin",
+  "package": "net.narazaka.vrmmod.fabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [],
   "injectors": {
@@ -351,9 +351,9 @@ NeoForge 側も同様。
 
 - [ ] **Step 11: 最小限のエントリポイントクラスを作成**
 
-`common/src/main/kotlin/com/github/narazaka/vrmmod/VrmMod.kt`:
+`common/src/main/kotlin/net/narazaka/vrmmod/VrmMod.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod
+package net.narazaka.vrmmod
 
 object VrmMod {
     const val MOD_ID = "vrmmod"
@@ -364,11 +364,11 @@ object VrmMod {
 }
 ```
 
-`fabric/src/main/kotlin/com/github/narazaka/vrmmod/fabric/VrmModFabric.kt`:
+`fabric/src/main/kotlin/net/narazaka/vrmmod/fabric/VrmModFabric.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.fabric
+package net.narazaka.vrmmod.fabric
 
-import com.github.narazaka.vrmmod.VrmMod
+import net.narazaka.vrmmod.VrmMod
 import net.fabricmc.api.ClientModInitializer
 
 object VrmModFabric : ClientModInitializer {
@@ -444,20 +444,20 @@ git commit -m "chore: add test VRM file"
 **概要:** VRM 1.0 のデータを表現する Kotlin data class 群を定義する。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmModel.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmMeta.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmHumanoid.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmMesh.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmSkeleton.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmTexture.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmExpression.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmSpringBone.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmModel.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmMeta.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmHumanoid.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmMesh.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmSkeleton.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmTexture.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmExpression.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmSpringBone.kt`
 
 - [ ] **Step 1: HumanBone enum を定義**
 
 `VrmHumanoid.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import org.joml.Matrix4f
 
@@ -511,7 +511,7 @@ data class VrmHumanoid(
 
 `VrmMesh.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
@@ -535,7 +535,7 @@ data class VrmPrimitive(
 
 `VrmSkeleton.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import org.joml.Matrix4f
 import org.joml.Quaternionf
@@ -560,7 +560,7 @@ data class VrmSkeleton(
 
 `VrmTexture.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 data class VrmTexture(
     val index: Int,
@@ -572,7 +572,7 @@ data class VrmTexture(
 
 `VrmMeta.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 data class VrmMeta(
     val name: String,
@@ -587,7 +587,7 @@ data class VrmMeta(
 
 `VrmExpression.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 data class VrmExpression(
     val name: String,
@@ -604,7 +604,7 @@ data class MorphTargetBind(
 
 `VrmSpringBone.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 // Stub for Phase 1. Full implementation in Phase 4.
 data class VrmSpringBoneData(
@@ -620,7 +620,7 @@ data class VrmSpringBoneData(
 
 `VrmModel.kt`:
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 data class VrmModel(
     val meta: VrmMeta,
@@ -636,7 +636,7 @@ data class VrmModel(
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/
+git add common/src/main/kotlin/net/narazaka/vrmmod/vrm/
 git commit -m "feat: define VRM 1.0 internal data model classes"
 ```
 
@@ -647,12 +647,12 @@ git commit -m "feat: define VRM 1.0 internal data model classes"
 **概要:** JglTFで `.vrm` ファイルを読み込み、メッシュ・スキン・テクスチャ・ノードが取得できることを検証する。また、`extensions` フィールドの生JSONにアクセスできることを確認する（VRM拡張パースの前提条件）。
 
 **Files:**
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/JglTFPoCTest.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/vrm/JglTFPoCTest.kt`
 
 - [ ] **Step 1: テストクラスを作成**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import de.javagl.jgltf.model.GltfModel
 import de.javagl.jgltf.model.io.GltfModelReader
@@ -761,13 +761,13 @@ git commit -m "feat: PoC - verify JglTF can parse VRM and access extensions"
 **概要:** glTF の `extensions` フィールドから VRM 1.0 固有データ（VRMC_vrm: メタ、ヒューマノイド、Expression）をパースする。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParser.kt`
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParserTest.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParser.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParserTest.kt`
 
 - [ ] **Step 1: テストを書く**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -845,7 +845,7 @@ Expected: FAIL（`VrmExtensionParser` が未実装）
 - [ ] **Step 3: VrmExtensionParser を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import com.google.gson.JsonObject
 
@@ -908,8 +908,8 @@ Expected: ALL PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParser.kt \
-        common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmExtensionParserTest.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParser.kt \
+        common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmExtensionParserTest.kt
 git commit -m "feat: VRM 1.0 extension parser for meta, humanoid, expressions"
 ```
 
@@ -920,13 +920,13 @@ git commit -m "feat: VRM 1.0 extension parser for meta, humanoid, expressions"
 **概要:** JglTF と VrmExtensionParser を組み合わせ、`.vrm` ファイルから `VrmModel` を生成する統合パーサーを実装する。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmParser.kt`
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmParserTest.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmParser.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmParserTest.kt`
 
 - [ ] **Step 1: テストを書く**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
@@ -974,7 +974,7 @@ class VrmParserTest {
 - [ ] **Step 3: VrmParser を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.vrm
+package net.narazaka.vrmmod.vrm
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
@@ -1160,8 +1160,8 @@ object VrmParser {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/vrm/VrmParser.kt \
-        common/src/test/kotlin/com/github/narazaka/vrmmod/vrm/VrmParserTest.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/vrm/VrmParser.kt \
+        common/src/test/kotlin/net/narazaka/vrmmod/vrm/VrmParserTest.kt
 git commit -m "feat: integrated VRM parser combining JglTF and extension parser"
 ```
 
@@ -1172,15 +1172,15 @@ git commit -m "feat: integrated VRM parser combining JglTF and extension parser"
 **概要:** VrmTexture のバイナリデータを Minecraft の `DynamicTexture` / `TextureManager` に登録し、`ResourceLocation` を返す仕組みを実装する。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmTextureManager.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmTextureManager.kt`
 
 - [ ] **Step 1: VrmTextureManager を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.VrmMod
-import com.github.narazaka.vrmmod.vrm.VrmTexture
+import net.narazaka.vrmmod.VrmMod
+import net.narazaka.vrmmod.vrm.VrmTexture
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.DynamicTexture
@@ -1236,7 +1236,7 @@ object VrmTextureManager {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmTextureManager.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/render/VrmTextureManager.kt
 git commit -m "feat: VRM texture manager for DynamicTexture registration"
 ```
 
@@ -1249,15 +1249,15 @@ git commit -m "feat: VRM texture manager for DynamicTexture registration"
 **概要:** プレイヤー UUID と読み込み済み VrmModel を管理し、レンダラーに提供するマネージャー。非同期読み込みとフォールバックを扱う。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmPlayerManager.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmState.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmPlayerManager.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmState.kt`
 
 - [ ] **Step 1: VrmState を定義**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.vrm.VrmModel
+import net.narazaka.vrmmod.vrm.VrmModel
 import net.minecraft.resources.ResourceLocation
 
 data class VrmState(
@@ -1269,9 +1269,9 @@ data class VrmState(
 - [ ] **Step 2: VrmPlayerManager を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.vrm.VrmParser
+import net.narazaka.vrmmod.vrm.VrmParser
 import net.minecraft.client.player.AbstractClientPlayer
 import java.io.File
 import java.util.UUID
@@ -1304,7 +1304,7 @@ object VrmPlayerManager {
             net.minecraft.client.Minecraft.getInstance().execute(runnable)
         }).exceptionally { e ->
             // Log error and fallback to vanilla skin
-            com.github.narazaka.vrmmod.VrmMod.logger.error("Failed to load VRM model", e)
+            net.narazaka.vrmmod.VrmMod.logger.error("Failed to load VRM model", e)
             loading.remove(playerUUID)
             null
         }
@@ -1346,9 +1346,9 @@ object VrmMod {
 - [ ] **Step 4: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmState.kt \
-        common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmPlayerManager.kt \
-        common/src/main/kotlin/com/github/narazaka/vrmmod/VrmMod.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/render/VrmState.kt \
+        common/src/main/kotlin/net/narazaka/vrmmod/render/VrmPlayerManager.kt \
+        common/src/main/kotlin/net/narazaka/vrmmod/VrmMod.kt
 git commit -m "feat: VRM player manager with async loading and fallback"
 ```
 
@@ -1359,14 +1359,14 @@ git commit -m "feat: VRM player manager with async loading and fallback"
 **概要:** VrmModel のメッシュデータを `VertexConsumer` に書き込み、Tポーズ（スキニングなし）で描画するレンダラーを実装する。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmRenderer.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmRenderer.kt`
 
 - [ ] **Step 1: VrmRenderer を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.vrm.VrmPrimitive
+import net.narazaka.vrmmod.vrm.VrmPrimitive
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.MultiBufferSource
@@ -1414,7 +1414,7 @@ object VrmRenderer {
         poseStack.popPose()
     }
 
-    private fun applyModelScale(poseStack: PoseStack, model: com.github.narazaka.vrmmod.vrm.VrmModel) {
+    private fun applyModelScale(poseStack: PoseStack, model: net.narazaka.vrmmod.vrm.VrmModel) {
         // glTF/VRM 1.0 coordinate system: right-hand, Y-up, +Z forward (toward viewer)
         // Minecraft coordinate system: Y-up, +Z south (away from viewer in default camera)
         // Need to flip Z axis for correct facing direction
@@ -1423,7 +1423,7 @@ object VrmRenderer {
         // Scale VRM to match Minecraft player height (~1.8 blocks)
         // VRM models are in meters. Estimate model height from hips position.
         val hipsNodeIndex = model.humanoid.boneToNodeIndex[
-            com.github.narazaka.vrmmod.vrm.HumanBone.HIPS
+            net.narazaka.vrmmod.vrm.HumanBone.HIPS
         ]
         val hipsY = if (hipsNodeIndex != null) {
             model.skeleton.nodes[hipsNodeIndex].translation.y
@@ -1501,7 +1501,7 @@ object VrmRenderer {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmRenderer.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/render/VrmRenderer.kt
 git commit -m "feat: VRM renderer for static T-pose mesh drawing"
 ```
 
@@ -1512,19 +1512,19 @@ git commit -m "feat: VRM renderer for static T-pose mesh drawing"
 **概要:** Fabric / NeoForge それぞれの Mixin を Java で記述し、VRM 設定済みプレイヤーの描画を差し替える。
 
 **Files:**
-- Create: `fabric/src/main/java/com/github/narazaka/vrmmod/fabric/mixin/PlayerRendererMixin.java`
+- Create: `fabric/src/main/java/net/narazaka/vrmmod/fabric/mixin/PlayerRendererMixin.java`
 - Modify: `fabric/src/main/resources/vrmmod.mixins.json`
-- Create: `neoforge/src/main/java/com/github/narazaka/vrmmod/neoforge/mixin/PlayerRendererMixin.java`
+- Create: `neoforge/src/main/java/net/narazaka/vrmmod/neoforge/mixin/PlayerRendererMixin.java`
 - Create or Modify: `neoforge/src/main/resources/META-INF/vrmmod.mixins.json`
 
 - [ ] **Step 1: Fabric Mixin を作成**
 
 ```java
-package com.github.narazaka.vrmmod.fabric.mixin;
+package net.narazaka.vrmmod.fabric.mixin;
 
-import com.github.narazaka.vrmmod.render.VrmPlayerManager;
-import com.github.narazaka.vrmmod.render.VrmRenderer;
-import com.github.narazaka.vrmmod.render.VrmState;
+import net.narazaka.vrmmod.render.VrmPlayerManager;
+import net.narazaka.vrmmod.render.VrmRenderer;
+import net.narazaka.vrmmod.render.VrmState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -1568,7 +1568,7 @@ public class PlayerRendererMixin {
 ```json
 {
   "required": true,
-  "package": "com.github.narazaka.vrmmod.fabric.mixin",
+  "package": "net.narazaka.vrmmod.fabric.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlayerRendererMixin"
@@ -1581,7 +1581,7 @@ public class PlayerRendererMixin {
 
 - [ ] **Step 3: NeoForge 側も同様に作成**
 
-NeoForge の Mixin クラスはパッケージが `com.github.narazaka.vrmmod.neoforge.mixin` になる以外は Fabric 版と同一。NeoForge の render メソッドシグネチャが異なる場合は調整する。
+NeoForge の Mixin クラスはパッケージが `net.narazaka.vrmmod.neoforge.mixin` になる以外は Fabric 版と同一。NeoForge の render メソッドシグネチャが異なる場合は調整する。
 
 - [ ] **Step 4: Commit**
 
@@ -1598,13 +1598,13 @@ git commit -m "feat: PlayerRenderer Mixin for VRM avatar rendering"
 **概要:** クライアント起動時にキーバインドを登録し、ローカル VRM ファイルの読み込みをトリガーする仕組みを実装する。最小限のテスト用：config ファイルのパスから VRM を読み込む。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/client/VrmModClient.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/client/VrmModConfig.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/client/VrmModClient.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/client/VrmModConfig.kt`
 
 - [ ] **Step 1: VrmModConfig を実装（最小限）**
 
 ```kotlin
-package com.github.narazaka.vrmmod.client
+package net.narazaka.vrmmod.client
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -1634,10 +1634,10 @@ data class VrmModConfig(
 - [ ] **Step 2: VrmModClient を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.client
+package net.narazaka.vrmmod.client
 
-import com.github.narazaka.vrmmod.VrmMod
-import com.github.narazaka.vrmmod.render.VrmPlayerManager
+import net.narazaka.vrmmod.VrmMod
+import net.narazaka.vrmmod.render.VrmPlayerManager
 import dev.architectury.event.events.client.ClientPlayerEvent
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry
 import com.mojang.blaze3d.platform.InputConstants
@@ -1705,7 +1705,7 @@ Expected: VRM メッシュがプレイヤー位置に T ポーズで表示され
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/client/
+git add common/src/main/kotlin/net/narazaka/vrmmod/client/
 git commit -m "feat: client init with config loading and VRM model auto-load on join"
 ```
 
@@ -1716,17 +1716,17 @@ git commit -m "feat: client init with config loading and VRM model auto-load on 
 **概要:** アニメーションシステムの基盤を実装する。PoseProvider インターフェース、BonePose/PoseContext データクラス、ボーン行列（ローカル→ワールド）の計算エンジン。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/animation/PoseProvider.kt`
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmSkinningEngine.kt`
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/render/VrmSkinningEngineTest.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/animation/PoseProvider.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmSkinningEngine.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/render/VrmSkinningEngineTest.kt`
 
 - [ ] **Step 1: PoseProvider インターフェースを定義**
 
 ```kotlin
-package com.github.narazaka.vrmmod.animation
+package net.narazaka.vrmmod.animation
 
-import com.github.narazaka.vrmmod.vrm.HumanBone
-import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import net.narazaka.vrmmod.vrm.HumanBone
+import net.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Quaternionf
 import org.joml.Vector3f
 
@@ -1760,10 +1760,10 @@ interface PoseProvider {
 - [ ] **Step 2: スキニングエンジンのテストを書く**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.vrm.VrmNode
-import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import net.narazaka.vrmmod.vrm.VrmNode
+import net.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -1840,9 +1840,9 @@ class VrmSkinningEngineTest {
 - [ ] **Step 4: VrmSkinningEngine を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.render
+package net.narazaka.vrmmod.render
 
-import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import net.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -1957,9 +1957,9 @@ Expected: ALL PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/animation/PoseProvider.kt \
-        common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmSkinningEngine.kt \
-        common/src/test/kotlin/com/github/narazaka/vrmmod/render/VrmSkinningEngineTest.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/animation/PoseProvider.kt \
+        common/src/main/kotlin/net/narazaka/vrmmod/render/VrmSkinningEngine.kt \
+        common/src/test/kotlin/net/narazaka/vrmmod/render/VrmSkinningEngineTest.kt
 git commit -m "feat: PoseProvider interface and CPU skinning engine with bone matrices"
 ```
 
@@ -1970,15 +1970,15 @@ git commit -m "feat: PoseProvider interface and CPU skinning engine with bone ma
 **概要:** Minecraft のプレイヤー状態（歩行、攻撃、スニーク等）を VRM ヒューマノイドボーンの回転にマッピングする。バニラの `PlayerModel.setupAnim()` を参考に実装。
 
 **Files:**
-- Create: `common/src/main/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProvider.kt`
-- Create: `common/src/test/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt`
+- Create: `common/src/main/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProvider.kt`
+- Create: `common/src/test/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt`
 
 - [ ] **Step 1: テストを書く**
 
 ```kotlin
-package com.github.narazaka.vrmmod.animation
+package net.narazaka.vrmmod.animation
 
-import com.github.narazaka.vrmmod.vrm.*
+import net.narazaka.vrmmod.vrm.*
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -2086,10 +2086,10 @@ class VanillaPoseProviderTest {
 - [ ] **Step 3: VanillaPoseProvider を実装**
 
 ```kotlin
-package com.github.narazaka.vrmmod.animation
+package net.narazaka.vrmmod.animation
 
-import com.github.narazaka.vrmmod.vrm.HumanBone
-import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import net.narazaka.vrmmod.vrm.HumanBone
+import net.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import kotlin.math.cos
@@ -2164,8 +2164,8 @@ class VanillaPoseProvider : PoseProvider {
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProvider.kt \
-        common/src/test/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProvider.kt \
+        common/src/test/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt
 git commit -m "feat: VanillaPoseProvider maps MC player state to VRM bone poses"
 ```
 
@@ -2176,9 +2176,9 @@ git commit -m "feat: VanillaPoseProvider maps MC player state to VRM bone poses"
 **概要:** VrmRenderer を更新し、PoseProvider + VrmSkinningEngine による CPU スキニングを統合する。T ポーズから動的ポーズへの移行。
 
 **Files:**
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmRenderer.kt`
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmState.kt`
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmPlayerManager.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmRenderer.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmState.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/render/VrmPlayerManager.kt`
 
 - [ ] **Step 1: VrmState に PoseProvider を追加**
 
@@ -2366,10 +2366,10 @@ Expected: VRM モデルが歩行・攻撃・スニークのアニメーション
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmRenderer.kt \
-        common/src/main/kotlin/com/github/narazaka/vrmmod/render/VrmState.kt \
-        fabric/src/main/java/com/github/narazaka/vrmmod/fabric/mixin/PlayerRendererMixin.java \
-        neoforge/src/main/java/com/github/narazaka/vrmmod/neoforge/mixin/PlayerRendererMixin.java
+git add common/src/main/kotlin/net/narazaka/vrmmod/render/VrmRenderer.kt \
+        common/src/main/kotlin/net/narazaka/vrmmod/render/VrmState.kt \
+        fabric/src/main/java/net/narazaka/vrmmod/fabric/mixin/PlayerRendererMixin.java \
+        neoforge/src/main/java/net/narazaka/vrmmod/neoforge/mixin/PlayerRendererMixin.java
 git commit -m "feat: integrate CPU skinning with PoseProvider into VRM renderer"
 ```
 
@@ -2380,8 +2380,8 @@ git commit -m "feat: integrate CPU skinning with PoseProvider into VRM renderer"
 **概要:** VanillaPoseProvider に残りの主要アニメーション（水泳、エリトラ飛行、騎乗）を追加する。
 
 **Files:**
-- Modify: `common/src/main/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProvider.kt`
-- Modify: `common/src/test/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt`
+- Modify: `common/src/main/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProvider.kt`
+- Modify: `common/src/test/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt`
 
 - [ ] **Step 1: テストを追加**
 
@@ -2470,8 +2470,8 @@ if (context.isRiding) {
 - [ ] **Step 6: Commit**
 
 ```bash
-git add common/src/main/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProvider.kt \
-        common/src/test/kotlin/com/github/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt
+git add common/src/main/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProvider.kt \
+        common/src/test/kotlin/net/narazaka/vrmmod/animation/VanillaPoseProviderTest.kt
 git commit -m "feat: add swimming, elytra, and riding animations to VanillaPoseProvider"
 ```
 
