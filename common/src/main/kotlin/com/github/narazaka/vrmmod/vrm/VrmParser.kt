@@ -112,7 +112,7 @@ object VrmParser {
         val skeleton = extractSkeleton(model)
         val textures = extractTextures(model)
 
-        val vrmModel = VrmModel(
+        var vrmModel = VrmModel(
             meta = meta,
             humanoid = humanoid,
             meshes = meshes,
@@ -126,7 +126,17 @@ object VrmParser {
         )
 
         // VRM 0.x coordinate conversion: Z- forward → Z+ forward
-        return if (isV0) VrmV0Converter.convertCoordinates(vrmModel) else vrmModel
+        if (isV0) {
+            vrmModel = VrmV0Converter.convertCoordinates(vrmModel)
+        }
+
+        // Compute normalized bone info from the final (possibly v0-converted) skeleton.
+        // This follows three-vrm's VRMHumanoidRig._setupTransforms():
+        // pre-compute parentWorldRotation and boneRotation for each humanoid bone.
+        val normalizedBoneInfo = VrmModel.computeNormalizedBoneInfo(
+            vrmModel.humanoid, vrmModel.skeleton
+        )
+        return vrmModel.copy(normalizedBoneInfo = normalizedBoneInfo)
     }
 
     /**

@@ -213,18 +213,40 @@ object VrmRenderer {
             val nodeIndex = boneNode.nodeIndex
             val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
             val matrix = if (isAbsolute) {
-                // vrma: normalized rotation pre-multiplied by model rest rotation
-                // finalLocalRot = restRot * normalizedRot
-                // For hips translation: pose.translation replaces node.translation
-                // For other bones: use node.translation (no translation from animation)
-                val translation = if (pose.translation.x != 0f || pose.translation.y != 0f || pose.translation.z != 0f) {
-                    pose.translation  // hips: use animation translation directly
+                // vrma: normalized rotation converted to raw bone local space.
+                // Follows three-vrm's VRMHumanoidRig.update() transfer formula:
+                //   rawLocalRot = invParentWorldRot * normalizedRot * parentWorldRot * restLocalRot
+                val info = model.normalizedBoneInfo[bone]
+                val localRot = if (info != null) {
+                    val invParent = Quaternionf(info.parentWorldRotation).invert()
+                    Quaternionf(invParent)
+                        .mul(pose.rotation)
+                        .mul(info.parentWorldRotation)
+                        .mul(info.boneRotation)
                 } else {
-                    node.translation  // others: keep rest position
+                    // Fallback: no info available, use simple multiplication
+                    Quaternionf(node.rotation).mul(pose.rotation)
                 }
+
+                // For hips translation: convert from normalized world space to
+                // raw bone's parent local space (three-vrm: parent.matrixWorld.inverse())
+                val translation = if (pose.translation.x != 0f || pose.translation.y != 0f || pose.translation.z != 0f) {
+                    if (info != null && info.parentNodeIndex >= 0) {
+                        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+                        val parentWorldMatrix = worldMatrices[info.parentNodeIndex]
+                        val localPos = Vector3f(pose.translation)
+                        Matrix4f(parentWorldMatrix).invert().transformPosition(localPos)
+                        localPos
+                    } else {
+                        pose.translation
+                    }
+                } else {
+                    node.translation
+                }
+
                 Matrix4f()
                     .translate(translation)
-                    .rotate(Quaternionf(node.rotation).mul(pose.rotation))
+                    .rotate(localRot)
                     .scale(node.scale)
             } else {
                 // VanillaPoseProvider: delta rotation applied in parent space before rest
