@@ -150,18 +150,17 @@ object VrmRenderer {
             mesh.primitives.map { IndexedPrimitive(meshIndex, it) }
         }.filter { (meshIndex, _) ->
             if (!isFirstPerson) {
-                // Third-person: show everything except firstPersonOnly
                 val annotation = model.firstPersonAnnotations[meshIndex]
                 annotation != com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY
             } else {
-                // First-person: filter based on annotation or auto-detect
                 val annotation = model.firstPersonAnnotations[meshIndex]
                 when (annotation) {
                     com.github.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
                     com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> true
                     com.github.narazaka.vrmmod.vrm.FirstPersonType.THIRD_PERSON_ONLY -> false
-                    com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> !isHeadMesh(model, meshIndex)
-                    null -> !isHeadMesh(model, meshIndex) // no annotation = auto
+                    // AUTO and null: keep mesh, but skip head triangles in drawPrimitive
+                    com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> true
+                    null -> true
                 }
             }
         }
@@ -188,7 +187,15 @@ object VrmRenderer {
                         primitiveMorphWeights[key2.second] = weight
                     }
                 }
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode, primitiveMorphWeights)
+                // For first-person auto mode, pass head joint indices so drawPrimitive can skip head triangles
+                val headJoints = if (isFirstPerson) {
+                    val annotation = model.firstPersonAnnotations[meshIndex]
+                    if (annotation == null || annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO) {
+                        collectHeadJointIndices(model)
+                    } else emptySet()
+                } else emptySet()
+
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode, primitiveMorphWeights, headJoints)
             }
         }
 
@@ -253,12 +260,29 @@ object VrmRenderer {
     private val headMeshCache = mutableMapOf<Int, Boolean>()
 
     /**
-     * Checks if a mesh has vertices weighted to the head bone or its descendants.
-     * Per three-vrm: a mesh is "head mesh" if any vertex has weight to a bone
-     * that is HEAD or a descendant of HEAD in the skeleton hierarchy.
+     * Checks if a mesh is primarily associated with the head.
+     *
+     * Uses a majority-vote approach: if more than half the weighted vertices
+     * in the mesh are influenced by HEAD or its descendant joints, the mesh
+     * is considered a head mesh.
+     *
+     * Also uses mesh name heuristics as a fallback.
      */
     private fun isHeadMesh(model: VrmModel, meshIndex: Int): Boolean {
         headMeshCache[meshIndex]?.let { return it }
+
+        val mesh = model.meshes.getOrNull(meshIndex)
+        if (mesh == null) {
+            headMeshCache[meshIndex] = false
+            return false
+        }
+
+        // Name-based heuristic: "Face" mesh is head
+        val nameLower = mesh.name.lowercase()
+        if (nameLower.contains("face")) {
+            headMeshCache[meshIndex] = true
+            return true
+        }
 
         val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
         if (headBoneNode == null) {
@@ -267,37 +291,52 @@ object VrmRenderer {
         }
 
         // Collect all joint indices that are HEAD or descendants of HEAD
-        val headJointIndices = mutableSetOf<Int>()
-        val skeleton = model.skeleton
-        for ((jointIdx, nodeIdx) in skeleton.jointNodeIndices.withIndex()) {
-            if (isDescendantOfNode(skeleton, nodeIdx, headBoneNode.nodeIndex)) {
-                headJointIndices.add(jointIdx)
-            }
-        }
+        val headJointIndices = collectHeadJointIndices(model)
 
-        // Check if any primitive in this mesh has vertices weighted to head joints
-        val mesh = model.meshes.getOrNull(meshIndex)
-        if (mesh == null) {
-            headMeshCache[meshIndex] = false
-            return false
-        }
-
+        // Majority vote: count vertices primarily weighted to head joints
+        var headVertices = 0
+        var totalVertices = 0
         for (prim in mesh.primitives) {
             if (prim.joints.isEmpty()) continue
             for (v in 0 until prim.vertexCount) {
+                totalVertices++
+                // Find the joint with the highest weight for this vertex
+                var maxWeight = 0f
+                var maxJoint = -1
                 for (i in 0 until 4) {
-                    val ji = if (v * 4 + i < prim.joints.size) prim.joints[v * 4 + i] else 0
-                    val w = if (v * 4 + i < prim.weights.size) prim.weights[v * 4 + i] else 0f
-                    if (w > 0.01f && ji in headJointIndices) {
-                        headMeshCache[meshIndex] = true
-                        return true
+                    val idx = v * 4 + i
+                    if (idx >= prim.joints.size) break
+                    val w = if (idx < prim.weights.size) prim.weights[idx] else 0f
+                    if (w > maxWeight) {
+                        maxWeight = w
+                        maxJoint = prim.joints[idx]
                     }
                 }
+                if (maxJoint in headJointIndices) headVertices++
             }
         }
 
-        headMeshCache[meshIndex] = false
-        return false
+        // If majority of vertices are head-weighted, it's a head mesh
+        val isHead = totalVertices > 0 && headVertices.toFloat() / totalVertices > 0.5f
+        headMeshCache[meshIndex] = isHead
+        return isHead
+    }
+
+    private var headJointIndicesCache: Set<Int>? = null
+
+    private fun collectHeadJointIndices(model: VrmModel): Set<Int> {
+        headJointIndicesCache?.let { return it }
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
+            ?: return emptySet()
+        val skeleton = model.skeleton
+        val result = mutableSetOf<Int>()
+        for ((jointIdx, nodeIdx) in skeleton.jointNodeIndices.withIndex()) {
+            if (isDescendantOfNode(skeleton, nodeIdx, headBoneNode.nodeIndex)) {
+                result.add(jointIdx)
+            }
+        }
+        headJointIndicesCache = result
+        return result
     }
 
     private fun isDescendantOfNode(skeleton: com.github.narazaka.vrmmod.vrm.VrmSkeleton, nodeIndex: Int, ancestorIndex: Int): Boolean {
@@ -359,6 +398,7 @@ object VrmRenderer {
         skinningMatrices: List<Matrix4f>,
         isQuadMode: Boolean,
         morphWeights: Map<Int, Float> = emptyMap(),
+        skipHeadJoints: Set<Int> = emptySet(),
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -371,6 +411,8 @@ object VrmRenderer {
             primitive.joints.isNotEmpty() &&
             primitive.weights.isNotEmpty()
 
+        val shouldSkipHeadTris = skipHeadJoints.isNotEmpty() && hasSkinning
+
         // Reusable arrays for per-vertex joint/weight data
         val vertJoints = if (hasSkinning) IntArray(4) else null
         val vertWeights = if (hasSkinning) FloatArray(4) else null
@@ -379,6 +421,25 @@ object VrmRenderer {
         val triCount = indices.size / 3
         for (tri in 0 until triCount) {
             val baseIdx = tri * 3
+
+            // Skip triangles where all 3 vertices are primarily weighted to head joints
+            if (shouldSkipHeadTris) {
+                var headVertCount = 0
+                for (vi in 0 until 3) {
+                    val idx = indices[baseIdx + vi]
+                    // Find dominant joint for this vertex
+                    var maxW = 0f
+                    var maxJ = -1
+                    for (i in 0 until 4) {
+                        val di = idx * 4 + i
+                        if (di >= primitive.joints.size) break
+                        val w = if (di < primitive.weights.size) primitive.weights[di] else 0f
+                        if (w > maxW) { maxW = w; maxJ = primitive.joints[di] }
+                    }
+                    if (maxJ in skipHeadJoints) headVertCount++
+                }
+                if (headVertCount >= 3) continue // skip this triangle
+            }
             // Emit 3 vertices of the triangle, plus a 4th (duplicate of v2) if QUADS mode
             val verticesInPrimitive = if (isQuadMode) 4 else 3
             for (v in 0 until verticesInPrimitive) {
