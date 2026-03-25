@@ -30,7 +30,7 @@ class VrmModNeoForge(container: ModContainer) {
                     VrmFirstPersonRenderer.renderFirstPerson(
                         event.poseStack,
                         bufferSource,
-                        event.partialTick.gameTimeDeltaTicks,
+                        event.partialTick.getGameTimeDeltaPartialTick(false),
                     )
                     // Flush all batches so VRM geometry is committed to the render pipeline
                     bufferSource.endBatch()
