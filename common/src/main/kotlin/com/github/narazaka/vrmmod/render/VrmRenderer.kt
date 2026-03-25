@@ -61,18 +61,15 @@ object VrmRenderer {
         if (simulator != null) {
             val modelSpaceMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // Inject entity world position into worldMatrices so SpringBone
+            // Inject entity world transform into worldMatrices so SpringBone
             // sees true world-space positions (matching three-vrm's matrixWorld).
-            // Only translation is added - no rotation/scale to avoid Z-flip issues.
-            val entityX = poseContext.entityX
-            val entityY = poseContext.entityY
-            val entityZ = poseContext.entityZ
+            // Include entity position + bodyYaw rotation (Y-axis only).
+            // Z-flip and scale are NOT included (Z-flip can't be a quaternion).
+            val entityTransform = Matrix4f()
+                .translate(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
+                .rotateY(-bodyYawRad)
             val worldMatrices = modelSpaceMatrices.map { m ->
-                Matrix4f(m).also {
-                    it.m30(it.m30() + entityX)
-                    it.m31(it.m31() + entityY)
-                    it.m32(it.m32() + entityZ)
-                }
+                Matrix4f(entityTransform).mul(m)
             }
 
             val springRotations = simulator.update(worldMatrices, DELTA_TIME)
