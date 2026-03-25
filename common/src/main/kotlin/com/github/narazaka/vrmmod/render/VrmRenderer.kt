@@ -156,9 +156,15 @@ object VrmRenderer {
             val matrix = if (isAbsolute) {
                 // vrma: normalized rotation pre-multiplied by model rest rotation
                 // finalLocalRot = restRot * normalizedRot
+                // For hips translation: pose.translation replaces node.translation
+                // For other bones: use node.translation (no translation from animation)
+                val translation = if (pose.translation.x != 0f || pose.translation.y != 0f || pose.translation.z != 0f) {
+                    pose.translation  // hips: use animation translation directly
+                } else {
+                    node.translation  // others: keep rest position
+                }
                 Matrix4f()
-                    .translate(node.translation)
-                    .translate(pose.translation)
+                    .translate(translation)
                     .rotate(Quaternionf(node.rotation).mul(pose.rotation))
                     .scale(node.scale)
             } else {
