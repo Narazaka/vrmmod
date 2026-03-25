@@ -50,11 +50,11 @@ object VrmPlayerManager {
             VrmMod.logger.info("Parsing VRM file for player {}: {}", playerUUID, file.name)
             val model = VrmParser.parse(file.inputStream())
 
-            // Load animation clips from the animation directory
+            // Load animation clips from directory or bundled resources
             val clips = if (animationDir != null && animationDir.isDirectory) {
                 loadAnimationClips(animationDir)
             } else {
-                emptyMap()
+                loadBundledAnimationClips()
             }
 
             Pair(model, clips)
@@ -144,6 +144,36 @@ object VrmPlayerManager {
                 }
             } catch (e: Exception) {
                 VrmMod.logger.error("Failed to parse animation file: {}", vrmaFile.name, e)
+            }
+        }
+        return clips
+    }
+
+    /** Bundled animation resource files. */
+    private val BUNDLED_ANIMATIONS = listOf("UAL1_Standard.vrma")
+
+    /**
+     * Loads animation clips from bundled mod resources.
+     */
+    private fun loadBundledAnimationClips(): Map<String, com.github.narazaka.vrmmod.animation.AnimationClip> {
+        val clips = mutableMapOf<String, com.github.narazaka.vrmmod.animation.AnimationClip>()
+        for (filename in BUNDLED_ANIMATIONS) {
+            val resourcePath = "/assets/${VrmMod.MOD_ID}/animations/$filename"
+            try {
+                val stream = VrmPlayerManager::class.java.getResourceAsStream(resourcePath)
+                if (stream != null) {
+                    VrmMod.logger.info("Loading bundled animation: {}", filename)
+                    val parsed = VrmaParser.parse(stream)
+                    for (clip in parsed) {
+                        clips[clip.name] = clip
+                        VrmMod.logger.info("  Loaded clip '{}' (duration={}s, {} bones)", clip.name, clip.duration, clip.tracks.size)
+                    }
+                    stream.close()
+                } else {
+                    VrmMod.logger.warn("Bundled animation not found: {}", resourcePath)
+                }
+            } catch (e: Exception) {
+                VrmMod.logger.error("Failed to parse bundled animation: {}", filename, e)
             }
         }
         return clips
