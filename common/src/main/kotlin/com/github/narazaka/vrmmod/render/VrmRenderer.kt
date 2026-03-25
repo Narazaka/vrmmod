@@ -559,11 +559,8 @@ object VrmRenderer {
                     .setUv(u, vCoord)
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(packedLight)
-                    .setNormal(pose,
-                        if (com.github.narazaka.vrmmod.client.VrmModClient.currentConfig.smoothNormals) nx else 0f,
-                        if (com.github.narazaka.vrmmod.client.VrmModClient.currentConfig.smoothNormals) ny else 1f,
-                        if (com.github.narazaka.vrmmod.client.VrmModClient.currentConfig.smoothNormals) nz else 0f,
-                    )
+                    // TODO: When Iris MToon shader is implemented, use actual normals (nx, ny, nz) instead
+                    .setNormal(pose, 0f, 1f, 0f) // uniform upward normal for unlit look
             }
         }
     }

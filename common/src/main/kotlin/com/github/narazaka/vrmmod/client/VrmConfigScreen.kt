@@ -26,7 +26,6 @@ object VrmConfigScreen {
         var newAnimDir = config.animationDir ?: ""
         var newUseVrma = config.useVrmaAnimation
         var newFirstPersonMode = config.firstPersonMode
-        var newSmoothNormals = config.smoothNormals
 
         val builder = ConfigBuilder.create()
             .setParentScreen(parent)
@@ -37,7 +36,6 @@ object VrmConfigScreen {
                     animationDir = newAnimDir.ifBlank { null },
                     useVrmaAnimation = newUseVrma,
                     firstPersonMode = newFirstPersonMode,
-                    smoothNormals = newSmoothNormals,
                 )
                 VrmModClient.currentConfig = newConfig
                 VrmModConfig.save(configDir, newConfig)
@@ -84,17 +82,6 @@ object VrmConfigScreen {
                     Component.literal("VRM_VRM_CAMERA: VRM body, VRM eye height (future)"),
                 )
                 .setSaveConsumer { newFirstPersonMode = it }
-                .build()
-        )
-
-        general.addEntry(
-            entryBuilder.startBooleanToggle(Component.literal("Smooth Normals"), newSmoothNormals)
-                .setDefaultValue(false)
-                .setTooltip(
-                    Component.literal("Use smooth vertex normals for proper Iris shader lighting."),
-                    Component.literal("Disable for flat unlit look without shaders."),
-                )
-                .setSaveConsumer { newSmoothNormals = it }
                 .build()
         )
 
