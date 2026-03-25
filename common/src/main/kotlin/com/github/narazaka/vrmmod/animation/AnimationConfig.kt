@@ -65,7 +65,7 @@ data class AnimationConfig(
             "sneakWalk" to StateConfig("Crouch_Fwd_Loop"),
             "swim" to StateConfig("Swim_Fwd_Loop"),
             "ride" to StateConfig("Sitting_Idle_Loop"),
-            "elytra" to StateConfig("Jump_Loop"),
+            "elytra" to StateConfig("Swim_Fwd_Loop"),
             "attack" to StateConfig("Punch_Jab", loop = false),
         )
 
