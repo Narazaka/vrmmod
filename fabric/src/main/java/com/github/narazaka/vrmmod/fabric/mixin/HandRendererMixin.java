@@ -4,34 +4,27 @@ import com.github.narazaka.vrmmod.client.FirstPersonMode;
 import com.github.narazaka.vrmmod.client.VrmModClient;
 import com.github.narazaka.vrmmod.render.VrmPlayerManager;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.renderer.ItemInHandRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Suppresses vanilla hand rendering when VRM model is active and not in vanilla mode.
+ * Suppresses vanilla first-person hand rendering when VRM model is active.
+ * Targets ItemInHandRenderer which handles the actual hand drawing in MC 1.21.4.
  */
-@Mixin(PlayerRenderer.class)
+@Mixin(ItemInHandRenderer.class)
 public class HandRendererMixin {
 
-    @Inject(method = "renderRightHand", at = @At("HEAD"), cancellable = true)
-    private void vrmmod$cancelRightHand(PoseStack poseStack, MultiBufferSource bufferSource, int light, ResourceLocation skin, boolean sleeve, CallbackInfo ci) {
-        if (shouldCancelVanillaHand()) ci.cancel();
-    }
-
-    @Inject(method = "renderLeftHand", at = @At("HEAD"), cancellable = true)
-    private void vrmmod$cancelLeftHand(PoseStack poseStack, MultiBufferSource bufferSource, int light, ResourceLocation skin, boolean sleeve, CallbackInfo ci) {
-        if (shouldCancelVanillaHand()) ci.cancel();
-    }
-
-    private static boolean shouldCancelVanillaHand() {
-        if (VrmModClient.INSTANCE.getCurrentConfig().getFirstPersonMode() == FirstPersonMode.VANILLA) return false;
+    @Inject(method = "renderHandsWithItems", at = @At("HEAD"), cancellable = true)
+    private void vrmmod$cancelHandRendering(float partialTick, PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, net.minecraft.client.player.LocalPlayer player, int light, CallbackInfo ci) {
+        if (VrmModClient.INSTANCE.getCurrentConfig().getFirstPersonMode() == FirstPersonMode.VANILLA) return;
         var mc = Minecraft.getInstance();
-        return mc.player != null && VrmPlayerManager.INSTANCE.get(mc.player.getUUID()) != null;
+        if (mc.player != null && VrmPlayerManager.INSTANCE.get(mc.player.getUUID()) != null) {
+            ci.cancel();
+        }
     }
 }
