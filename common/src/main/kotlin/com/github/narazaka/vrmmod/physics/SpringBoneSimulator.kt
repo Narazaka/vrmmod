@@ -116,6 +116,10 @@ class SpringBoneSimulator(
             return emptyMap()
         }
 
+        // Make a mutable copy of worldMatrices so we can update them
+        // as joints are processed (matching three-vrm's bone.updateMatrix/matrixWorld)
+        val matrices = worldMatrices.map { Matrix4f(it) }.toMutableList()
+
         val rotationOverrides = mutableMapOf<Int, Quaternionf>()
 
         for (springIdx in springBone.springs.indices) {
@@ -123,9 +127,9 @@ class SpringBoneSimulator(
             val joints = spring.joints
             val centerNodeIndex = spring.centerNodeIndex
 
-            val centerToWorld = getCenterToWorld(centerNodeIndex, worldMatrices)
+            val centerToWorld = getCenterToWorld(centerNodeIndex, matrices)
             val worldToCenter = Matrix4f(centerToWorld).invert()
-            val colliders = resolveColliders(spring.colliderGroupIndices, worldMatrices)
+            val colliders = resolveColliders(spring.colliderGroupIndices, matrices)
 
             for (jointIdx in joints.indices) {
                 val joint = joints[jointIdx]
@@ -133,18 +137,18 @@ class SpringBoneSimulator(
                 if (nodeIndex !in skeleton.nodes.indices) continue
 
                 val state = jointStates[springIdx][jointIdx]
-                val worldMatrix = worldMatrices.getOrNull(nodeIndex) ?: continue
+                val worldMatrix = matrices.getOrNull(nodeIndex) ?: continue
 
                 // == Step 1: worldSpaceBoneLength ==
                 val headPos = Vector3f(); worldMatrix.getTranslation(headPos)
-                val tailPos = computeTailPos(jointIdx, joints, worldMatrices, headPos, nodeIndex)
+                val tailPos = computeTailPos(jointIdx, joints, matrices, headPos, nodeIndex)
                 state.worldSpaceBoneLength = headPos.distance(tailPos)
 
                 // == Step 2: boneAxis to world space ==
                 // three-vrm: boneAxis.transformDirection(initialLocalMatrix).transformDirection(parentMatrixWorld)
                 val parentNodeIdx = parentOf[nodeIndex]
                 val parentMatrixWorld = if (parentNodeIdx >= 0) {
-                    worldMatrices.getOrNull(parentNodeIdx) ?: Matrix4f()
+                    matrices.getOrNull(parentNodeIdx) ?: Matrix4f()
                 } else {
                     Matrix4f()
                 }
@@ -197,10 +201,41 @@ class SpringBoneSimulator(
                 val newLocalRotation = Quaternionf(state.initialLocalRotation).mul(fromUnitVec)
 
                 rotationOverrides[nodeIndex] = newLocalRotation
+
+                // == Step 8: Update bone matrix (three-vrm: bone.updateMatrix, bone.matrixWorld) ==
+                // Rebuild local matrix with new rotation and update worldMatrix
+                // so subsequent joints in the chain see updated parent transforms.
+                val node = skeleton.nodes[nodeIndex]
+                val newLocalMatrix = Matrix4f()
+                    .translate(node.translation)
+                    .rotate(newLocalRotation)
+                    .scale(node.scale)
+                val newWorldMatrix = Matrix4f(parentMatrixWorld).mul(newLocalMatrix)
+                matrices[nodeIndex].set(newWorldMatrix)
+
+                // Update children's worldMatrices too
+                updateChildWorldMatrices(nodeIndex, matrices)
             }
         }
 
         return rotationOverrides
+    }
+
+    /**
+     * Recursively update children's worldMatrices after a parent's worldMatrix changed.
+     */
+    private fun updateChildWorldMatrices(nodeIndex: Int, matrices: MutableList<Matrix4f>) {
+        val node = skeleton.nodes[nodeIndex]
+        for (childIdx in node.childIndices) {
+            if (childIdx !in skeleton.nodes.indices) continue
+            val childNode = skeleton.nodes[childIdx]
+            val childLocal = Matrix4f()
+                .translate(childNode.translation)
+                .rotate(childNode.rotation)
+                .scale(childNode.scale)
+            matrices[childIdx].set(Matrix4f(matrices[nodeIndex]).mul(childLocal))
+            updateChildWorldMatrices(childIdx, matrices)
+        }
     }
 
     private fun computeTailPos(
