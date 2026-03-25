@@ -54,15 +54,20 @@ public abstract class CameraMixin {
         double mcEyeHeight = mc.player.getEyeHeight(mc.player.getPose());
         double feetY = pos.y - mcEyeHeight;
 
-        // New camera position: entity feet + VRM eye offset
-        // Note: eyeOffset XZ accounts for head rotation, but needs to be rotated
-        // by body yaw to be in world space (eyeOffset is in model space)
-        double bodyYawRad = Math.toRadians(mc.player.yBodyRot + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick);
-        double cos = Math.cos(-bodyYawRad);
-        double sin = Math.sin(-bodyYawRad);
-        // Z-flip: model space Z is flipped relative to MC
-        double worldOffsetX = eyeOffset.x * cos - (-eyeOffset.z) * sin;
-        double worldOffsetZ = eyeOffset.x * sin + (-eyeOffset.z) * cos;
+        // Transform eye XZ offset from model space to MC world space.
+        // VrmRenderer applies: rotateY(-bodyYaw) * rotateY(PI) * scale(1,1,-1)
+        // For XZ offset we need the same rotation: bodyYaw + 180 degrees, then Z-flip.
+        double bodyYawRad = Math.toRadians(
+                mc.player.yBodyRotO + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick
+        );
+        // Combined angle = -bodyYaw + PI (matching VrmRenderer's poseStack transforms)
+        double angle = -bodyYawRad + Math.PI;
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        // Z-flip: negate model Z before rotation
+        double mz = -eyeOffset.z;
+        double worldOffsetX = eyeOffset.x * cos - mz * sin;
+        double worldOffsetZ = eyeOffset.x * sin + mz * cos;
 
         setPosition(
                 pos.x + worldOffsetX,
