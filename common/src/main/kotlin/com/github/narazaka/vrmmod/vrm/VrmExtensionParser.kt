@@ -238,6 +238,16 @@ object VrmExtensionParser {
      * Parses a Vector3f from either a JSON array [x,y,z] or a JSON object {x,y,z}.
      */
     /**
+     * Parses lookAt.offsetFromHeadBone from VRMC_vrm.
+     */
+    fun parseLookAtOffset(json: JsonObject?): org.joml.Vector3f {
+        if (json == null) return org.joml.Vector3f(0f, 0.06f, 0f)
+        val lookAt = json.getAsJsonObject("lookAt") ?: return org.joml.Vector3f(0f, 0.06f, 0f)
+        val offset = lookAt.get("offsetFromHeadBone")
+        return if (offset != null) parseVector3f(offset) else org.joml.Vector3f(0f, 0.06f, 0f)
+    }
+
+    /**
      * Parses firstPerson.meshAnnotations from VRMC_vrm.
      * Returns a map of node index -> FirstPersonType.
      */

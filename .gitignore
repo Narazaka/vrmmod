@@ -33,3 +33,4 @@ remappedSrc/
 /net/
 *.class
 rendertype_full.txt
+.kotlin/

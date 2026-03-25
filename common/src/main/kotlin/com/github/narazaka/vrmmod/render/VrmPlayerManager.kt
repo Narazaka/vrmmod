@@ -98,12 +98,16 @@ object VrmPlayerManager {
                         damageExpressions = animationConfig.damageExpression,
                         damageExpressionDuration = animationConfig.damageExpressionDuration,
                     )
+                    // Compute VRM eye height in MC blocks
+                    val eyeHeight = computeEyeHeight(model)
+
                     val state = VrmState(
                         model = model,
                         textureLocations = textureLocations,
                         poseProvider = poseProvider,
                         springBoneSimulator = simulator,
                         expressionController = expressionCtrl,
+                        eyeHeight = eyeHeight,
                     )
                     states[playerUUID] = state
                     VrmMod.logger.info(
@@ -147,6 +151,42 @@ object VrmPlayerManager {
             }
         }
         return clips
+    }
+
+    /**
+     * Computes the VRM model's eye height in MC blocks.
+     *
+     * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
+     *   eyeWorldPos = headBone.worldMatrix * lookAt.offsetFromHeadBone
+     *
+     * The result is scaled by the same factor as VrmRenderer to convert
+     * from VRM model space (meters) to MC blocks.
+     */
+    private fun computeEyeHeight(model: com.github.narazaka.vrmmod.vrm.VrmModel): Float {
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
+            ?: return 1.62f // MC default eye height
+
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
+
+        // Apply offsetFromHeadBone to HEAD's world matrix (per three-vrm)
+        val offset = model.lookAtOffsetFromHeadBone
+        val eyePos = org.joml.Vector3f(offset)
+        headWorldMatrix.transformPosition(eyePos)
+
+        // Estimate scale (same as VrmRenderer.estimateScale)
+        val hipsNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HIPS]
+        val scale = if (hipsNode != null) {
+            val hipsY = model.skeleton.nodes[hipsNode.nodeIndex].translation.y
+            if (hipsY > 0f) 1.8f / (hipsY * 2f) else 0.9f
+        } else 0.9f
+
+        val eyeHeight = eyePos.y * scale
+        VrmMod.logger.info(
+            "VRM eye height: {} blocks (eye model Y={}, offset={}, scale={})",
+            eyeHeight, eyePos.y, offset, scale,
+        )
+        return eyeHeight
     }
 
     /** Bundled animation resource files. */

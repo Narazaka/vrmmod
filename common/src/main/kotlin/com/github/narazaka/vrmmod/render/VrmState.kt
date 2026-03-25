@@ -17,4 +17,6 @@ data class VrmState(
     val poseProvider: PoseProvider = VanillaPoseProvider(),
     val springBoneSimulator: SpringBoneSimulator? = null,
     val expressionController: ExpressionController = ExpressionController(),
+    /** VRM model's eye height in MC blocks (scaled). Used for VRM_VRM_CAMERA mode. */
+    val eyeHeight: Float = 1.62f,  // MC default eye height as fallback
 )

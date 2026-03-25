@@ -77,6 +77,9 @@ object VrmParser {
             nodeToMeshIndex[nodeIdx] ?: -1
         }.filterKeys { it >= 0 }
 
+        // Parse lookAt offset
+        val lookAtOffset = VrmExtensionParser.parseLookAtOffset(vrmJson)
+
         // Parse VRMC_springBone extension
         val springBoneExtension = extensions?.get("VRMC_springBone")
         val springBone = VrmExtensionParser.parseSpringBone(springBoneExtension)
@@ -100,6 +103,7 @@ object VrmParser {
             springBone = springBone,
             mtoonMaterials = mtoonMaterials,
             firstPersonAnnotations = firstPersonAnnotations,
+            lookAtOffsetFromHeadBone = lookAtOffset,
         )
     }
 
