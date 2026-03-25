@@ -331,7 +331,7 @@ object VrmRenderer {
                     .setUv(u, vCoord)
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(packedLight)
-                    .setNormal(pose, nx, ny, nz)
+                    .setNormal(pose, 0f, 1f, 0f) // uniform upward normal for unlit look
             }
         }
     }
