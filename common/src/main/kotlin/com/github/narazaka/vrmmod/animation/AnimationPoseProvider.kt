@@ -2,6 +2,7 @@ package com.github.narazaka.vrmmod.animation
 
 import com.github.narazaka.vrmmod.vrm.HumanBone
 import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import org.joml.Quaternionf
 import org.joml.Vector3f
 
 /**
@@ -26,6 +27,9 @@ class AnimationPoseProvider(
      * scaled by model/animation height ratio.
      */
     var modelHipsHeight: Float = 0f
+
+    /** Whether to apply head tracking (look-at) on top of animation. */
+    var enableHeadTracking: Boolean = true
 
     private var currentClipName = ""
     private var currentTime = 0f
@@ -73,7 +77,36 @@ class AnimationPoseProvider(
             }
         }
 
-        return poses
+        // Apply head tracking on top of animation
+        val result = if (enableHeadTracking) {
+            applyHeadTracking(poses, context)
+        } else {
+            poses
+        }
+
+        return result
+    }
+
+    /**
+     * Blends head yaw/pitch from MC mouse look into the animation's HEAD rotation.
+     * The animation provides the base head pose; we multiply the look-at rotation on top.
+     */
+    private fun applyHeadTracking(poses: BonePoseMap, context: PoseContext): BonePoseMap {
+        val yawRad = Math.toRadians(context.headYaw.toDouble()).toFloat()
+        val pitchRad = Math.toRadians(context.headPitch.toDouble()).toFloat()
+        if (yawRad == 0f && pitchRad == 0f) return poses
+
+        val lookAtRot = Quaternionf().rotateY(yawRad).rotateX(pitchRad)
+
+        val existingHead = poses[HumanBone.HEAD]
+        val baseRot = existingHead?.rotation ?: Quaternionf()
+        // Multiply look-at on top of animation rotation
+        val combinedRot = Quaternionf(baseRot).mul(lookAtRot)
+
+        return poses + (HumanBone.HEAD to BonePose(
+            translation = existingHead?.translation ?: Vector3f(),
+            rotation = combinedRot,
+        ))
     }
 
     private fun selectClip(context: PoseContext): String {
@@ -81,6 +114,7 @@ class AnimationPoseProvider(
             context.isFallFlying -> "Jump_Idle"
             context.isSwimming -> "Crawling"
             context.isRiding -> "Sitting_Idle"
+            !context.isOnGround -> "Jump_Idle"
             context.isSneaking -> "Sneaking"
             context.limbSwingAmount > 0.5f -> "Running_A"
             context.limbSwingAmount > 0.01f -> "Walking_A"

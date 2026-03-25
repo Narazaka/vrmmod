@@ -22,5 +22,6 @@ public class PlayerRendererMixin {
         VrmRenderContext.ENTITY_X.set((float) pos.x);
         VrmRenderContext.ENTITY_Y.set((float) pos.y);
         VrmRenderContext.ENTITY_Z.set((float) pos.z);
+        VrmRenderContext.ON_GROUND.set(player.onGround());
     }
 }

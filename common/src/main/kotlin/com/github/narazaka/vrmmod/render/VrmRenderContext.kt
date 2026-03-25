@@ -16,4 +16,6 @@ object VrmRenderContext {
     val ENTITY_Y: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
     @JvmField
     val ENTITY_Z: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
+    @JvmField
+    val ON_GROUND: ThreadLocal<Boolean> = ThreadLocal.withInitial { true }
 }

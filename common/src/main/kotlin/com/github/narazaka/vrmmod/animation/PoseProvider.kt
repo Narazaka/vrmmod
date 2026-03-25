@@ -45,6 +45,8 @@ data class PoseContext(
     val entityX: Float = 0f,
     val entityY: Float = 0f,
     val entityZ: Float = 0f,
+    /** True when entity is on ground (not jumping/falling). */
+    val isOnGround: Boolean = true,
 )
 
 /**

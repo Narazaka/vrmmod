@@ -75,7 +75,8 @@ public class LivingEntityRendererMixin {
                 renderState.bodyRot,
                 VrmRenderContext.ENTITY_X.get(),
                 VrmRenderContext.ENTITY_Y.get(),
-                VrmRenderContext.ENTITY_Z.get()
+                VrmRenderContext.ENTITY_Z.get(),
+                VrmRenderContext.ON_GROUND.get()
         );
     }
 }
