@@ -31,6 +31,9 @@ data class VrmModConfig(
     val useVrmaAnimation: Boolean = true,
     /** First-person view mode. */
     val firstPersonMode: FirstPersonMode = FirstPersonMode.VRM_MC_CAMERA,
+    /** Use smooth vertex normals (true) or flat unlit normals (false).
+     *  Enable for Iris shader compatibility. */
+    val smoothNormals: Boolean = false,
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
