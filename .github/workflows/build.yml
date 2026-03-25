@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,3 +29,25 @@ jobs:
             fabric/build/libs/*.jar
             neoforge/build/libs/*.jar
           if-no-files-found: error
+
+      - name: Upload to Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.sha }}
+          name: Build ${{ github.sha }}
+          prerelease: true
+          files: |
+            fabric/build/libs/!(*-@(sources|dev)).jar
+            neoforge/build/libs/!(*-@(sources|dev)).jar
+
+      - name: Clean up old build releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '[.[] | select(.isPrerelease and (.tagName | startswith("build-")))] | sort_by(.tagName) | reverse | .[5:] | .[].tagName' \
+          | while read -r tag; do
+              gh release delete "$tag" --yes --cleanup-tag
+            done
