@@ -140,7 +140,6 @@
 1. ~~**NeoForge Mixin 追加**~~: 完了済み
 2. ~~**テスト修正**~~: 完了済み
 3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
-4. **estimateScale の改善**: Hips ノードのローカル Y が負の場合（Armature 子ノード）にワールド Y を使う必要あり
 
 ### 中優先
 4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
