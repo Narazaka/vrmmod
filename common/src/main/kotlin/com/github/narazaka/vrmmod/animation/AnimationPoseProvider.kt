@@ -9,23 +9,22 @@ import org.joml.Vector3f
  * A [PoseProvider] that selects and plays animation clips based on Minecraft player state.
  *
  * When the active clip changes, the previous pose is cross-faded into the
- * new clip over [transitionDuration] seconds using slerp (rotation) and
+ * new clip over a configurable duration using slerp (rotation) and
  * lerp (translation).
  */
 class AnimationPoseProvider(
     private val clips: Map<String, AnimationClip>,
+    private val config: AnimationConfig = AnimationConfig(),
 ) : PoseProvider {
 
     override val isAbsoluteRotation: Boolean get() = true
 
     var modelHipsHeight: Float = 0f
-    var enableHeadTracking: Boolean = true
-
-    /** Duration of cross-fade between clips, in seconds. */
-    var transitionDuration: Float = 0.25f
+    var enableHeadTracking: Boolean = config.headTracking
 
     // Current clip state
     private var currentClipName = ""
+    private var currentStateName = ""
     private var currentTime = 0f
     private var lastTimeNano = 0L
 
@@ -33,7 +32,7 @@ class AnimationPoseProvider(
     private var prevPose: BonePoseMap = emptyMap()
     private var transitionElapsed = 0f
     private var isTransitioning = false
-    private var activeTransitionDuration = transitionDuration
+    private var activeTransitionDuration = 0.25f
 
     override fun computePose(skeleton: VrmSkeleton, context: PoseContext): BonePoseMap {
         val now = System.nanoTime()
@@ -48,7 +47,7 @@ class AnimationPoseProvider(
 
         // Detect clip change -> start cross-fade
         if (targetClipName != currentClipName) {
-            val prevClipName = currentClipName
+            val prevStateName = currentStateName
             // Snapshot current pose as the "from" pose for blending
             val currentClip = clips[currentClipName]
             if (currentClip != null) {
@@ -59,7 +58,7 @@ class AnimationPoseProvider(
             currentTime = 0f
             transitionElapsed = 0f
             isTransitioning = true
-            activeTransitionDuration = getTransitionDuration(prevClipName, targetClipName)
+            activeTransitionDuration = config.getTransitionDuration(prevStateName, currentStateName)
         }
 
         currentTime += deltaTime
@@ -160,43 +159,19 @@ class AnimationPoseProvider(
         ))
     }
 
-    /**
-     * Returns the transition duration for a specific clip change.
-     * Fast transitions for stopping movement, longer for starting.
-     */
-    private fun getTransitionDuration(from: String, to: String): Float {
-        // Stopping movement (running/walking -> idle): quick stop
-        if ((from.startsWith("Running") || from.startsWith("Walking")) &&
-            (to.startsWith("Idle") || to == "Jump_Idle")) {
-            return 0.1f
-        }
-        // Landing from jump
-        if (from == "Jump_Idle" && (to.startsWith("Idle") || to.startsWith("Walking") || to.startsWith("Running"))) {
-            return 0.1f
-        }
-        // Starting to move
-        if (from.startsWith("Idle") && (to.startsWith("Walking") || to.startsWith("Running"))) {
-            return 0.15f
-        }
-        // Walk <-> Run transition
-        if ((from.startsWith("Walking") && to.startsWith("Running")) ||
-            (from.startsWith("Running") && to.startsWith("Walking"))) {
-            return 0.2f
-        }
-        return transitionDuration
-    }
-
     private fun selectClip(context: PoseContext): String {
-        val name = when {
-            context.isFallFlying -> "Jump_Idle"
-            context.isSwimming -> "Crawling"
-            context.isRiding -> "Sitting_Idle"
-            !context.isOnGround -> "Jump_Idle"
-            context.isSneaking -> "Sneaking"
-            context.limbSwingAmount > 0.5f -> "Running_A"
-            context.limbSwingAmount > 0.01f -> "Walking_A"
-            else -> "Idle_A"
+        val stateName = when {
+            context.isFallFlying -> "elytra"
+            context.isSwimming -> "swim"
+            context.isRiding -> "ride"
+            !context.isOnGround -> "jump"
+            context.isSneaking -> "sneak"
+            context.limbSwingAmount > config.runThreshold -> "run"
+            context.limbSwingAmount > config.walkThreshold -> "walk"
+            else -> "idle"
         }
-        return if (clips.containsKey(name)) name else clips.keys.firstOrNull() ?: ""
+        currentStateName = stateName
+        val clipName = config.states[stateName]?.clip ?: "Idle_A"
+        return if (clips.containsKey(clipName)) clipName else clips.keys.firstOrNull() ?: ""
     }
 }

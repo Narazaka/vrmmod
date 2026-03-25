@@ -1,6 +1,7 @@
 package com.github.narazaka.vrmmod.render
 
 import com.github.narazaka.vrmmod.VrmMod
+import com.github.narazaka.vrmmod.animation.AnimationConfig
 import com.github.narazaka.vrmmod.animation.AnimationPoseProvider
 import com.github.narazaka.vrmmod.animation.VrmaParser
 import com.github.narazaka.vrmmod.physics.SpringBoneSimulator
@@ -38,7 +39,7 @@ object VrmPlayerManager {
      * @param playerUUID the UUID of the player
      * @param file the VRM file to load
      */
-    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null) {
+    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig()) {
         // Skip if already loaded or currently loading
         if (states.containsKey(playerUUID) || loading.containsKey(playerUUID)) {
             return
@@ -75,7 +76,7 @@ object VrmPlayerManager {
                             clips.size,
                             clips.keys.joinToString(),
                         )
-                        AnimationPoseProvider(clips).also { provider ->
+                        AnimationPoseProvider(clips, animationConfig).also { provider ->
                             // Set model hips height for translation scaling
                             val hipsBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HIPS]
                             if (hipsBoneNode != null) {

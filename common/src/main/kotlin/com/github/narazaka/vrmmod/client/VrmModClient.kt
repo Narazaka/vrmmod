@@ -1,6 +1,7 @@
 package com.github.narazaka.vrmmod.client
 
 import com.github.narazaka.vrmmod.VrmMod
+import com.github.narazaka.vrmmod.animation.AnimationConfig
 import com.github.narazaka.vrmmod.render.VrmPlayerManager
 import com.mojang.blaze3d.platform.InputConstants
 import dev.architectury.event.events.client.ClientPlayerEvent
@@ -35,6 +36,8 @@ object VrmModClient {
             val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
             val config = VrmModConfig.load(configDir)
 
+            val animationConfig = AnimationConfig.load(configDir)
+
             val modelPath = config.localModelPath
             if (modelPath != null) {
                 val file = File(modelPath)
@@ -44,7 +47,7 @@ object VrmModClient {
                     if (animDir != null) {
                         VrmMod.logger.info("Animation directory: {}", animDir.absolutePath)
                     }
-                    VrmPlayerManager.loadLocal(player.uuid, file, animDir)
+                    VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
                 } else {
                     VrmMod.logger.warn("Configured VRM model file not found: {}", modelPath)
                 }

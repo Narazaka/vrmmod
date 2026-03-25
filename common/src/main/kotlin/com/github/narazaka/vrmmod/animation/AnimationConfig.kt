@@ -1,0 +1,71 @@
+package com.github.narazaka.vrmmod.animation
+
+import com.github.narazaka.vrmmod.VrmMod
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import java.io.File
+
+data class AnimationConfig(
+    val states: Map<String, StateConfig> = defaultStates(),
+    val transitions: Map<String, Map<String, Float>> = defaultTransitions(),
+    val headTracking: Boolean = true,
+    val walkThreshold: Float = 0.01f,
+    val runThreshold: Float = 0.5f,
+) {
+    data class StateConfig(
+        val clip: String,
+        val loop: Boolean = true,
+    )
+
+    fun getTransitionDuration(from: String, to: String): Float {
+        // Exact match: transitions[from][to]
+        transitions[from]?.get(to)?.let { return it }
+        // Wildcard from: transitions[from][*]
+        transitions[from]?.get("*")?.let { return it }
+        // Wildcard to: transitions[*][to]
+        transitions["*"]?.get(to)?.let { return it }
+        // Default: transitions[*][*]
+        return transitions["*"]?.get("*") ?: 0.25f
+    }
+
+    companion object {
+        private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+
+        fun load(configDir: File): AnimationConfig {
+            val file = File(configDir, "vrmmod-animations.json")
+            if (!file.exists()) {
+                val default = AnimationConfig()
+                try {
+                    file.parentFile.mkdirs()
+                    file.writeText(gson.toJson(default))
+                } catch (_: Exception) {}
+                return default
+            }
+            return try {
+                Gson().fromJson(file.readText(), AnimationConfig::class.java) ?: AnimationConfig()
+            } catch (e: Exception) {
+                VrmMod.logger.error("Failed to load animation config", e)
+                AnimationConfig()
+            }
+        }
+
+        fun defaultStates(): Map<String, StateConfig> = mapOf(
+            "idle" to StateConfig("Idle_A"),
+            "walk" to StateConfig("Walking_A"),
+            "run" to StateConfig("Running_A"),
+            "jump" to StateConfig("Jump_Idle"),
+            "sneak" to StateConfig("Sneaking"),
+            "swim" to StateConfig("Crawling"),
+            "ride" to StateConfig("Sitting_Idle"),
+            "elytra" to StateConfig("Jump_Idle"),
+        )
+
+        fun defaultTransitions(): Map<String, Map<String, Float>> = mapOf(
+            "run" to mapOf("idle" to 0.1f, "walk" to 0.2f),
+            "walk" to mapOf("idle" to 0.1f, "run" to 0.2f),
+            "jump" to mapOf("*" to 0.1f),
+            "idle" to mapOf("walk" to 0.15f, "run" to 0.15f),
+            "*" to mapOf("*" to 0.25f),
+        )
+    }
+}
