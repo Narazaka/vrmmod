@@ -54,18 +54,18 @@ data class AnimationConfig(
         }
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
-            "idle" to StateConfig("Idle_A"),
-            "walk" to StateConfig("Walking_A"),
-            "walkBackward" to StateConfig("Walking_A"),
-            "walkLeft" to StateConfig("Walking_A"),
-            "walkRight" to StateConfig("Walking_A"),
-            "run" to StateConfig("Running_A"),
-            "jump" to StateConfig("Jump_Idle"),
-            "sneak" to StateConfig("Sneaking"),
-            "sneakWalk" to StateConfig("Sneaking"),
-            "swim" to StateConfig("Crawling"),
-            "ride" to StateConfig("Sitting_Idle"),
-            "elytra" to StateConfig("Jump_Idle"),
+            "idle" to StateConfig("Idle_Loop"),
+            "walk" to StateConfig("Walk_Loop"),
+            "walkBackward" to StateConfig("Walk_Loop"),
+            "walkLeft" to StateConfig("Walk_Loop"),
+            "walkRight" to StateConfig("Walk_Loop"),
+            "run" to StateConfig("Sprint_Loop"),
+            "jump" to StateConfig("Jump_Loop"),
+            "sneak" to StateConfig("Crouch_Idle_Loop"),
+            "sneakWalk" to StateConfig("Crouch_Fwd_Loop"),
+            "swim" to StateConfig("Swim_Fwd_Loop"),
+            "ride" to StateConfig("Sitting_Idle_Loop"),
+            "elytra" to StateConfig("Jump_Loop"),
             "attack" to StateConfig("Punch_Jab", loop = false),
         )
 
