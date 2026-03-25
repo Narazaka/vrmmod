@@ -13,6 +13,8 @@ import java.io.File
  */
 data class VrmModConfig(
     val localModelPath: String? = null,
+    /** Directory containing .vrma animation files. */
+    val animationDir: String? = null,
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
