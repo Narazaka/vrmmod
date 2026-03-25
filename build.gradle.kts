@@ -21,6 +21,8 @@ subprojects {
         maven("https://maven.neoforged.net/releases/")
         maven("https://maven.fabricmc.net/")
         maven("https://thedarkcolour.github.io/KotlinForForge/")
+        maven("https://maven.shedaniel.me/")
+        maven("https://maven.terraformersmc.com/")
         mavenCentral()
     }
 

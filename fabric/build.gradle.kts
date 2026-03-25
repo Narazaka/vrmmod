@@ -23,6 +23,12 @@ dependencies {
     modApi("dev.architectury:architectury-fabric:${rootProject.property("architectury_api_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${rootProject.property("fabric_language_kotlin_version")}")
 
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${rootProject.property("cloth_config_version")}") {
+        exclude(group = "net.fabricmc.fabric-api")
+    }
+
+    modImplementation("com.terraformersmc:modmenu:${rootProject.property("mod_menu_version")}")
+
     common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionFabric")) { isTransitive = false }
 

@@ -22,6 +22,10 @@ dependencies {
     modApi("dev.architectury:architectury-neoforge:${rootProject.property("architectury_api_version")}")
     implementation("thedarkcolour:kotlinforforge-neoforge:${rootProject.property("kotlin_for_forge_version")}")
 
+    modApi("me.shedaniel.cloth:cloth-config-neoforge:${rootProject.property("cloth_config_version")}") {
+        exclude(group = "net.fabricmc.fabric-api")
+    }
+
     common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
 

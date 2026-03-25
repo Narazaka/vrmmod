@@ -17,6 +17,12 @@
         "adapter": "kotlin",
         "value": "com.github.narazaka.vrmmod.fabric.VrmModFabric"
       }
+    ],
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "com.github.narazaka.vrmmod.fabric.VrmModMenuIntegration"
+      }
     ]
   },
   "mixins": [
@@ -28,5 +34,8 @@
     "fabric-language-kotlin": ">=1.13.0+kotlin.2.1.0",
     "minecraft": "~1.21.4",
     "architectury": ">=15.0.0"
+  },
+  "suggests": {
+    "modmenu": "*"
   }
 }

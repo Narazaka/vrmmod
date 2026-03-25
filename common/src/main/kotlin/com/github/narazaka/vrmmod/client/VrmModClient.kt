@@ -5,6 +5,7 @@ import com.github.narazaka.vrmmod.animation.AnimationConfig
 import com.github.narazaka.vrmmod.render.VrmPlayerManager
 import com.mojang.blaze3d.platform.InputConstants
 import dev.architectury.event.events.client.ClientPlayerEvent
+import dev.architectury.event.events.client.ClientTickEvent
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -17,9 +18,9 @@ import java.io.File
  */
 object VrmModClient {
 
-    /** Key binding to toggle VRM model (V key). */
+    /** Key binding to open VRM config screen (V key). */
     private val VRM_KEY = KeyMapping(
-        "key.${VrmMod.MOD_ID}.toggle",
+        "key.${VrmMod.MOD_ID}.config",
         InputConstants.Type.KEYSYM,
         InputConstants.KEY_V,
         "category.${VrmMod.MOD_ID}",
@@ -30,6 +31,13 @@ object VrmModClient {
 
         // Register keybinding
         KeyMappingRegistry.register(VRM_KEY)
+
+        // Open config screen when V is pressed
+        ClientTickEvent.CLIENT_POST.register {
+            while (VRM_KEY.consumeClick()) {
+                Minecraft.getInstance().setScreen(VrmConfigScreen.create(null))
+            }
+        }
 
         // On world join: load VRM model from config if configured
         ClientPlayerEvent.CLIENT_PLAYER_JOIN.register { player ->

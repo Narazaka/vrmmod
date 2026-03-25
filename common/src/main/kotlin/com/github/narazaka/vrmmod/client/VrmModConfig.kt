@@ -48,5 +48,22 @@ data class VrmModConfig(
                 VrmModConfig()
             }
         }
+
+        /**
+         * Saves the given configuration to `vrmmod.json` in the given config directory.
+         *
+         * @param configDir the Minecraft config directory
+         * @param config the configuration to save
+         */
+        fun save(configDir: File, config: VrmModConfig) {
+            val configFile = File(configDir, "vrmmod.json")
+            try {
+                configFile.parentFile.mkdirs()
+                configFile.writeText(gson.toJson(config))
+                VrmMod.logger.info("Saved config to {}", configFile.absolutePath)
+            } catch (e: Exception) {
+                VrmMod.logger.error("Failed to save config to {}", configFile.absolutePath, e)
+            }
+        }
     }
 }
