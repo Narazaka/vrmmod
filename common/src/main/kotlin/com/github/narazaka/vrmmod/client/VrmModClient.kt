@@ -44,13 +44,25 @@ object VrmModClient {
             val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
             val config = VrmModConfig.load(configDir)
 
-            val animationConfig = AnimationConfig.load(configDir)
+            val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
+
+            // Load animation config: prefer animationDir/vrmmod-animations.json, fall back to config dir
+            val animationConfig = if (animDir != null) {
+                val animDirConfig = File(animDir, "vrmmod-animations.json")
+                if (animDirConfig.exists()) {
+                    VrmMod.logger.info("Loading animation config from animation dir: {}", animDirConfig.absolutePath)
+                    AnimationConfig.load(animDir)
+                } else {
+                    AnimationConfig.load(configDir)
+                }
+            } else {
+                AnimationConfig.load(configDir)
+            }
 
             val modelPath = config.localModelPath
             if (modelPath != null) {
                 val file = File(modelPath)
                 if (file.exists()) {
-                    val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
                     VrmMod.logger.info("Loading local VRM model: {}", modelPath)
                     if (animDir != null) {
                         VrmMod.logger.info("Animation directory: {}", animDir.absolutePath)
