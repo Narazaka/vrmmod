@@ -56,6 +56,7 @@ data class AnimationConfig(
         fun defaultStates(): Map<String, StateConfig> = mapOf(
             "idle" to StateConfig("Idle_A"),
             "walk" to StateConfig("Walking_A"),
+            "walkBackward" to StateConfig("Walking_A"),
             "run" to StateConfig("Running_A"),
             "jump" to StateConfig("Jump_Idle"),
             "sneak" to StateConfig("Sneaking"),
@@ -63,6 +64,7 @@ data class AnimationConfig(
             "swim" to StateConfig("Crawling"),
             "ride" to StateConfig("Sitting_Idle"),
             "elytra" to StateConfig("Jump_Idle"),
+            "attack" to StateConfig("Punch_Jab", loop = false),
         )
 
         fun defaultTransitions(): Map<String, Map<String, Float>> = mapOf(

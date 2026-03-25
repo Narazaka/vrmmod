@@ -28,6 +28,14 @@ class AnimationPoseProvider(
     private var currentTime = 0f
     private var lastTimeNano = 0L
 
+    // Movement direction tracking
+    private var prevEntityX = 0f
+    private var prevEntityZ = 0f
+    private var moveDirInitialized = false
+
+    // Attack state
+    private var wasSwinging = false
+
     // Cross-fade state
     private var prevPose: BonePoseMap = emptyMap()
     private var transitionElapsed = 0f
@@ -159,16 +167,78 @@ class AnimationPoseProvider(
         ))
     }
 
+    /**
+     * Determines the movement direction relative to body facing.
+     * Returns "forward", "backward", or "forward" (default).
+     */
+    private fun getMovementDirection(context: PoseContext): String {
+        if (!moveDirInitialized) {
+            prevEntityX = context.entityX
+            prevEntityZ = context.entityZ
+            moveDirInitialized = true
+            return "forward"
+        }
+
+        val dx = context.entityX - prevEntityX
+        val dz = context.entityZ - prevEntityZ
+        prevEntityX = context.entityX
+        prevEntityZ = context.entityZ
+
+        if (dx * dx + dz * dz < 0.0001f) return "forward"
+
+        // Movement angle in world space (radians)
+        val moveAngle = kotlin.math.atan2(-dx.toDouble(), dz.toDouble()).toFloat()
+        // Body facing angle (degrees -> radians)
+        val bodyAngle = Math.toRadians(context.bodyYaw.toDouble()).toFloat()
+        // Relative angle: how much the movement deviates from body facing
+        var relAngle = moveAngle - bodyAngle
+        // Normalize to -PI..PI
+        while (relAngle > Math.PI) relAngle -= (2 * Math.PI).toFloat()
+        while (relAngle < -Math.PI) relAngle += (2 * Math.PI).toFloat()
+
+        val absDeg = Math.toDegrees(relAngle.toDouble()).toFloat()
+        return when {
+            kotlin.math.abs(absDeg) > 120f -> "backward"
+            else -> "forward"
+        }
+    }
+
     private fun selectClip(context: PoseContext): String {
+        // Attack takes priority (non-looping)
+        if (context.isSwinging && !wasSwinging) {
+            wasSwinging = true
+            currentStateName = "attack"
+            val clipName = config.states["attack"]?.clip ?: ""
+            return if (clips.containsKey(clipName)) clipName else selectMovementClip(context)
+        }
+        if (!context.isSwinging) wasSwinging = false
+
+        // If currently in attack animation and it hasn't finished, keep playing
+        if (currentStateName == "attack") {
+            val attackClip = clips[currentClipName]
+            if (attackClip != null && currentTime < attackClip.duration) {
+                return currentClipName // keep playing attack
+            }
+            // Attack finished, fall through to movement
+        }
+
+        return selectMovementClip(context)
+    }
+
+    private fun selectMovementClip(context: PoseContext): String {
+        val moveDir = getMovementDirection(context)
+        val isMoving = context.limbSwingAmount > config.walkThreshold
+
         val stateName = when {
             context.isFallFlying -> "elytra"
             context.isSwimming -> "swim"
             context.isRiding -> "ride"
             !context.isOnGround -> "jump"
-            context.isSneaking && context.limbSwingAmount > config.walkThreshold -> "sneakWalk"
+            context.isSneaking && isMoving -> "sneakWalk"
             context.isSneaking -> "sneak"
             context.limbSwingAmount > config.runThreshold -> "run"
-            context.limbSwingAmount > config.walkThreshold -> "walk"
+            isMoving && moveDir == "backward" -> "walkBackward"
+            isMoving -> "walk"
             else -> "idle"
         }
         currentStateName = stateName
