@@ -25,6 +25,7 @@ object VrmConfigScreen {
         var newModelPath = config.localModelPath ?: ""
         var newAnimDir = config.animationDir ?: ""
         var newUseVrma = config.useVrmaAnimation
+        var newFirstPersonMode = config.firstPersonMode
 
         val builder = ConfigBuilder.create()
             .setParentScreen(parent)
@@ -34,7 +35,9 @@ object VrmConfigScreen {
                     localModelPath = newModelPath.ifBlank { null },
                     animationDir = newAnimDir.ifBlank { null },
                     useVrmaAnimation = newUseVrma,
+                    firstPersonMode = newFirstPersonMode,
                 )
+                VrmModClient.currentConfig = newConfig
                 VrmModConfig.save(configDir, newConfig)
                 reloadModel(configDir, newConfig)
             }
@@ -63,6 +66,22 @@ object VrmConfigScreen {
                 .setDefaultValue(true)
                 .setTooltip(Component.literal("Enable .vrma file animation (disable for procedural animation)"))
                 .setSaveConsumer { newUseVrma = it }
+                .build()
+        )
+
+        general.addEntry(
+            entryBuilder.startEnumSelector(
+                Component.literal("First Person Mode"),
+                FirstPersonMode::class.java,
+                newFirstPersonMode,
+            )
+                .setDefaultValue(FirstPersonMode.VRM_MC_CAMERA)
+                .setTooltip(
+                    Component.literal("VANILLA: MC default hands"),
+                    Component.literal("VRM_MC_CAMERA: VRM body, MC camera height"),
+                    Component.literal("VRM_VRM_CAMERA: VRM body, VRM eye height (future)"),
+                )
+                .setSaveConsumer { newFirstPersonMode = it }
                 .build()
         )
 

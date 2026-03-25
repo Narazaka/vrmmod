@@ -18,6 +18,9 @@ import java.io.File
  */
 object VrmModClient {
 
+    /** Current config, accessible for first-person mode checks. */
+    var currentConfig: VrmModConfig = VrmModConfig()
+
     /** Key binding to open VRM config screen (unbound by default). */
     private val VRM_KEY = KeyMapping(
         "key.${VrmMod.MOD_ID}.config",
@@ -43,6 +46,7 @@ object VrmModClient {
         ClientPlayerEvent.CLIENT_PLAYER_JOIN.register { player ->
             val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
             val config = VrmModConfig.load(configDir)
+            currentConfig = config
 
             val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
 

@@ -1,6 +1,8 @@
 package com.github.narazaka.vrmmod.render
 
 import com.github.narazaka.vrmmod.animation.PoseContext
+import com.github.narazaka.vrmmod.client.FirstPersonMode
+import com.github.narazaka.vrmmod.client.VrmModClient
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
@@ -24,6 +26,7 @@ object VrmFirstPersonRenderer {
     ) {
         val mc = Minecraft.getInstance()
         if (!mc.options.getCameraType().isFirstPerson()) return
+        if (VrmModClient.currentConfig.firstPersonMode == FirstPersonMode.VANILLA) return
 
         val player = mc.player ?: return
         val state = VrmPlayerManager.get(player.uuid) ?: return

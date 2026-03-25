@@ -11,12 +11,26 @@ import java.io.File
  * Loaded from `config/vrmmod.json`. If the file does not exist,
  * default values are used.
  */
+/**
+ * First-person view mode.
+ * - "vanilla": MC default hands, no VRM in first person
+ * - "vrm_mc_camera": VRM body with head removed, MC default camera position
+ * - "vrm_vrm_camera": VRM body with head removed, camera at VRM eye height (future)
+ */
+enum class FirstPersonMode {
+    VANILLA,
+    VRM_MC_CAMERA,
+    VRM_VRM_CAMERA,
+}
+
 data class VrmModConfig(
     val localModelPath: String? = null,
     /** Directory containing .vrma animation files. Null to use built-in procedural animation. */
     val animationDir: String? = null,
     /** Set to false to use procedural (VanillaPoseProvider) animation instead of vrma files. */
     val useVrmaAnimation: Boolean = true,
+    /** First-person view mode. */
+    val firstPersonMode: FirstPersonMode = FirstPersonMode.VRM_MC_CAMERA,
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
