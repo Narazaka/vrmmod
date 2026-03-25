@@ -61,15 +61,9 @@ object VrmRenderer {
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // modelToWorld includes entity world position + model transforms.
-            // entityPos comes from PoseContext (set by Mixin from player position).
-            val modelToWorld = Matrix4f()
-                .translate(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
-                .rotateY(-bodyYawRad)
-                .rotateY(Math.PI.toFloat())
-                .scale(1f, 1f, -1f)
-                .scale(scale, scale, scale)
-            val springRotations = simulator.update(worldMatrices, DELTA_TIME, modelToWorld)
+            // Pass entity position for movement inertia tracking
+            val entityPos = Vector3f(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
+            val springRotations = simulator.update(worldMatrices, DELTA_TIME, entityPos)
             if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
                 springBoneDebugLogged = true
                 val log = com.github.narazaka.vrmmod.VrmMod.logger
