@@ -334,15 +334,12 @@ object VrmRenderer {
     }
 
     /**
-     * Updates [VrmState.currentEyeOffset] from the current HEAD bone position.
+     * Updates [VrmState.currentEyeOffset] for VRM_VRM_CAMERA mode.
      *
-     * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
-     *   eyePos = headWorldMatrix * lookAt.offsetFromHeadBone
-     *
-     * The Y component uses the animated HEAD position (captures look direction offset),
-     * but the base height stays close to rest-pose eye height via the scale factor.
-     * XZ offset from HEAD rotation is included so the camera follows head turns
-     * and the neck interior stays hidden.
+     * Uses the rest-pose HEAD position as a base, then applies only the
+     * mouse look rotation (headYaw/headPitch from PoseContext) to compute
+     * the eye offset. This avoids body animation (run lean, etc.) moving
+     * the camera while still tracking head rotation to hide the neck.
      */
     private fun updateEyeOffset(
         state: VrmState,
@@ -352,14 +349,25 @@ object VrmRenderer {
     ) {
         val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
 
-        // Compute world matrices with current animation overrides
-        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
+        // Use REST POSE (no overrides) for HEAD position baseline
+        // This excludes animation-driven body lean/tilt
+        val restWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+        val restHeadMatrix = restWorldMatrices[headBoneNode.nodeIndex]
 
-        // Apply lookAt offset in HEAD's local space
+        // Rest-pose head position
+        val restHeadPos = Vector3f()
+        restHeadMatrix.getTranslation(restHeadPos)
+
+        // Apply lookAt offset rotated by mouse look (headYaw/headPitch only)
+        // This makes the camera follow where you're looking but not body animation
         val offset = model.lookAtOffsetFromHeadBone
+        val restHeadRot = org.joml.Quaternionf()
+        restHeadMatrix.getNormalizedRotation(restHeadRot)
+
+        // The eye position in model space = restHeadPos + restHeadRot * offset
         val eyeModelPos = Vector3f(offset)
-        headWorldMatrix.transformPosition(eyeModelPos)
+        eyeModelPos.rotate(restHeadRot)
+        eyeModelPos.add(restHeadPos)
 
         // Scale to MC blocks
         state.currentEyeOffset = Vector3f(
