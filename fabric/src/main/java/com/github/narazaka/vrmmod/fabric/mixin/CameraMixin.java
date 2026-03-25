@@ -18,9 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Adjusts camera position for VRM_VRM_CAMERA first-person mode.
  *
- * The camera is positioned at the VRM model's eye position (HEAD bone +
- * lookAt.offsetFromHeadBone), which follows HEAD rotation so the neck
- * interior stays hidden when looking around.
+ * Y: MC camera Y + (VRM eye height - MC eye height) offset
+ * XZ: animated HEAD bone XZ offset rotated to world space
  */
 @Mixin(Camera.class)
 public abstract class CameraMixin {
@@ -42,22 +41,18 @@ public abstract class CameraMixin {
         VrmState state = VrmPlayerManager.INSTANCE.get(mc.player.getUUID());
         if (state == null) return;
 
-        // currentEyeOffset is the eye position relative to entity feet, in MC blocks.
-        // It includes HEAD bone rotation effects (XZ offset from looking around).
+        var pos = getPosition();
         Vector3f eyeOffset = state.getCurrentEyeOffset();
 
-        // MC camera is at entity position + eyeHeight.
-        // Replace with VRM eye position.
-        var pos = getPosition();
-
-        // Entity feet position = current camera pos - MC eye height
+        // Y: add the difference between VRM eye height and MC eye height.
+        // This preserves MC's sneaking camera drop while adjusting to VRM model height.
         double mcEyeHeight = mc.player.getEyeHeight(mc.player.getPose());
-        double feetY = pos.y - mcEyeHeight;
+        double yDelta = state.getEyeHeight() - mcEyeHeight;
 
-        // New camera position: entity feet + VRM eye offset
-        // Note: eyeOffset XZ accounts for head rotation, but needs to be rotated
-        // by body yaw to be in world space (eyeOffset is in model space)
-        double bodyYawRad = Math.toRadians(mc.player.yBodyRot + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick);
+        // XZ: animated HEAD offset, rotated from model space to world space by bodyYaw
+        double bodyYawRad = Math.toRadians(
+                mc.player.yBodyRotO + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick
+        );
         double cos = Math.cos(-bodyYawRad);
         double sin = Math.sin(-bodyYawRad);
         // Z-flip: model space Z is flipped relative to MC
@@ -66,7 +61,7 @@ public abstract class CameraMixin {
 
         setPosition(
                 pos.x + worldOffsetX,
-                feetY + eyeOffset.y,
+                pos.y + yDelta,
                 pos.z + worldOffsetZ
         );
     }
