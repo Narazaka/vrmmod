@@ -1,16 +1,31 @@
 package com.github.narazaka.vrmmod.animation
 
+import com.github.narazaka.vrmmod.vrm.HumanBone
 import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import org.joml.Vector3f
 
 /**
  * A [PoseProvider] that selects and plays animation clips based on Minecraft player state.
  *
  * Clips are selected by mapping [PoseContext] flags to animation clip names.
  * Time is tracked internally using [System.nanoTime] for frame-rate-independent playback.
+ *
+ * Hips translation is scaled by the ratio of the VRM model's hips height to the
+ * vrma animation's rest hips height, so animations transfer correctly across
+ * models of different proportions.
  */
 class AnimationPoseProvider(
     private val clips: Map<String, AnimationClip>,
 ) : PoseProvider {
+
+    override val isAbsoluteRotation: Boolean get() = true
+
+    /**
+     * The VRM model's hips Y position (rest pose, world space).
+     * Set externally after construction so that hips translation can be
+     * scaled by model/animation height ratio.
+     */
+    var modelHipsHeight: Float = 0f
 
     private var currentClipName = ""
     private var currentTime = 0f
@@ -40,7 +55,25 @@ class AnimationPoseProvider(
 
         // Sample the clip
         val clip = clips[currentClipName] ?: return emptyMap()
-        return clip.sample(currentTime)
+        val poses = clip.sample(currentTime)
+
+        // Scale hips translation by model/animation height ratio
+        val animHipsHeight = clip.restHipsHeight
+        if (animHipsHeight > 0f && modelHipsHeight > 0f) {
+            val ratio = modelHipsHeight / animHipsHeight
+            if (ratio != 1f) {
+                val hipsPose = poses[HumanBone.HIPS]
+                if (hipsPose != null) {
+                    val t = hipsPose.translation
+                    if (t.x != 0f || t.y != 0f || t.z != 0f) {
+                        val scaledTranslation = Vector3f(t).mul(ratio)
+                        return poses + (HumanBone.HIPS to hipsPose.copy(translation = scaledTranslation))
+                    }
+                }
+            }
+        }
+
+        return poses
     }
 
     private fun selectClip(context: PoseContext): String {

@@ -53,7 +53,9 @@ object VrmRenderer {
 
         // Compute bone poses from the animation provider
         val bonePoseMap = state.poseProvider.computePose(model.skeleton, poseContext)
-        val nodeOverrides = convertToNodeOverrides(model, bonePoseMap).toMutableMap()
+        val nodeOverrides = convertToNodeOverrides(
+            model, bonePoseMap, isAbsolute = state.poseProvider.isAbsoluteRotation
+        ).toMutableMap()
 
         // SpringBone simulation
         val simulator = state.springBoneSimulator
@@ -136,21 +138,39 @@ object VrmRenderer {
      * For each animated bone, the override matrix combines the node's rest
      * TRS with the pose's delta TRS.
      */
-    private fun convertToNodeOverrides(model: VrmModel, bonePoseMap: BonePoseMap): Map<Int, Matrix4f> {
+    /**
+     * @param isAbsolute if true, pose rotations replace the rest rotation entirely
+     *   (used for vrma animation). If false, pose rotations are applied as deltas
+     *   in parent space before rest rotation (used for VanillaPoseProvider).
+     */
+    private fun convertToNodeOverrides(
+        model: VrmModel,
+        bonePoseMap: BonePoseMap,
+        isAbsolute: Boolean = false,
+    ): Map<Int, Matrix4f> {
         val overrides = mutableMapOf<Int, Matrix4f>()
         for ((bone, pose) in bonePoseMap) {
             val boneNode = model.humanoid.humanBones[bone] ?: continue
             val nodeIndex = boneNode.nodeIndex
             val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
-            // Apply pose rotation in parent space (before rest rotation):
-            // finalLocal = T_rest * T_pose * R_pose * R_rest * S_rest * S_pose
-            val matrix = Matrix4f()
-                .translate(node.translation)
-                .translate(pose.translation)
-                .rotate(pose.rotation)
-                .rotate(node.rotation)
-                .scale(node.scale)
-                .scale(pose.scale)
+            val matrix = if (isAbsolute) {
+                // vrma: normalized rotation pre-multiplied by model rest rotation
+                // finalLocalRot = restRot * normalizedRot
+                Matrix4f()
+                    .translate(node.translation)
+                    .translate(pose.translation)
+                    .rotate(Quaternionf(node.rotation).mul(pose.rotation))
+                    .scale(node.scale)
+            } else {
+                // VanillaPoseProvider: delta rotation applied in parent space before rest
+                Matrix4f()
+                    .translate(node.translation)
+                    .translate(pose.translation)
+                    .rotate(pose.rotation)
+                    .rotate(node.rotation)
+                    .scale(node.scale)
+                    .scale(pose.scale)
+            }
             overrides[nodeIndex] = matrix
         }
         return overrides

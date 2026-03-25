@@ -11,6 +11,8 @@ data class AnimationClip(
     val name: String,
     val duration: Float, // seconds
     val tracks: Map<HumanBone, BoneTrack>,
+    /** Rest-pose hips Y position from the vrma file, used for height-ratio scaling. */
+    val restHipsHeight: Float = 0f,
 ) {
     /**
      * Samples the animation at the given [time], returning interpolated bone poses.

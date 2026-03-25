@@ -75,7 +75,20 @@ object VrmPlayerManager {
                             clips.size,
                             clips.keys.joinToString(),
                         )
-                        AnimationPoseProvider(clips)
+                        AnimationPoseProvider(clips).also { provider ->
+                            // Set model hips height for translation scaling
+                            val hipsBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HIPS]
+                            if (hipsBoneNode != null) {
+                                val hipsNode = model.skeleton.nodes.getOrNull(hipsBoneNode.nodeIndex)
+                                if (hipsNode != null) {
+                                    // Compute hips world Y by walking up the skeleton
+                                    val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+                                    val hipsWorldPos = org.joml.Vector3f()
+                                    worldMatrices[hipsBoneNode.nodeIndex].getTranslation(hipsWorldPos)
+                                    provider.modelHipsHeight = hipsWorldPos.y
+                                }
+                            }
+                        }
                     } else {
                         com.github.narazaka.vrmmod.animation.VanillaPoseProvider()
                     }

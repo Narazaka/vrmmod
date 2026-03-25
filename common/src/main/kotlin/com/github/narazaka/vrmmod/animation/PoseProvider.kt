@@ -52,4 +52,8 @@ data class PoseContext(
  */
 interface PoseProvider {
     fun computePose(skeleton: VrmSkeleton, context: PoseContext): BonePoseMap
+
+    /** If true, rotations are absolute local rotations (replace rest rotation).
+     *  If false, rotations are deltas applied before rest rotation. */
+    val isAbsoluteRotation: Boolean get() = false
 }
