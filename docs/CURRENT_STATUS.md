@@ -139,7 +139,8 @@
 ### 高優先
 1. ~~**NeoForge Mixin 追加**~~: 完了済み
 2. ~~**テスト修正**~~: 完了済み
-3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest）の整理、不要import除去
+3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
+4. **estimateScale の改善**: Hips ノードのローカル Y が負の場合（Armature 子ノード）にワールド Y を使う必要あり
 
 ### 中優先
 4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
@@ -152,7 +153,8 @@
 9. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
 10. **アウトライン描画**: 背面法
 11. ~~**VRM 0.x 対応**~~: 完了済み（VrmV0Converter で v0 JSON → v1 JSON 変換、VrmParser で自動検出）
-12. **Vivecraft IK**: VR 一人称、3点IK
+12. **ポンポン等の特殊メッシュ描画問題**: 多数の微小三角形がMASKモードで重なる衣装メッシュ（チアリーダーのポンポン等）がノイズ状に描画される。マテリアル/alpha処理の問題（VRM 0.x変換とは無関係）
+13. **Vivecraft IK**: VR 一人称、3点IK
 13. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
 14. **README / ドキュメント**: 使い方、設定ファイルの説明
 15. **CI/CD / リリースビルド**: GitHub Actions、Modrinth/CurseForge パッケージング
