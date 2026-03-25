@@ -112,7 +112,7 @@ object VrmParser {
         val skeleton = extractSkeleton(model)
         val textures = extractTextures(model)
 
-        return VrmModel(
+        val vrmModel = VrmModel(
             meta = meta,
             humanoid = humanoid,
             meshes = meshes,
@@ -124,6 +124,9 @@ object VrmParser {
             firstPersonAnnotations = firstPersonAnnotations,
             lookAtOffsetFromHeadBone = lookAtOffset,
         )
+
+        // VRM 0.x coordinate conversion: Z- forward → Z+ forward
+        return if (isV0) VrmV0Converter.convertCoordinates(vrmModel) else vrmModel
     }
 
     /**

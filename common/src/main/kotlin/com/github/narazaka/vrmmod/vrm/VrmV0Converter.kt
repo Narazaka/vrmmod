@@ -2,15 +2,30 @@ package com.github.narazaka.vrmmod.vrm
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import org.joml.Matrix4f
+import org.joml.Vector3f
 
 /**
- * Converts VRM 0.x JSON structures to VRM 1.0 format.
+ * Converts VRM 0.x to VRM 1.0 format.
  *
- * VRM 0.x stores everything under a single "VRM" extension key.
- * This converter transforms each subsection (humanoid, expressions,
- * springBone, meta, firstPerson, lookAt) to match VRM 1.0's
- * VRMC_vrm / VRMC_springBone structure, so the existing v1 parser
- * can process them without modification.
+ * Two layers of conversion:
+ * 1. **JSON conversion** (`convertAll`): Restructures the VRM extension JSON
+ *    from v0 schema to v1 schema (humanoid, expressions, springBone, etc.).
+ * 2. **Coordinate conversion** (`convertCoordinates`): Transforms parsed geometry
+ *    from v0 coordinate space (Z- forward) to v1 coordinate space (Z+ forward).
+ *
+ * The coordinate difference between v0 and v1 is a 180° rotation around Y,
+ * which is equivalent to negating both X and Z components of all spatial data.
+ * This is a proper rotation (det = 1), not a reflection, so winding order
+ * and handedness are preserved.
+ *
+ * The transformation matrix M = diag(-1, 1, -1, 1) is applied to:
+ * - Vertex positions and normals (vec3: negate x,z)
+ * - Morph target deltas (vec3: negate x,z)
+ * - Skeleton node translations (vec3: negate x,z)
+ * - Inverse bind matrices (similarity transform: M * IBM * M)
+ * - SpringBone collider offsets (vec3: negate x,z)
+ * - SpringBone gravity directions (vec3: negate x,z)
  */
 object VrmV0Converter {
 
@@ -372,6 +387,124 @@ object VrmV0Converter {
 
         return V0ConversionResult(vrmcVrm, vrmcSpringBone)
     }
+
+    // ========================================================================
+    // Coordinate conversion: v0 (Z- forward) → v1 (Z+ forward)
+    // ========================================================================
+
+    /**
+     * Transforms a parsed VrmModel from VRM 0.x coordinate space to VRM 1.0.
+     *
+     * VRM 0.x models face Z- while VRM 1.0 models face Z+. Empirically verified
+     * by comparing the same model exported in both formats: all spatial data
+     * (positions, normals, translations) has X and Z negated between v0 and v1.
+     *
+     * This is equivalent to a 180° rotation around Y: M = diag(-1, 1, -1, 1).
+     * Applied as:
+     * - vec3 data: negate X and Z
+     * - matrices: similarity transform M * matrix * M
+     */
+    fun convertCoordinates(model: VrmModel): VrmModel {
+        val meshes = model.meshes.map { mesh ->
+            mesh.copy(primitives = mesh.primitives.map { prim ->
+                prim.copy(
+                    positions = flipXZ(prim.positions),
+                    normals = flipXZ(prim.normals),
+                    morphTargets = prim.morphTargets.map { mt ->
+                        VrmMorphTarget(
+                            positionDeltas = flipXZ(mt.positionDeltas),
+                            normalDeltas = flipXZ(mt.normalDeltas),
+                        )
+                    },
+                )
+            })
+        }
+
+        val nodes = model.skeleton.nodes.map { node ->
+            node.copy(translation = flipXZ(node.translation))
+        }
+
+        val ibms = model.skeleton.inverseBindMatrices.map { similarityTransformM(it) }
+
+        val skeleton = model.skeleton.copy(nodes = nodes, inverseBindMatrices = ibms)
+
+        val springBone = convertSpringBoneCoordinates(model.springBone)
+
+        return model.copy(meshes = meshes, skeleton = skeleton, springBone = springBone)
+    }
+
+    /**
+     * Transforms SpringBone spatial data from v0 to v1 coordinates.
+     * Collider offsets, capsule tails, and gravity directions are all vec3 in model space.
+     */
+    private fun convertSpringBoneCoordinates(springBone: VrmSpringBone): VrmSpringBone {
+        val colliders = springBone.colliders.map { collider ->
+            val newShape = when (val shape = collider.shape) {
+                is ColliderShape.Sphere -> ColliderShape.Sphere(
+                    offset = flipXZ(shape.offset),
+                    radius = shape.radius,
+                )
+                is ColliderShape.Capsule -> ColliderShape.Capsule(
+                    offset = flipXZ(shape.offset),
+                    radius = shape.radius,
+                    tail = flipXZ(shape.tail),
+                )
+            }
+            collider.copy(shape = newShape)
+        }
+
+        val springs = springBone.springs.map { spring ->
+            spring.copy(joints = spring.joints.map { joint ->
+                joint.copy(gravityDir = flipXZ(joint.gravityDir))
+            })
+        }
+
+        return springBone.copy(colliders = colliders, springs = springs)
+    }
+
+    /** Negate X and Z components of a Vector3f. */
+    private fun flipXZ(v: Vector3f): Vector3f = Vector3f(-v.x, v.y, -v.z)
+
+    /**
+     * Negate X and Z components in a vec3 array (stride=3).
+     * Returns a new array; the original is not modified.
+     */
+    private fun flipXZ(arr: FloatArray): FloatArray {
+        if (arr.isEmpty()) return arr
+        val result = arr.copyOf()
+        var i = 0
+        while (i < result.size) {
+            result[i] = -result[i]           // X
+            // result[i + 1] unchanged       // Y
+            result[i + 2] = -result[i + 2]   // Z
+            i += 3
+        }
+        return result
+    }
+
+    /**
+     * Applies similarity transform M * matrix * M where M = diag(-1, 1, -1, 1).
+     *
+     * This negates elements where exactly one of (row, col) is in {0, 2}:
+     * - (0,1), (0,3), (1,0), (1,2), (2,1), (2,3), (3,0), (3,2) are negated
+     * - All other elements are unchanged
+     */
+    private fun similarityTransformM(ibm: Matrix4f): Matrix4f {
+        val m = Matrix4f(ibm)
+        // Row 0: negate cols 1, 3
+        m.m01(-m.m01()); m.m03(-m.m03())
+        // Row 1: negate cols 0, 2
+        m.m10(-m.m10()); m.m12(-m.m12())
+        // Row 2: negate cols 1, 3
+        m.m21(-m.m21()); m.m23(-m.m23())
+        // Row 3: negate cols 0, 2
+        m.m30(-m.m30()); m.m32(-m.m32())
+        return m
+    }
+
+    // ========================================================================
+    // SpringBone chain building
+    // ========================================================================
 
     /**
      * Enumerates all root-to-leaf paths from a root node.
