@@ -437,19 +437,26 @@ object VrmV0Converter {
 
     /**
      * Transforms SpringBone spatial data from v0 to v1 coordinates.
-     * Collider offsets, capsule tails, and gravity directions are all vec3 in model space.
+     *
+     * Collider offsets/tails: UniVRM exports these in a mixed coordinate space where
+     * Z already matches v1 convention, but X is negated. Empirically verified by
+     * comparing the same model's v0/v1 exports: offset X is opposite, Z is identical.
+     * Therefore only X is negated (NOT flipXZ).
+     *
+     * Gravity directions: model-space direction vectors, use full flipXZ.
+     * (Typically (0,-1,0) so unaffected, but correct in principle.)
      */
     private fun convertSpringBoneCoordinates(springBone: VrmSpringBone): VrmSpringBone {
         val colliders = springBone.colliders.map { collider ->
             val newShape = when (val shape = collider.shape) {
                 is ColliderShape.Sphere -> ColliderShape.Sphere(
-                    offset = flipXZ(shape.offset),
+                    offset = flipX(shape.offset),
                     radius = shape.radius,
                 )
                 is ColliderShape.Capsule -> ColliderShape.Capsule(
-                    offset = flipXZ(shape.offset),
+                    offset = flipX(shape.offset),
                     radius = shape.radius,
-                    tail = flipXZ(shape.tail),
+                    tail = flipX(shape.tail),
                 )
             }
             collider.copy(shape = newShape)
@@ -466,6 +473,9 @@ object VrmV0Converter {
 
     /** Negate X and Z components of a Vector3f. */
     private fun flipXZ(v: Vector3f): Vector3f = Vector3f(-v.x, v.y, -v.z)
+
+    /** Negate X component only. Used for VRM 0.x collider offsets (mixed coordinate space). */
+    private fun flipX(v: Vector3f): Vector3f = Vector3f(-v.x, v.y, v.z)
 
     /**
      * Negate X and Z components in a vec3 array (stride=3).
