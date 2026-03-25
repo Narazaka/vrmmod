@@ -76,7 +76,6 @@ class ExpressionController(
         // --- Damage expression ---
         val isHurt = hurtTime > 0f
         if (isHurt && !wasHurt) {
-            // Rising edge: new damage hit
             isDamaged = true
             damageTimer = 0f
         }

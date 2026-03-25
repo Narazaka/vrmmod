@@ -50,6 +50,37 @@ class MorphTargetDebugTest {
             }
         }
 
+        // Dump ALL expressions with their binds
+        println("\n=== All expressions ===")
+        for (expr in model.expressions) {
+            val bindsStr = expr.morphTargetBinds.map { "mesh=${it.nodeIndex},idx=${it.morphTargetIndex},w=${it.weight}" }
+            println("  ${expr.name} (preset=${expr.preset}): ${expr.morphTargetBinds.size} binds $bindsStr")
+        }
+
+        // Check sad specifically
+        val sad = model.expressions.find { it.name == "sad" || it.preset == "sad" }
+        println("\n=== sad expression ===")
+        if (sad != null) {
+            println("  name=${sad.name} preset=${sad.preset} binds=${sad.morphTargetBinds.size}")
+            for (bind in sad.morphTargetBinds) {
+                val mesh = model.meshes.getOrNull(bind.nodeIndex)
+                println("  bind: meshIdx=${bind.nodeIndex} morphIdx=${bind.morphTargetIndex} weight=${bind.weight}")
+                if (mesh != null) {
+                    val prim0 = mesh.primitives[0]
+                    val morph = prim0.morphTargets.getOrNull(bind.morphTargetIndex)
+                    var nonZero = 0
+                    if (morph != null) {
+                        for (v in morph.positionDeltas) {
+                            if (kotlin.math.abs(v) > 0.0001f) nonZero++
+                        }
+                    }
+                    println("  prim0 morph: ${morph?.positionDeltas?.size ?: -1} components, nonZero=$nonZero")
+                }
+            }
+        } else {
+            println("  NOT FOUND")
+        }
+
         // Verify non-zero deltas exist (sparse accessor resolution worked)
         if (blink != null) {
             val bind = blink.morphTargetBinds[0]
