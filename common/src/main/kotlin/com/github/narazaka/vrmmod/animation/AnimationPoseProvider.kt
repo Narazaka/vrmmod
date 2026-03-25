@@ -33,6 +33,7 @@ class AnimationPoseProvider(
     private var prevPose: BonePoseMap = emptyMap()
     private var transitionElapsed = 0f
     private var isTransitioning = false
+    private var activeTransitionDuration = transitionDuration
 
     override fun computePose(skeleton: VrmSkeleton, context: PoseContext): BonePoseMap {
         val now = System.nanoTime()
@@ -47,6 +48,7 @@ class AnimationPoseProvider(
 
         // Detect clip change -> start cross-fade
         if (targetClipName != currentClipName) {
+            val prevClipName = currentClipName
             // Snapshot current pose as the "from" pose for blending
             val currentClip = clips[currentClipName]
             if (currentClip != null) {
@@ -57,6 +59,7 @@ class AnimationPoseProvider(
             currentTime = 0f
             transitionElapsed = 0f
             isTransitioning = true
+            activeTransitionDuration = getTransitionDuration(prevClipName, targetClipName)
         }
 
         currentTime += deltaTime
@@ -69,7 +72,7 @@ class AnimationPoseProvider(
         // Cross-fade blending
         if (isTransitioning) {
             transitionElapsed += deltaTime
-            val t = (transitionElapsed / transitionDuration).coerceIn(0f, 1f)
+            val t = (transitionElapsed / activeTransitionDuration).coerceIn(0f, 1f)
 
             if (t < 1f) {
                 poses = blendPoses(prevPose, poses, t)
@@ -155,6 +158,32 @@ class AnimationPoseProvider(
             translation = existingHead?.translation ?: Vector3f(),
             rotation = combinedRot,
         ))
+    }
+
+    /**
+     * Returns the transition duration for a specific clip change.
+     * Fast transitions for stopping movement, longer for starting.
+     */
+    private fun getTransitionDuration(from: String, to: String): Float {
+        // Stopping movement (running/walking -> idle): quick stop
+        if ((from.startsWith("Running") || from.startsWith("Walking")) &&
+            (to.startsWith("Idle") || to == "Jump_Idle")) {
+            return 0.1f
+        }
+        // Landing from jump
+        if (from == "Jump_Idle" && (to.startsWith("Idle") || to.startsWith("Walking") || to.startsWith("Running"))) {
+            return 0.1f
+        }
+        // Starting to move
+        if (from.startsWith("Idle") && (to.startsWith("Walking") || to.startsWith("Running"))) {
+            return 0.15f
+        }
+        // Walk <-> Run transition
+        if ((from.startsWith("Walking") && to.startsWith("Running")) ||
+            (from.startsWith("Running") && to.startsWith("Walking"))) {
+            return 0.2f
+        }
+        return transitionDuration
     }
 
     private fun selectClip(context: PoseContext): String {
