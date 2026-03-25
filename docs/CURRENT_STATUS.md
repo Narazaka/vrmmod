@@ -58,6 +58,17 @@
 - 自動まばたき: 2-4秒ランダム間隔、0.3秒三角波
 - ダメージ表情: hurtTime の立ち上がりエッジで発火、configurable な複数モーフ合成（`Map<String, Float>`）
 - ExpressionController: clear-then-accumulate パターン（three-vrm準拠）
+- Expression Override: overrideBlink/overrideLookAt/overrideMouth による blink/lookAt/mouth カテゴリの抑制（three-vrm VRMExpressionManager 準拠）
+- isBinary 対応: weight > 0.5 を 1.0 として扱い、override 後も binary 制約を維持
+
+### VRM 0.x 対応
+- `VrmV0Converter`: VRM 0.x の JSON 構造を VRM 1.0 形式に変換し、既存 v1 パーサーに合流
+- `VrmParser`: 拡張キー（`VRM` vs `VRMC_vrm`）で v0/v1 を自動検出
+- Humanoid: 配列→オブジェクト変換、親指ボーンリネーム（leftThumbProximal→leftThumbMetacarpal等）
+- Expression: blendShapeMaster → expressions、プリセット名変換（joy→happy等）、weight 0-100→0-1
+- SpringBone: boneGroups → springs、ルートボーンから全子孫を再帰探索してチェーン構築
+- Meta/FirstPerson/LookAt: フィールド名マッピング
+- 同一モデル（色見いつは）の v0/v1 ペアで検証済み
 
 ### 一人称VRM表示
 - Fabric: `WorldRenderEvents.AFTER_ENTITIES` でフック
@@ -126,21 +137,21 @@
 ## 残課題
 
 ### 高優先
-1. **NeoForge Mixin 追加**: HandRendererMixin, CameraMixin が Fabric のみ。NeoForge 側にも追加
-2. **テスト修正**: VanillaPoseProviderTest が現コードと合わない
-3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, FirstPersonTest）の整理、不要import除去
+1. ~~**NeoForge Mixin 追加**~~: 完了済み
+2. ~~**テスト修正**~~: 完了済み
+3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest）の整理、不要import除去
 
 ### 中優先
 4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
 5. **VRoid Hub連携**: OAuth + API（フロー詳細は実装時に調査）
-6. **Expression override**: blink/lookAt/mouth 相互抑制（three-vrm の VRMExpressionManager 参照）
+6. ~~**Expression override**~~: 完了済み（three-vrm の VRMExpressionManager に忠実に移植）
 7. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
 8. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
 
 ### 低優先
 9. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
 10. **アウトライン描画**: 背面法
-11. **VRM 0.x 対応**: パーサーの追加実装、内部表現への変換
+11. ~~**VRM 0.x 対応**~~: 完了済み（VrmV0Converter で v0 JSON → v1 JSON 変換、VrmParser で自動検出）
 12. **Vivecraft IK**: VR 一人称、3点IK
 13. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
 14. **README / ドキュメント**: 使い方、設定ファイルの説明
