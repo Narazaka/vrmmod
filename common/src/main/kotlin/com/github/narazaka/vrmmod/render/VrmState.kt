@@ -1,5 +1,6 @@
 package com.github.narazaka.vrmmod.render
 
+import com.github.narazaka.vrmmod.animation.ExpressionController
 import com.github.narazaka.vrmmod.animation.PoseProvider
 import com.github.narazaka.vrmmod.animation.VanillaPoseProvider
 import com.github.narazaka.vrmmod.physics.SpringBoneSimulator
@@ -15,4 +16,5 @@ data class VrmState(
     val textureLocations: List<ResourceLocation>,
     val poseProvider: PoseProvider = VanillaPoseProvider(),
     val springBoneSimulator: SpringBoneSimulator? = null,
+    val expressionController: ExpressionController = ExpressionController(),
 )

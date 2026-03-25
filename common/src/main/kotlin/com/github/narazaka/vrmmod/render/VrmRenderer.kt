@@ -116,26 +116,40 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
+        // Compute morph target weights from expressions
+        val expressionController = state.expressionController
+        val morphWeightsMap = expressionController.computeMorphWeights(model.expressions)
+
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
         // and use appropriate RenderType per alpha mode.
-        val allPrimitives = model.meshes.flatMap { it.primitives }
+        data class IndexedPrimitive(val meshIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
+        val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
+            mesh.primitives.map { IndexedPrimitive(meshIndex, it) }
+        }
         data class RenderKey(val texture: ResourceLocation, val alphaMode: com.github.narazaka.vrmmod.vrm.AlphaMode)
         val grouped = allPrimitives.groupBy {
-            RenderKey(resolveTexture(state, it.imageIndex), it.alphaMode)
+            RenderKey(resolveTexture(state, it.primitive.imageIndex), it.primitive.alphaMode)
         }
 
         // Draw opaque/mask first, then translucent
         val sortedGroups = grouped.entries.sortedBy { if (it.key.alphaMode == com.github.narazaka.vrmmod.vrm.AlphaMode.BLEND) 1 else 0 }
 
-        for ((key, primitives) in sortedGroups) {
+        for ((key, indexedPrimitives) in sortedGroups) {
             val renderType = when (key.alphaMode) {
                 com.github.narazaka.vrmmod.vrm.AlphaMode.BLEND -> RenderType.entityTranslucent(key.texture)
                 else -> RenderType.entityCutoutNoCull(key.texture)
             }
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
-            for (primitive in primitives) {
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode)
+            for ((meshIndex, primitive) in indexedPrimitives) {
+                // Collect morph weights relevant to this primitive's mesh
+                val primitiveMorphWeights = mutableMapOf<Int, Float>()
+                for ((key2, weight) in morphWeightsMap) {
+                    if (key2.first == meshIndex) {
+                        primitiveMorphWeights[key2.second] = weight
+                    }
+                }
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode, primitiveMorphWeights)
             }
         }
 
@@ -244,6 +258,7 @@ object VrmRenderer {
         packedLight: Int,
         skinningMatrices: List<Matrix4f>,
         isQuadMode: Boolean,
+        morphWeights: Map<Int, Float> = emptyMap(),
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -286,6 +301,23 @@ object VrmRenderer {
                     nx = 0f
                     ny = 1f
                     nz = 0f
+                }
+
+                // Apply morph target deltas before skinning
+                if (morphWeights.isNotEmpty()) {
+                    for ((morphIdx, weight) in morphWeights) {
+                        val morph = primitive.morphTargets.getOrNull(morphIdx) ?: continue
+                        if (morph.positionDeltas.size > index * 3 + 2) {
+                            px += morph.positionDeltas[index * 3] * weight
+                            py += morph.positionDeltas[index * 3 + 1] * weight
+                            pz += morph.positionDeltas[index * 3 + 2] * weight
+                        }
+                        if (hasNormals && morph.normalDeltas.size > index * 3 + 2) {
+                            nx += morph.normalDeltas[index * 3] * weight
+                            ny += morph.normalDeltas[index * 3 + 1] * weight
+                            nz += morph.normalDeltas[index * 3 + 2] * weight
+                        }
+                    }
                 }
 
                 if (hasSkinning) {
