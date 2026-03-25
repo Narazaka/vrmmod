@@ -7,7 +7,8 @@ import kotlin.random.Random
  * Controls VRM expression (blend shape) weights and computes
  * per-primitive morph target weights for rendering.
  *
- * Handles automatic blinking and damage reactions.
+ * Handles automatic blinking, damage reactions, and expression override
+ * (blink/lookAt/mouth suppression) following three-vrm's VRMExpressionManager.
  */
 class ExpressionController(
     /** Expression weights for damage reaction (expression name -> max weight). */
@@ -28,6 +29,14 @@ class ExpressionController(
     private var damageTimer = 0f
     private var isDamaged = false
     private var wasHurt = false
+
+    /**
+     * Expression names belonging to each override category.
+     * Matches three-vrm's VRMExpressionManager defaults.
+     */
+    val blinkExpressionNames = setOf("blink", "blinkLeft", "blinkRight")
+    val lookAtExpressionNames = setOf("lookLeft", "lookRight", "lookUp", "lookDown")
+    val mouthExpressionNames = setOf("aa", "ee", "ih", "oh", "ou")
 
     companion object {
         private const val BLINK_DURATION = 0.3f
@@ -103,19 +112,70 @@ class ExpressionController(
     }
 
     /**
-     * Computes the effective morph target weights from all active expressions.
+     * Computes the effective morph target weights from all active expressions,
+     * applying expression override (blink/lookAt/mouth suppression).
+     *
+     * Follows three-vrm's VRMExpressionManager.update() algorithm:
+     * 1. Set weights on each VrmExpression
+     * 2. Calculate weight multipliers from override amounts
+     * 3. Apply multipliers to expressions in override categories
+     * 4. Accumulate morph target weights
      */
     fun computeMorphWeights(expressions: List<VrmExpression>): Map<Pair<Int, Int>, Float> {
+        // Step 1: Set weights on VrmExpression objects
+        for (expression in expressions) {
+            expression.weight = weights[expression.name] ?: weights[expression.preset] ?: 0f
+        }
+
+        // Step 2: Calculate weight multipliers (three-vrm: _calculateWeightMultipliers)
+        var blinkMultiplier = 1.0f
+        var lookAtMultiplier = 1.0f
+        var mouthMultiplier = 1.0f
+
+        for (expression in expressions) {
+            blinkMultiplier -= expression.overrideBlinkAmount
+            lookAtMultiplier -= expression.overrideLookAtAmount
+            mouthMultiplier -= expression.overrideMouthAmount
+        }
+
+        blinkMultiplier = blinkMultiplier.coerceAtLeast(0f)
+        lookAtMultiplier = lookAtMultiplier.coerceAtLeast(0f)
+        mouthMultiplier = mouthMultiplier.coerceAtLeast(0f)
+
+        // Step 3 & 4: Apply multipliers and accumulate morph weights
         val result = mutableMapOf<Pair<Int, Int>, Float>()
-        for ((name, weight) in weights) {
-            if (weight <= 0f) continue
-            val expression = expressions.find { it.name == name || it.preset == name } ?: continue
+
+        for (expression in expressions) {
+            var multiplier = 1.0f
+            val name = expression.name
+
+            if (name in blinkExpressionNames) {
+                multiplier *= blinkMultiplier
+            }
+            if (name in lookAtExpressionNames) {
+                multiplier *= lookAtMultiplier
+            }
+            if (name in mouthExpressionNames) {
+                multiplier *= mouthMultiplier
+            }
+
+            // three-vrm: actualWeight = outputWeight * multiplier
+            var actualWeight = expression.outputWeight * multiplier
+
+            // three-vrm: if isBinary and actualWeight < 1.0, treat as 0.0
+            if (expression.isBinary && actualWeight < 1.0f) {
+                actualWeight = 0.0f
+            }
+
+            if (actualWeight <= 0f) continue
+
             for (bind in expression.morphTargetBinds) {
                 if (bind.nodeIndex < 0) continue
                 val key = Pair(bind.nodeIndex, bind.morphTargetIndex)
-                result[key] = (result[key] ?: 0f) + bind.weight * weight
+                result[key] = (result[key] ?: 0f) + bind.weight * actualWeight
             }
         }
+
         return result
     }
 }

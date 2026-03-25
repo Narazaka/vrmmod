@@ -104,6 +104,10 @@ object VrmExtensionParser {
             name = name,
             preset = preset,
             morphTargetBinds = morphTargetBinds,
+            isBinary = obj.get("isBinary")?.asBoolean ?: false,
+            overrideBlink = ExpressionOverrideType.fromString(obj.get("overrideBlink")?.asString),
+            overrideLookAt = ExpressionOverrideType.fromString(obj.get("overrideLookAt")?.asString),
+            overrideMouth = ExpressionOverrideType.fromString(obj.get("overrideMouth")?.asString),
         )
     }
 
