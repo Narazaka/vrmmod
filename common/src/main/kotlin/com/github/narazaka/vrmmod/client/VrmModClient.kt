@@ -18,11 +18,11 @@ import java.io.File
  */
 object VrmModClient {
 
-    /** Key binding to open VRM config screen (V key). */
+    /** Key binding to open VRM config screen (unbound by default). */
     private val VRM_KEY = KeyMapping(
         "key.${VrmMod.MOD_ID}.config",
         InputConstants.Type.KEYSYM,
-        InputConstants.KEY_V,
+        InputConstants.UNKNOWN.value,
         "category.${VrmMod.MOD_ID}",
     )
 
