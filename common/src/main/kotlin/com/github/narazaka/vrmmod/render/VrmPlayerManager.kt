@@ -3,6 +3,7 @@ package com.github.narazaka.vrmmod.render
 import com.github.narazaka.vrmmod.VrmMod
 import com.github.narazaka.vrmmod.animation.AnimationConfig
 import com.github.narazaka.vrmmod.animation.AnimationPoseProvider
+import com.github.narazaka.vrmmod.animation.ExpressionController
 import com.github.narazaka.vrmmod.animation.VrmaParser
 import com.github.narazaka.vrmmod.physics.SpringBoneSimulator
 import com.github.narazaka.vrmmod.vrm.VrmParser
@@ -93,11 +94,16 @@ object VrmPlayerManager {
                     } else {
                         com.github.narazaka.vrmmod.animation.VanillaPoseProvider()
                     }
+                    val expressionCtrl = ExpressionController(
+                        damageExpressionName = animationConfig.damageExpression,
+                        damageExpressionDuration = animationConfig.damageExpressionDuration,
+                    )
                     val state = VrmState(
                         model = model,
                         textureLocations = textureLocations,
                         poseProvider = poseProvider,
                         springBoneSimulator = simulator,
+                        expressionController = expressionCtrl,
                     )
                     states[playerUUID] = state
                     VrmMod.logger.info(

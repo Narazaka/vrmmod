@@ -64,7 +64,7 @@ object VrmRenderer {
         lastRenderTimeNano = now
 
         // Update auto-blink and expression animations
-        state.expressionController.update(deltaTime)
+        state.expressionController.update(deltaTime, poseContext.hurtTime)
 
         // SpringBone simulation
         val simulator = state.springBoneSimulator

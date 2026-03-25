@@ -47,6 +47,8 @@ data class PoseContext(
     val entityZ: Float = 0f,
     /** True when entity is on ground (not jumping/falling). */
     val isOnGround: Boolean = true,
+    /** MC hurt time (>0 when recently damaged). */
+    val hurtTime: Float = 0f,
 )
 
 /**

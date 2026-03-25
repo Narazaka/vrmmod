@@ -9,7 +9,12 @@ import kotlin.random.Random
  *
  * Also handles automatic blinking animation.
  */
-class ExpressionController {
+class ExpressionController(
+    /** Expression name for damage reaction (configurable). */
+    private val damageExpressionName: String = "sad",
+    /** Duration of damage expression in seconds. */
+    private val damageExpressionDuration: Float = 0.5f,
+) {
 
     /** Current weight (0-1) for each expression by name. */
     private val weights = mutableMapOf<String, Float>()
@@ -19,8 +24,11 @@ class ExpressionController {
     private var isBlinking = false
     private var nextBlinkTime = randomBlinkInterval()
 
+    // --- Damage expression state ---
+    private var damageTimer = 0f
+    private var isDamaged = false
+
     companion object {
-        /** Duration of a single blink (close + open) in seconds. */
         private const val BLINK_DURATION = 0.3f
         private const val BLINK_INTERVAL_MIN = 2f
         private const val BLINK_INTERVAL_MAX = 4f
@@ -46,11 +54,13 @@ class ExpressionController {
     }
 
     /**
-     * Updates the auto-blink timer and sets the blink expression weight.
+     * Updates auto-blink and reactive expressions.
      *
      * @param deltaTime elapsed time in seconds since the last update
+     * @param hurtTime MC's hurt timer (>0 when recently damaged, counts down)
      */
-    fun update(deltaTime: Float) {
+    fun update(deltaTime: Float, hurtTime: Float = 0f) {
+        // --- Auto-blink ---
         blinkTimer += deltaTime
         if (!isBlinking && blinkTimer >= nextBlinkTime) {
             isBlinking = true
@@ -64,9 +74,27 @@ class ExpressionController {
                 nextBlinkTime = randomBlinkInterval()
                 blinkTimer = 0f
             } else {
-                // Triangle wave: 0 -> 1 -> 0
                 weights[BLINK_EXPRESSION_NAME] = if (t < 0.5f) t * 2f else (1f - t) * 2f
             }
+        }
+
+        // --- Damage expression ---
+        if (hurtTime > 0f && !isDamaged) {
+            // New damage hit
+            isDamaged = true
+            damageTimer = 0f
+        }
+        if (isDamaged) {
+            damageTimer += deltaTime
+            if (damageTimer >= damageExpressionDuration) {
+                isDamaged = false
+                weights[damageExpressionName] = 0f
+            } else {
+                val t = damageTimer / damageExpressionDuration
+                weights[damageExpressionName] = (1f - t).coerceIn(0f, 1f)
+            }
+        } else if (hurtTime <= 0f) {
+            weights[damageExpressionName] = 0f
         }
     }
 

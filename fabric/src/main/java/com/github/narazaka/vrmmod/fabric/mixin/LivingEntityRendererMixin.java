@@ -76,7 +76,8 @@ public class LivingEntityRendererMixin {
                 VrmRenderContext.ENTITY_X.get(),
                 VrmRenderContext.ENTITY_Y.get(),
                 VrmRenderContext.ENTITY_Z.get(),
-                VrmRenderContext.ON_GROUND.get()
+                VrmRenderContext.ON_GROUND.get(),
+                VrmRenderContext.HURT_TIME.get()
         );
     }
 }

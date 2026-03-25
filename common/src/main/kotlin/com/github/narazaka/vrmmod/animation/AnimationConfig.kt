@@ -11,6 +11,10 @@ data class AnimationConfig(
     val headTracking: Boolean = true,
     val walkThreshold: Float = 0.01f,
     val runThreshold: Float = 0.5f,
+    /** Expression name to use when damaged (e.g. "sad", "surprised", "angry"). */
+    val damageExpression: String = "sad",
+    /** Duration of damage expression in seconds. */
+    val damageExpressionDuration: Float = 0.5f,
 ) {
     data class StateConfig(
         val clip: String,
