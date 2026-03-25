@@ -3,6 +3,7 @@ package com.github.narazaka.vrmmod.vrm
 import com.google.gson.JsonParser
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.io.File
 
 class VrmV0ConverterTest {
 
@@ -374,5 +375,51 @@ class VrmV0ConverterTest {
         assertNotNull(vrmcVrm.getAsJsonObject("firstPerson"))
         assertNotNull(vrmcVrm.getAsJsonObject("lookAt"))
         assertNotNull(vrmcSpringBone)
+    }
+
+    // --- Integration test: compare v0 and v1 parsing of the same model ---
+
+    @Test
+    fun `v0 and v1 of same model produce comparable results`() {
+        val v0File = File("D:/make/3d/vrm/色見いつは_2.0.vrm")
+        val v1File = File("D:/make/3d/vrm/色見いつは_2.0_vrm1.vrm")
+
+        if (!v0File.exists()) {
+            println("SKIP: VRM 0.x file not found at ${v0File.absolutePath}")
+            return
+        }
+        if (!v1File.exists()) {
+            println("SKIP: VRM 1.0 file not found at ${v1File.absolutePath}")
+            return
+        }
+
+        val v0Model = v0File.inputStream().use { VrmParser.parse(it) }
+        val v1Model = v1File.inputStream().use { VrmParser.parse(it) }
+
+        // --- humanoid bones exist ---
+        assertTrue(v0Model.humanoid.humanBones.isNotEmpty(), "v0 should have humanoid bones")
+        assertTrue(v1Model.humanoid.humanBones.isNotEmpty(), "v1 should have humanoid bones")
+        println("Humanoid bones: v0=${v0Model.humanoid.humanBones.size}, v1=${v1Model.humanoid.humanBones.size}")
+        // bone counts should be roughly equal (allow small difference for optional bones)
+        val boneDiff = kotlin.math.abs(v0Model.humanoid.humanBones.size - v1Model.humanoid.humanBones.size)
+        assertTrue(boneDiff <= 5, "Humanoid bone count difference ($boneDiff) should be <= 5")
+
+        // --- meshes exist ---
+        assertTrue(v0Model.meshes.isNotEmpty(), "v0 should have meshes")
+        assertTrue(v1Model.meshes.isNotEmpty(), "v1 should have meshes")
+        println("Meshes: v0=${v0Model.meshes.size}, v1=${v1Model.meshes.size}")
+        // mesh counts should be roughly equal
+        val meshDiff = kotlin.math.abs(v0Model.meshes.size - v1Model.meshes.size)
+        assertTrue(meshDiff <= 3, "Mesh count difference ($meshDiff) should be <= 3")
+
+        // --- expressions exist ---
+        assertTrue(v0Model.expressions.isNotEmpty(), "v0 should have expressions")
+        assertTrue(v1Model.expressions.isNotEmpty(), "v1 should have expressions")
+        println("Expressions: v0=${v0Model.expressions.size} (${v0Model.expressions.map { it.name }}), v1=${v1Model.expressions.size} (${v1Model.expressions.map { it.name }})")
+        // expression counts should be roughly equal
+        val exprDiff = kotlin.math.abs(v0Model.expressions.size - v1Model.expressions.size)
+        assertTrue(exprDiff <= 5, "Expression count difference ($exprDiff) should be <= 5")
+
+        println("Integration test PASSED: v0 and v1 models are comparable")
     }
 }
