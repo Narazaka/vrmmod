@@ -333,15 +333,40 @@ object VrmRenderer {
         return false
     }
 
-    /** No-op: eye offset is set once at load time from rest pose. */
+    /**
+     * Updates [VrmState.currentEyeOffset] from the current HEAD bone position.
+     *
+     * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
+     *   eyePos = headWorldMatrix * lookAt.offsetFromHeadBone
+     *
+     * The Y component uses the animated HEAD position (captures look direction offset),
+     * but the base height stays close to rest-pose eye height via the scale factor.
+     * XZ offset from HEAD rotation is included so the camera follows head turns
+     * and the neck interior stays hidden.
+     */
     private fun updateEyeOffset(
-        @Suppress("UNUSED_PARAMETER") state: VrmState,
-        @Suppress("UNUSED_PARAMETER") model: VrmModel,
-        @Suppress("UNUSED_PARAMETER") nodeOverrides: Map<Int, Matrix4f>,
-        @Suppress("UNUSED_PARAMETER") scale: Float,
+        state: VrmState,
+        model: VrmModel,
+        nodeOverrides: Map<Int, Matrix4f>,
+        scale: Float,
     ) {
-        // Eye offset is computed once at model load (VrmPlayerManager.computeEyeHeight)
-        // and stays fixed. This avoids animation jitter and keeps the camera stable.
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
+
+        // Compute world matrices with current animation overrides
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
+
+        // Apply lookAt offset in HEAD's local space
+        val offset = model.lookAtOffsetFromHeadBone
+        val eyeModelPos = Vector3f(offset)
+        headWorldMatrix.transformPosition(eyeModelPos)
+
+        // Scale to MC blocks
+        state.currentEyeOffset = Vector3f(
+            eyeModelPos.x * scale,
+            eyeModelPos.y * scale,
+            eyeModelPos.z * scale,
+        )
     }
 
     private fun estimateScale(state: VrmState): Float {
