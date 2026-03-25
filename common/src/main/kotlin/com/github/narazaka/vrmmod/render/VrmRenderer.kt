@@ -336,10 +336,9 @@ object VrmRenderer {
     /**
      * Updates [VrmState.currentEyeOffset] for VRM_VRM_CAMERA mode.
      *
-     * Uses the rest-pose HEAD position as a base, then applies only the
-     * mouse look rotation (headYaw/headPitch from PoseContext) to compute
-     * the eye offset. This avoids body animation (run lean, etc.) moving
-     * the camera while still tracking head rotation to hide the neck.
+     * Uses the animated HEAD world matrix to track head position including
+     * body lean (so neck interior stays hidden), but replaces the Y component
+     * with rest-pose eye height to avoid walk-animation vertical jitter.
      */
     private fun updateEyeOffset(
         state: VrmState,
@@ -349,31 +348,23 @@ object VrmRenderer {
     ) {
         val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
 
-        // Use REST POSE (no overrides) for HEAD position baseline
-        // This excludes animation-driven body lean/tilt
-        val restWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
-        val restHeadMatrix = restWorldMatrices[headBoneNode.nodeIndex]
+        // Animated HEAD matrix (includes body lean, head rotation, etc.)
+        val animWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+        val animHeadMatrix = animWorldMatrices[headBoneNode.nodeIndex]
 
-        // Rest-pose head position
-        val restHeadPos = Vector3f()
-        restHeadMatrix.getTranslation(restHeadPos)
-
-        // Apply lookAt offset rotated by mouse look (headYaw/headPitch only)
-        // This makes the camera follow where you're looking but not body animation
+        // Apply lookAt offset in animated HEAD's local space
         val offset = model.lookAtOffsetFromHeadBone
-        val restHeadRot = org.joml.Quaternionf()
-        restHeadMatrix.getNormalizedRotation(restHeadRot)
+        val animEyePos = Vector3f(offset)
+        animHeadMatrix.transformPosition(animEyePos)
 
-        // The eye position in model space = restHeadPos + restHeadRot * offset
-        val eyeModelPos = Vector3f(offset)
-        eyeModelPos.rotate(restHeadRot)
-        eyeModelPos.add(restHeadPos)
+        // Use rest-pose eye Y to avoid vertical jitter from walk animation
+        val restEyeY = state.eyeHeight / scale  // convert back to model space
 
-        // Scale to MC blocks
+        // Final eye offset: animated XZ (follows head lean), rest-pose Y (stable)
         state.currentEyeOffset = Vector3f(
-            eyeModelPos.x * scale,
-            eyeModelPos.y * scale,
-            eyeModelPos.z * scale,
+            animEyePos.x * scale,
+            restEyeY * scale,  // = state.eyeHeight
+            animEyePos.z * scale,
         )
     }
 
