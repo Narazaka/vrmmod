@@ -7,12 +7,12 @@ import kotlin.random.Random
  * Controls VRM expression (blend shape) weights and computes
  * per-primitive morph target weights for rendering.
  *
- * Also handles automatic blinking animation.
+ * Handles automatic blinking and damage reactions.
  */
 class ExpressionController(
-    /** Expression name for damage reaction (configurable). */
-    private val damageExpressionName: String = "sad",
-    /** Duration of damage expression in seconds. */
+    /** Expression weights for damage reaction (expression name -> max weight). */
+    private val damageExpressions: Map<String, Float> = mapOf("sad" to 1.0f),
+    /** Duration of damage expression fade-out in seconds. */
     private val damageExpressionDuration: Float = 0.5f,
 ) {
 
@@ -27,6 +27,7 @@ class ExpressionController(
     // --- Damage expression state ---
     private var damageTimer = 0f
     private var isDamaged = false
+    private var wasHurt = false
 
     companion object {
         private const val BLINK_DURATION = 0.3f
@@ -39,16 +40,10 @@ class ExpressionController(
         }
     }
 
-    /**
-     * Sets the weight for an expression, clamped to [0, 1].
-     */
     fun setWeight(expressionName: String, weight: Float) {
         weights[expressionName] = weight.coerceIn(0f, 1f)
     }
 
-    /**
-     * Returns the current weight for an expression, defaulting to 0.
-     */
     fun getWeight(expressionName: String): Float {
         return weights[expressionName] ?: 0f
     }
@@ -57,7 +52,7 @@ class ExpressionController(
      * Updates auto-blink and reactive expressions.
      *
      * @param deltaTime elapsed time in seconds since the last update
-     * @param hurtTime MC's hurt timer (>0 when recently damaged, counts down)
+     * @param hurtTime MC's hurt timer (>0 when recently damaged, counts down to 0)
      */
     fun update(deltaTime: Float, hurtTime: Float = 0f) {
         // --- Auto-blink ---
@@ -79,32 +74,37 @@ class ExpressionController(
         }
 
         // --- Damage expression ---
-        if (hurtTime > 0f && !isDamaged) {
-            // New damage hit
+        val isHurt = hurtTime > 0f
+        if (isHurt && !wasHurt) {
+            // Rising edge: new damage hit
             isDamaged = true
             damageTimer = 0f
         }
+        wasHurt = isHurt
+
         if (isDamaged) {
             damageTimer += deltaTime
-            if (damageTimer >= damageExpressionDuration) {
-                isDamaged = false
-                weights[damageExpressionName] = 0f
+            val t = if (damageExpressionDuration > 0f) {
+                (damageTimer / damageExpressionDuration).coerceIn(0f, 1f)
             } else {
-                val t = damageTimer / damageExpressionDuration
-                weights[damageExpressionName] = (1f - t).coerceIn(0f, 1f)
+                1f
             }
-        } else if (hurtTime <= 0f) {
-            weights[damageExpressionName] = 0f
+            // Fade from full weight to 0
+            val fade = (1f - t).coerceIn(0f, 1f)
+            for ((name, maxWeight) in damageExpressions) {
+                weights[name] = maxWeight * fade
+            }
+            if (t >= 1f) {
+                isDamaged = false
+                for ((name, _) in damageExpressions) {
+                    weights[name] = 0f
+                }
+            }
         }
     }
 
     /**
      * Computes the effective morph target weights from all active expressions.
-     *
-     * @param expressions the list of VRM expressions from the model
-     * @return a map of (meshIndex, morphTargetIndex) to accumulated weight.
-     *   The meshIndex comes from [MorphTargetBind.nodeIndex], which has been
-     *   resolved to a mesh index during parsing.
      */
     fun computeMorphWeights(expressions: List<VrmExpression>): Map<Pair<Int, Int>, Float> {
         val result = mutableMapOf<Pair<Int, Int>, Float>()

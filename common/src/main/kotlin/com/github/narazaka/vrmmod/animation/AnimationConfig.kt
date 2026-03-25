@@ -11,9 +11,9 @@ data class AnimationConfig(
     val headTracking: Boolean = true,
     val walkThreshold: Float = 0.01f,
     val runThreshold: Float = 0.5f,
-    /** Expression name to use when damaged (e.g. "sad", "surprised", "angry"). */
-    val damageExpression: String = "sad",
-    /** Duration of damage expression in seconds. */
+    /** Expression weights to apply when damaged. Keys are expression names, values are max weights. */
+    val damageExpression: Map<String, Float> = mapOf("sad" to 1.0f),
+    /** Duration of damage expression fade-out in seconds. */
     val damageExpressionDuration: Float = 0.5f,
 ) {
     data class StateConfig(

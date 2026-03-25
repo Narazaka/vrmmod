@@ -95,7 +95,7 @@ object VrmPlayerManager {
                         com.github.narazaka.vrmmod.animation.VanillaPoseProvider()
                     }
                     val expressionCtrl = ExpressionController(
-                        damageExpressionName = animationConfig.damageExpression,
+                        damageExpressions = animationConfig.damageExpression,
                         damageExpressionDuration = animationConfig.damageExpressionDuration,
                     )
                     val state = VrmState(
