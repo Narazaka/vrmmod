@@ -336,13 +336,8 @@ object VrmRenderer {
     /**
      * Updates [VrmState.currentEyeOffset] from the current HEAD bone position.
      *
-     * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
-     *   eyePos = headWorldMatrix * lookAt.offsetFromHeadBone
-     *
-     * The Y component uses the animated HEAD position (captures look direction offset),
-     * but the base height stays close to rest-pose eye height via the scale factor.
-     * XZ offset from HEAD rotation is included so the camera follows head turns
-     * and the neck interior stays hidden.
+     * XZ: from animated HEAD (follows body lean/head rotation, hides neck)
+     * Y: from rest-pose eye height (avoids walk animation vertical jitter)
      */
     private fun updateEyeOffset(
         state: VrmState,
@@ -352,20 +347,20 @@ object VrmRenderer {
     ) {
         val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
 
-        // Compute world matrices with current animation overrides
+        // Animated HEAD world matrix (includes body lean, head rotation)
         val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
         val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
 
-        // Apply lookAt offset in HEAD's local space
+        // Apply lookAt offset in animated HEAD's local space for XZ
         val offset = model.lookAtOffsetFromHeadBone
-        val eyeModelPos = Vector3f(offset)
-        headWorldMatrix.transformPosition(eyeModelPos)
+        val animEyePos = Vector3f(offset)
+        headWorldMatrix.transformPosition(animEyePos)
 
-        // Scale to MC blocks
+        // XZ from animated position, Y from rest-pose (stable)
         state.currentEyeOffset = Vector3f(
-            eyeModelPos.x * scale,
-            eyeModelPos.y * scale,
-            eyeModelPos.z * scale,
+            animEyePos.x * scale,
+            state.eyeHeight,          // rest-pose Y, already in MC blocks
+            animEyePos.z * scale,
         )
     }
 
