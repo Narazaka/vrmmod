@@ -3,6 +3,7 @@ package net.narazaka.vrmmod.client
 import net.narazaka.vrmmod.VrmMod
 import net.narazaka.vrmmod.animation.AnimationConfig
 import net.narazaka.vrmmod.render.VrmPlayerManager
+import net.narazaka.vrmmod.vroidhub.*
 import com.mojang.blaze3d.platform.InputConstants
 import dev.architectury.event.events.client.ClientPlayerEvent
 import dev.architectury.event.events.client.ClientTickEvent
@@ -10,6 +11,7 @@ import dev.architectury.registry.client.keymappings.KeyMappingRegistry
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import java.io.File
+import java.util.concurrent.CompletableFuture
 
 /**
  * Client-side initialization for the VRM mod.
@@ -65,6 +67,7 @@ object VrmModClient {
 
             val modelPath = config.localModelPath
             if (modelPath != null) {
+                // Priority 1: local model path
                 val file = File(modelPath)
                 if (file.exists()) {
                     VrmMod.logger.info("Loading local VRM model: {}", modelPath)
@@ -77,6 +80,9 @@ object VrmModClient {
                 } else {
                     VrmMod.logger.warn("Configured VRM model file not found: {}", modelPath)
                 }
+            } else if (config.vroidHubModelId != null) {
+                // Priority 2: VRoid Hub model
+                loadVRoidHubModel(player.uuid, config.vroidHubModelId, configDir, animDir, animationConfig)
             }
         }
 
@@ -84,6 +90,68 @@ object VrmModClient {
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register { _ ->
             VrmMod.logger.info("Unloading all VRM models")
             VrmPlayerManager.clear()
+        }
+    }
+
+    private fun loadVRoidHubModel(
+        uuid: java.util.UUID,
+        modelId: String,
+        configDir: File,
+        animDir: File?,
+        animationConfig: AnimationConfig,
+    ) {
+        val vroidConfig = VRoidHubConfig.load(configDir.toPath())
+        if (!vroidConfig.isAvailable) return
+
+        CompletableFuture.supplyAsync {
+            // Ensure valid token
+            var token = VRoidHubAuth.loadToken(configDir.toPath()) ?: return@supplyAsync null
+            if (token.isExpired) {
+                val refreshResult = VRoidHubAuth.refreshToken(vroidConfig, token.refreshToken)
+                refreshResult.onSuccess { newToken ->
+                    VRoidHubAuth.saveToken(configDir.toPath(), newToken)
+                    token = VRoidHubAuth.loadToken(configDir.toPath())!!
+                }.onFailure { e ->
+                    VrmMod.logger.error("VRoid Hub token refresh failed", e)
+                    return@supplyAsync null
+                }
+            }
+
+            // Check cache
+            val gameDir = Minecraft.getInstance().gameDirectory.toPath()
+            // Try to get version from hearts list (we don't have it stored, so just use modelId as version for now)
+            val cached = VRoidHubModelCache.getCachedModel(gameDir, modelId, "")
+            if (cached != null) {
+                VrmMod.logger.info("Loading VRoid Hub model from cache: {}", cached.absolutePath)
+                return@supplyAsync cached
+            }
+
+            // Download
+            VrmMod.logger.info("Downloading VRoid Hub model: {}", modelId)
+            val license = VRoidHubApi.postDownloadLicense(token.accessToken, modelId).getOrElse { e ->
+                VrmMod.logger.error("Failed to get download license", e)
+                return@supplyAsync null
+            }
+
+            val downloadUrl = VRoidHubApi.getDownloadUrl(token.accessToken, license.id).getOrElse { e ->
+                VrmMod.logger.error("Failed to get download URL", e)
+                return@supplyAsync null
+            }
+
+            val vrmBytes = VRoidHubApi.downloadVrm(downloadUrl).getOrElse { e ->
+                VrmMod.logger.error("Failed to download VRM", e)
+                return@supplyAsync null
+            }
+
+            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, "", vrmBytes)
+            VrmMod.logger.info("VRoid Hub model cached: {}", file.absolutePath)
+            file
+        }.thenAccept { file ->
+            if (file != null) {
+                Minecraft.getInstance().execute {
+                    VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig)
+                }
+            }
         }
     }
 }

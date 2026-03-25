@@ -3,11 +3,14 @@ package net.narazaka.vrmmod.client
 import net.narazaka.vrmmod.VrmMod
 import net.narazaka.vrmmod.animation.AnimationConfig
 import net.narazaka.vrmmod.render.VrmPlayerManager
+import net.narazaka.vrmmod.vroidhub.*
 import me.shedaniel.clothconfig2.api.ConfigBuilder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.io.File
+import java.net.URI
+import java.util.concurrent.CompletableFuture
 
 /**
  * Creates the Cloth Config settings screen for VRM Mod.
@@ -26,6 +29,11 @@ object VrmConfigScreen {
         var newAnimDir = config.animationDir ?: ""
         var newUseVrma = config.useVrmaAnimation
         var newFirstPersonMode = config.firstPersonMode
+        var newVroidHubModelId = config.vroidHubModelId
+
+        // VRoid Hub state
+        val vroidHubConfig = VRoidHubConfig.load(configDir.toPath())
+        val savedToken = if (vroidHubConfig.isAvailable) VRoidHubAuth.loadToken(configDir.toPath()) else null
 
         val builder = ConfigBuilder.create()
             .setParentScreen(parent)
@@ -36,6 +44,7 @@ object VrmConfigScreen {
                     animationDir = newAnimDir.ifBlank { null },
                     useVrmaAnimation = newUseVrma,
                     firstPersonMode = newFirstPersonMode,
+                    vroidHubModelId = newVroidHubModelId,
                 )
                 VrmModClient.currentConfig = newConfig
                 VrmModConfig.save(configDir, newConfig)
@@ -84,6 +93,99 @@ object VrmConfigScreen {
                 .setSaveConsumer { newFirstPersonMode = it }
                 .build()
         )
+
+        // VRoid Hub section (only if credentials are configured)
+        if (vroidHubConfig.isAvailable) {
+            val vroidHub = builder.getOrCreateCategory(Component.literal("VRoid Hub"))
+
+            if (savedToken != null && !savedToken.isExpired) {
+                // Logged in state
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("Logged in to VRoid Hub")
+                    ).build()
+                )
+
+                // Select model button (opens custom screen)
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("Selected model: ${newVroidHubModelId ?: "(none)"}")
+                    ).build()
+                )
+
+                // Note: actual model selection button needs to be triggered from within the screen.
+                // For now, show the model ID field for direct input.
+                vroidHub.addEntry(
+                    entryBuilder.startStrField(Component.literal("VRoid Hub Model ID"), newVroidHubModelId ?: "")
+                        .setDefaultValue("")
+                        .setTooltip(Component.literal("Model ID from VRoid Hub (select via model browser)"))
+                        .setSaveConsumer { newVroidHubModelId = it.ifBlank { null } }
+                        .build()
+                )
+
+                vroidHub.addEntry(
+                    entryBuilder.startBooleanToggle(Component.literal("Logout"), false)
+                        .setDefaultValue(false)
+                        .setTooltip(Component.literal("Toggle ON and save to logout from VRoid Hub"))
+                        .setSaveConsumer { if (it) {
+                            VRoidHubAuth.revokeToken(vroidHubConfig, savedToken.accessToken)
+                            VRoidHubAuth.deleteToken(configDir.toPath())
+                        }}
+                        .build()
+                )
+            } else {
+                // Not logged in - show login instructions
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("Click 'Login' to open VRoid Hub in your browser, then paste the code below.")
+                    ).build()
+                )
+
+                var authCode = ""
+                vroidHub.addEntry(
+                    entryBuilder.startStrField(Component.literal("Authorization Code"), "")
+                        .setDefaultValue("")
+                        .setTooltip(Component.literal("Paste the authorization code from VRoid Hub"))
+                        .setSaveConsumer { authCode = it }
+                        .build()
+                )
+
+                // The login flow is triggered via saving:
+                // 1. User opens browser manually (URL logged to chat)
+                // 2. Pastes code
+                // 3. On save, code is exchanged for token
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("Open this URL in your browser to login:")
+                    ).build()
+                )
+
+                val (authorizeUrl, authSession) = VRoidHubAuth.buildAuthorizeUrl(vroidHubConfig)
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal(authorizeUrl)
+                    ).build()
+                )
+
+                // Store auth session for code exchange on save
+                val originalSaveRunnable = builder.savingRunnable
+                builder.setSavingRunnable {
+                    if (authCode.isNotBlank()) {
+                        CompletableFuture.supplyAsync {
+                            VRoidHubAuth.exchangeToken(vroidHubConfig, authCode, authSession)
+                        }.thenAccept { result ->
+                            result.onSuccess { token ->
+                                VRoidHubAuth.saveToken(configDir.toPath(), token)
+                                VrmMod.logger.info("VRoid Hub login successful")
+                            }.onFailure { e ->
+                                VrmMod.logger.error("VRoid Hub login failed", e)
+                            }
+                        }
+                    }
+                    originalSaveRunnable?.run()
+                }
+            }
+        }
 
         return builder.build()
     }

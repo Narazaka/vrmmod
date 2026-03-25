@@ -31,6 +31,8 @@ data class VrmModConfig(
     val useVrmaAnimation: Boolean = true,
     /** First-person view mode. */
     val firstPersonMode: FirstPersonMode = FirstPersonMode.VRM_MC_CAMERA,
+    /** Selected VRoid Hub model ID. Null means no VRoid Hub model selected. */
+    val vroidHubModelId: String? = null,
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
