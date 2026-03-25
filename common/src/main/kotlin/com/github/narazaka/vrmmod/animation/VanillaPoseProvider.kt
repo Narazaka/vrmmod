@@ -52,9 +52,9 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Legs (walking) ----
 
     private fun applyLegs(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        // Vanilla MC uses 1.4 but MC's box model has short legs.
-        // VRM has realistic proportions so a smaller amplitude looks natural.
-        val swing = cos(ctx.limbSwing * 0.6662f) * 0.5f * ctx.limbSwingAmount
+        // Larger amplitude when sprinting
+        val amplitude = if (ctx.isSprinting) 0.8f else 0.5f
+        val swing = cos(ctx.limbSwing * 0.6662f) * amplitude * ctx.limbSwingAmount
 
         // Upper legs swing forward/back
         poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
@@ -82,8 +82,9 @@ class VanillaPoseProvider : PoseProvider {
         // VRM T-pose has arms horizontal. Rotate down ~75 degrees to a natural rest pose.
         val restAngle = Math.toRadians(75.0).toFloat()
 
-        // Arms swing opposite to legs, smaller amplitude than legs
-        val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * 0.3f * ctx.limbSwingAmount
+        // Arms swing opposite to legs; larger amplitude when sprinting
+        val armAmplitude = if (ctx.isSprinting) 0.5f else 0.3f
+        val swing = cos(ctx.limbSwing * 0.6662f + Math.PI.toFloat()) * armAmplitude * ctx.limbSwingAmount
 
         // Parent space: X = forward/back swing, Z = arm hang down
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
