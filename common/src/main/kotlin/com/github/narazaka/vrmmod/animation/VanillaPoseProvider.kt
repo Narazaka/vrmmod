@@ -64,10 +64,10 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(-swing),
         )
 
-        // Lower legs: bend knee when leg is forward (positive X rotation = forward)
-        // When upper leg swings forward, lower leg bends back slightly (natural walk)
-        val rightKnee = max(0f, swing) * 0.5f
-        val leftKnee = max(0f, -swing) * 0.5f
+        // Lower legs: bend knee when leg is forward
+        val kneeMultiplier = if (ctx.isSprinting) 0.8f else 0.5f
+        val rightKnee = max(0f, swing) * kneeMultiplier
+        val leftKnee = max(0f, -swing) * kneeMultiplier
         poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(rightKnee),
         )
@@ -94,8 +94,8 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(swing).rotateZ(-restAngle),
         )
 
-        // Lower arms: slight natural bend at elbow (~15 degrees)
-        val elbowBend = Math.toRadians(15.0).toFloat()
+        // Lower arms: natural bend at elbow, more when sprinting
+        val elbowBend = Math.toRadians(if (ctx.isSprinting) 35.0 else 15.0).toFloat()
         poses[HumanBone.RIGHT_LOWER_ARM] = BonePose(
             rotation = Quaternionf().rotateX(elbowBend),
         )
