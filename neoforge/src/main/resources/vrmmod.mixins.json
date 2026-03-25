@@ -6,7 +6,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlayerRendererMixin",
-    "LivingEntityRendererMixin"
+    "LivingEntityRendererMixin",
+    "HandRendererMixin",
+    "CameraMixin"
   ],
   "injectors": {
     "defaultRequire": 1
