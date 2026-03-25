@@ -26,8 +26,7 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
-    /** Fixed delta time per render frame (~60fps). */
-    private const val DELTA_TIME = 1f / 60f
+    private var lastRenderTimeNano = 0L
 
     private var springBoneDebugLogged = false
     private var springBoneFrameCount = 0
@@ -72,7 +71,15 @@ object VrmRenderer {
                 Matrix4f(entityTransform).mul(m)
             }
 
-            val springRotations = simulator.update(worldMatrices, DELTA_TIME)
+            val now = System.nanoTime()
+            val deltaTime = if (lastRenderTimeNano == 0L) {
+                1f / 60f // first frame fallback
+            } else {
+                ((now - lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
+            }
+            lastRenderTimeNano = now
+
+            val springRotations = simulator.update(worldMatrices, deltaTime)
             // Apply spring bone rotations as local rotation overrides
             for ((nodeIndex, rotation) in springRotations) {
                 val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
