@@ -57,6 +57,18 @@ object VrmRenderer {
             model, bonePoseMap, isAbsolute = state.poseProvider.isAbsoluteRotation
         ).toMutableMap()
 
+        // Compute delta time for physics and expression animation
+        val now = System.nanoTime()
+        val deltaTime = if (lastRenderTimeNano == 0L) {
+            1f / 60f // first frame fallback
+        } else {
+            ((now - lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
+        }
+        lastRenderTimeNano = now
+
+        // Update auto-blink and expression animations
+        state.expressionController.update(deltaTime)
+
         // SpringBone simulation
         val simulator = state.springBoneSimulator
         if (simulator != null) {
@@ -72,14 +84,6 @@ object VrmRenderer {
             val worldMatrices = modelSpaceMatrices.map { m ->
                 Matrix4f(entityTransform).mul(m)
             }
-
-            val now = System.nanoTime()
-            val deltaTime = if (lastRenderTimeNano == 0L) {
-                1f / 60f // first frame fallback
-            } else {
-                ((now - lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
-            }
-            lastRenderTimeNano = now
 
             val springRotations = simulator.update(worldMatrices, deltaTime)
             // Apply spring bone rotations as local rotation overrides

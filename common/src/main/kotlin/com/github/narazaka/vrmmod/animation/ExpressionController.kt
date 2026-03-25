@@ -1,15 +1,35 @@
 package com.github.narazaka.vrmmod.animation
 
 import com.github.narazaka.vrmmod.vrm.VrmExpression
+import kotlin.random.Random
 
 /**
  * Controls VRM expression (blend shape) weights and computes
  * per-primitive morph target weights for rendering.
+ *
+ * Also handles automatic blinking animation.
  */
 class ExpressionController {
 
     /** Current weight (0-1) for each expression by name. */
     private val weights = mutableMapOf<String, Float>()
+
+    // --- Auto-blink state ---
+    private var blinkTimer = 0f
+    private var isBlinking = false
+    private var nextBlinkTime = randomBlinkInterval()
+
+    companion object {
+        /** Duration of a single blink (close + open) in seconds. */
+        private const val BLINK_DURATION = 0.15f
+        private const val BLINK_INTERVAL_MIN = 3f
+        private const val BLINK_INTERVAL_MAX = 6f
+        private const val BLINK_EXPRESSION_NAME = "blink"
+
+        private fun randomBlinkInterval(): Float {
+            return Random.nextFloat() * (BLINK_INTERVAL_MAX - BLINK_INTERVAL_MIN) + BLINK_INTERVAL_MIN
+        }
+    }
 
     /**
      * Sets the weight for an expression, clamped to [0, 1].
@@ -23,6 +43,31 @@ class ExpressionController {
      */
     fun getWeight(expressionName: String): Float {
         return weights[expressionName] ?: 0f
+    }
+
+    /**
+     * Updates the auto-blink timer and sets the blink expression weight.
+     *
+     * @param deltaTime elapsed time in seconds since the last update
+     */
+    fun update(deltaTime: Float) {
+        blinkTimer += deltaTime
+        if (!isBlinking && blinkTimer >= nextBlinkTime) {
+            isBlinking = true
+            blinkTimer = 0f
+        }
+        if (isBlinking) {
+            val t = blinkTimer / BLINK_DURATION
+            if (t >= 1f) {
+                isBlinking = false
+                weights[BLINK_EXPRESSION_NAME] = 0f
+                nextBlinkTime = randomBlinkInterval()
+                blinkTimer = 0f
+            } else {
+                // Triangle wave: 0 -> 1 -> 0
+                weights[BLINK_EXPRESSION_NAME] = if (t < 0.5f) t * 2f else (1f - t) * 2f
+            }
+        }
     }
 
     /**
