@@ -28,8 +28,8 @@ remappedSrc/
 .claude/
 
 # Extracted class files (from javap/jar xf by subagents)
-de/
-com/
-net/
+/de/
+/com/
+/net/
 *.class
 rendertype_full.txt
