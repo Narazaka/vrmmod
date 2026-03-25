@@ -132,6 +132,15 @@ object VrmRenderer {
 
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
         // and use appropriate RenderType per alpha mode.
+        // Build mesh index -> node index map for unskinned mesh transform
+        val meshToNodeIndex = mutableMapOf<Int, Int>()
+        for ((nodeIdx, node) in model.skeleton.nodes.withIndex()) {
+            if (node.meshIndex >= 0) meshToNodeIndex[node.meshIndex] = nodeIdx
+        }
+
+        // World matrices for unskinned mesh node transforms
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+
         data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, mesh.skinIndex, it) }
@@ -184,7 +193,14 @@ object VrmRenderer {
 
                 // Use the correct skin's skinning matrices for this mesh
                 val meshSkinningMatrices = if (meshSkinIndex >= 0) getSkinningMatrices(meshSkinIndex) else skinningMatrices
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints)
+
+                // For unskinned meshes parented to a bone node, apply the node's world matrix.
+                // This is equivalent to three.js's automatic matrixWorld propagation.
+                val nodeWorldMatrix = if (primitive.joints.isEmpty()) {
+                    meshToNodeIndex[meshIndex]?.let { worldMatrices.getOrNull(it) }
+                } else null
+
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix)
             }
         }
 
@@ -451,6 +467,7 @@ object VrmRenderer {
         isQuadMode: Boolean,
         morphWeights: Map<Int, Float> = emptyMap(),
         skipHeadJoints: Set<Int> = emptySet(),
+        nodeWorldMatrix: Matrix4f? = null,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -560,6 +577,20 @@ object VrmRenderer {
                         nx = skinnedNormal.x
                         ny = skinnedNormal.y
                         nz = skinnedNormal.z
+                    }
+                } else if (nodeWorldMatrix != null) {
+                    // Unskinned mesh: apply parent node's world matrix
+                    // (three.js does this automatically via Object3D.matrixWorld propagation)
+                    val pos = Vector3f(px, py, pz)
+                    nodeWorldMatrix.transformPosition(pos)
+                    px = pos.x; py = pos.y; pz = pos.z
+
+                    if (hasNormals) {
+                        val norm = Vector3f(nx, ny, nz)
+                        nodeWorldMatrix.transformDirection(norm)
+                        val len = norm.length()
+                        if (len > 1e-6f) norm.div(len)
+                        nx = norm.x; ny = norm.y; nz = norm.z
                     }
                 }
 
