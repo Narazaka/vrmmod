@@ -20,6 +20,7 @@ Thumbs.db
 
 # Minecraft
 run/
+.architectury-transformer/
 
 # Loom
 remappedSrc/
