@@ -27,7 +27,6 @@ object VrmRenderer {
     private const val DEFAULT_SCALE = 0.9f
 
     private var lastRenderTimeNano = 0L
-    private var fpDebugLogged = false
 
     /**
      * Renders the VRM model with animation driven by [poseContext].
@@ -122,26 +121,6 @@ object VrmRenderer {
         // Compute morph target weights from expressions
         val expressionController = state.expressionController
         val morphWeightsMap = expressionController.computeMorphWeights(model.expressions)
-
-        // Debug firstPerson (once)
-        if (isFirstPerson && !fpDebugLogged) {
-            fpDebugLogged = true
-            val log = com.github.narazaka.vrmmod.VrmMod.logger
-            log.info("[VRM FP] annotations: {}", model.firstPersonAnnotations)
-            log.info("[VRM FP] meshes: {}", model.meshes.mapIndexed { i, m -> "$i:${m.name}" })
-            // Check isHeadMesh for ALL meshes
-            for (mi in model.meshes.indices) {
-                log.info("[VRM FP] mesh {} '{}' isHeadMesh={}", mi, model.meshes[mi].name, isHeadMesh(model, mi))
-            }
-            // Dump nodes with meshIndex
-            val nodesWithMesh = model.skeleton.nodes.withIndex().filter { it.value.meshIndex >= 0 }
-            for ((ni, node) in nodesWithMesh) {
-                log.info("[VRM FP] node {} '{}' meshIndex={}", ni, node.name, node.meshIndex)
-            }
-            // HEAD bone info
-            val headBone = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
-            log.info("[VRM FP] HEAD bone nodeIndex={}", headBone?.nodeIndex)
-        }
 
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
         // and use appropriate RenderType per alpha mode.
