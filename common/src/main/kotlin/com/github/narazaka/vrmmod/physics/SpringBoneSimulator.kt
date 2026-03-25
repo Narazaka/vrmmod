@@ -10,15 +10,11 @@ import org.joml.Vector3f
 /**
  * Verlet integration-based SpringBone simulator conforming to VRMC_springBone 1.0.
  *
- * Follows the UniVRM reference implementation, including center space support.
- *
- * When a spring has a `centerNodeIndex`, tail positions (currentTail/prevTail) are
- * stored in the center node's local space. This ensures that movement of the center
- * node does not produce spurious inertia. At the start of each update, positions are
- * converted to model space for physics, then converted back for storage.
- *
- * When no center is specified (centerNodeIndex < 0), an external `modelToWorld` matrix
- * is used so that entity-level movement (jumping, walking) generates appropriate inertia.
+ * Follows the UniVRM reference implementation:
+ * - Parent bone world rotation used for stiffness direction
+ * - Entity world space for physics (modelToWorld applied)
+ * - Center node space for tail storage when center is specified
+ * - World-space rotation calculation matching UniVRM
  */
 class SpringBoneSimulator(
     private val springBone: VrmSpringBone,
@@ -26,9 +22,9 @@ class SpringBoneSimulator(
 ) {
 
     private class JointState(
-        /** Tail position stored in center space (or world space if no center). */
+        /** Tail position stored in center-entity-world space (or entity-world space if no center). */
         val currentTail: Vector3f = Vector3f(),
-        /** Previous tail position stored in center space (or world space if no center). */
+        /** Previous tail position stored in center-entity-world space (or entity-world space if no center). */
         val prevTail: Vector3f = Vector3f(),
         var boneLength: Float = 0f,
         val boneAxis: Vector3f = Vector3f(0f, 1f, 0f),
@@ -39,13 +35,28 @@ class SpringBoneSimulator(
         spring.joints.map { JointState() }
     }
 
+    /** parentOf[nodeIndex] = parent node index, or -1 if root */
+    private val parentOf: IntArray = buildParentLookup()
+
     private var initialized = false
+
+    private fun buildParentLookup(): IntArray {
+        val parent = IntArray(skeleton.nodes.size) { -1 }
+        for ((nodeIndex, node) in skeleton.nodes.withIndex()) {
+            for (childIdx in node.childIndices) {
+                if (childIdx in skeleton.nodes.indices) {
+                    parent[childIdx] = nodeIndex
+                }
+            }
+        }
+        return parent
+    }
 
     /**
      * Initializes joint states from the current world matrices (rest pose).
      *
      * @param worldMatrices model-space world matrices for all nodes
-     * @param modelToWorld transform from model space to world space (entity transform)
+     * @param modelToWorld transform from model space to entity world space
      */
     fun initialize(worldMatrices: List<Matrix4f>, modelToWorld: Matrix4f = Matrix4f()) {
         for (springIdx in springBone.springs.indices) {
@@ -53,7 +64,12 @@ class SpringBoneSimulator(
             val joints = spring.joints
             val centerNodeIndex = spring.centerNodeIndex
 
-            // No special per-center storage needed; all stored in world space
+            // Precompute center entity-world matrix if center exists
+            val centerEntityWorld = if (centerNodeIndex >= 0) {
+                val centerModel = worldMatrices.getOrNull(centerNodeIndex)
+                if (centerModel != null) Matrix4f(modelToWorld).mul(centerModel) else null
+            } else null
+            val centerEntityWorldInv = centerEntityWorld?.let { Matrix4f(it).invert() }
 
             for (jointIdx in joints.indices) {
                 val joint = joints[jointIdx]
@@ -68,8 +84,8 @@ class SpringBoneSimulator(
                 val headPos = Vector3f()
                 worldMatrix.getTranslation(headPos)
 
-                // Tail position: next joint's world pos, or computed from children
-                val tailPos = if (jointIdx + 1 < joints.size) {
+                // Tail position in model space: next joint's world pos, or computed from children
+                val tailModelPos = if (jointIdx + 1 < joints.size) {
                     val nextNodeIndex = joints[jointIdx + 1].nodeIndex
                     val nextWorld = worldMatrices.getOrNull(nextNodeIndex)
                     if (nextWorld != null) {
@@ -83,12 +99,12 @@ class SpringBoneSimulator(
                     computeTailFromChildren(nodeIndex, worldMatrices, headPos)
                 }
 
-                val boneLength = headPos.distance(tailPos)
+                val boneLength = headPos.distance(tailModelPos)
                 state.boneLength = boneLength
 
                 // Bone axis in local space
                 if (boneLength > 1e-6f) {
-                    val localTail = Vector3f(tailPos).sub(headPos)
+                    val localTail = Vector3f(tailModelPos).sub(headPos)
                     val worldRot = Quaternionf()
                     worldMatrix.getNormalizedRotation(worldRot)
                     val invWorldRot = Quaternionf(worldRot).conjugate()
@@ -99,11 +115,22 @@ class SpringBoneSimulator(
                     state.boneAxis.set(0f, 1f, 0f)
                 }
 
-                // Store tail in world space
-                val tailInWorld = Vector3f(tailPos)
-                modelToWorld.transformPosition(tailInWorld)
-                state.currentTail.set(tailInWorld)
-                state.prevTail.set(tailInWorld)
+                // Transform tail to entity world space
+                val tailEntityWorld = Vector3f(tailModelPos)
+                modelToWorld.transformPosition(tailEntityWorld)
+
+                // Store in appropriate space
+                if (centerEntityWorldInv != null) {
+                    // Store in center-entity-world local space
+                    val stored = Vector3f(tailEntityWorld)
+                    centerEntityWorldInv.transformPosition(stored)
+                    state.currentTail.set(stored)
+                    state.prevTail.set(stored)
+                } else {
+                    // Store in entity world space
+                    state.currentTail.set(tailEntityWorld)
+                    state.prevTail.set(tailEntityWorld)
+                }
             }
         }
         initialized = true
@@ -114,8 +141,7 @@ class SpringBoneSimulator(
      *
      * @param worldMatrices current model-space world matrices for all nodes
      * @param deltaTime time step in seconds
-     * @param modelToWorld transform from model space to entity world space;
-     *   used for springs without a center node so entity movement creates inertia
+     * @param modelToWorld transform from model space to entity world space
      * @return map of nodeIndex to rotation override (in local space)
      */
     fun update(
@@ -130,19 +156,24 @@ class SpringBoneSimulator(
 
         val rotationOverrides = mutableMapOf<Int, Quaternionf>()
 
+        // Extract modelToWorld rotation once
+        val modelToWorldRot = Quaternionf()
+        modelToWorld.getNormalizedRotation(modelToWorldRot)
+
         for (springIdx in springBone.springs.indices) {
             val spring = springBone.springs[springIdx]
             val joints = spring.joints
             val centerNodeIndex = spring.centerNodeIndex
 
-            // Tail positions are stored in world space (modelToWorld applied).
-            // For physics we convert to model space, compute, then store back.
-            // "center" affects inertia: if center is specified, the inertia
-            // is computed relative to the center node's world position, so
-            // movement of center doesn't produce spurious inertia.
-            val worldToModel = Matrix4f(modelToWorld).invert()
+            // Compute center entity-world matrix if center exists
+            val centerEntityWorld = if (centerNodeIndex >= 0) {
+                val centerModel = worldMatrices.getOrNull(centerNodeIndex)
+                if (centerModel != null) Matrix4f(modelToWorld).mul(centerModel) else null
+            } else null
+            val centerEntityWorldInv = centerEntityWorld?.let { Matrix4f(it).invert() }
 
-            val colliders = resolveColliders(spring.colliderGroupIndices, worldMatrices)
+            // Resolve colliders in entity world space
+            val colliders = resolveColliders(spring.colliderGroupIndices, worldMatrices, modelToWorld)
 
             for (jointIdx in joints.indices) {
                 val joint = joints[jointIdx]
@@ -152,65 +183,88 @@ class SpringBoneSimulator(
                 val state = jointStates[springIdx][jointIdx]
                 val worldMatrix = worldMatrices.getOrNull(nodeIndex) ?: continue
 
-                val headPos = Vector3f()
-                worldMatrix.getTranslation(headPos)
+                // Head position in entity world space
+                val headModelPos = Vector3f()
+                worldMatrix.getTranslation(headModelPos)
+                val headPos = Vector3f(headModelPos)
+                modelToWorld.transformPosition(headPos)
 
-                val worldRot = Quaternionf()
-                worldMatrix.getNormalizedRotation(worldRot)
+                // Restore tails to entity world space
+                val currentTail: Vector3f
+                val prevTail: Vector3f
+                if (centerEntityWorld != null) {
+                    currentTail = Vector3f(state.currentTail)
+                    centerEntityWorld.transformPosition(currentTail)
+                    prevTail = Vector3f(state.prevTail)
+                    centerEntityWorld.transformPosition(prevTail)
+                } else {
+                    currentTail = Vector3f(state.currentTail)
+                    prevTail = Vector3f(state.prevTail)
+                }
 
-                // Convert stored tail positions (world space) to model space for physics
-                val currentTail = Vector3f(state.currentTail)
-                worldToModel.transformPosition(currentTail)
-                val prevTail = Vector3f(state.prevTail)
-                worldToModel.transformPosition(prevTail)
+                // Get parent rotation in entity world space
+                val parentNodeIdx = parentOf[nodeIndex]
+                val parentWorldRot = if (parentNodeIdx >= 0) {
+                    val parentModelRot = Quaternionf()
+                    worldMatrices.getOrNull(parentNodeIdx)?.getNormalizedRotation(parentModelRot)
+                    Quaternionf(modelToWorldRot).mul(parentModelRot)
+                } else {
+                    Quaternionf(modelToWorldRot)
+                }
 
-                // 2a: Inertia (Verlet integration with drag)
+                // Stiffness direction: rest tail direction in entity world space
+                // restDir = parentWorldRot * initialLocalRotation * boneAxis
+                val restDir = Vector3f(state.boneAxis)
+                val restRot = Quaternionf(parentWorldRot).mul(state.initialLocalRotation)
+                restDir.rotate(restRot)
+
+                // Verlet integration
                 val inertia = Vector3f(currentTail).sub(prevTail)
                     .mul(1f - joint.dragForce)
 
-                // 2b: Stiffness force (UniVRM style):
-                // parentRotation * localRotation * boneAxis * stiffness * deltaTime
-                val stiffnessDir = Vector3f(state.boneAxis)
-                val parentRot = Quaternionf(worldRot)
-                val restRot = Quaternionf(parentRot).mul(state.initialLocalRotation)
-                stiffnessDir.rotate(restRot)
-                val stiffnessForce = stiffnessDir
-                    .mul(joint.stiffness * deltaTime * state.boneLength)
+                val stiffnessForce = Vector3f(restDir)
+                    .mul(joint.stiffness * deltaTime)
 
-                // 2c: External force (gravity), scaled by deltaTime
                 val externalForce = Vector3f(joint.gravityDir)
-                    .mul(joint.gravityPower * deltaTime * state.boneLength)
+                    .mul(joint.gravityPower * deltaTime)
 
-                // 2d: Next tail
                 val nextTail = Vector3f(currentTail)
                     .add(inertia)
                     .add(stiffnessForce)
                     .add(externalForce)
 
-                // 2e: Length constraint
+                // Length constraint
                 constrainLength(nextTail, headPos, state.boneLength)
 
-                // 2f: Collider collision
+                // Collider collision (in entity world space)
                 resolveCollisions(nextTail, headPos, state.boneLength, joint.hitRadius, colliders)
 
-                // 2g: Store tail back in world space
-                val nextInWorld = Vector3f(nextTail)
-                modelToWorld.transformPosition(nextInWorld)
-                val curInWorld = Vector3f(currentTail)
-                modelToWorld.transformPosition(curInWorld)
-                state.prevTail.set(curInWorld)
-                state.currentTail.set(nextInWorld)
-
-                // 2h: Compute rotation override (in model space)
-                val invWorldRot = Quaternionf(worldRot).conjugate()
-                val localNextTail = Vector3f(nextTail).sub(headPos).rotate(invWorldRot)
-                if (localNextTail.length() > 1e-6f) {
-                    localNextTail.normalize()
+                // Store tails
+                if (centerEntityWorldInv != null) {
+                    val storedNext = Vector3f(nextTail)
+                    centerEntityWorldInv.transformPosition(storedNext)
+                    val storedCur = Vector3f(currentTail)
+                    centerEntityWorldInv.transformPosition(storedCur)
+                    state.prevTail.set(storedCur)
+                    state.currentTail.set(storedNext)
+                } else {
+                    state.prevTail.set(currentTail)
+                    state.currentTail.set(nextTail)
                 }
 
-                val fromTo = fromToRotation(state.boneAxis, localNextTail)
-                val finalRotation = Quaternionf(fromTo).mul(state.initialLocalRotation)
-                rotationOverrides[nodeIndex] = finalRotation
+                // Compute rotation (UniVRM world-space approach)
+                // restDir already computed above
+                val actualDir = Vector3f(nextTail).sub(headPos)
+                if (actualDir.length() < 1e-6f) continue
+
+                val worldRestRot = Quaternionf(parentWorldRot).mul(state.initialLocalRotation)
+                val newWorldRot = Quaternionf(fromToRotation(restDir, actualDir)).mul(worldRestRot)
+
+                // Convert to local: newLocalRot = inv(parentWorldRot) * newWorldRot
+                val invParentWorldRot = Quaternionf(parentWorldRot).conjugate()
+                val newLocalRot = Quaternionf(invParentWorldRot).mul(newWorldRot)
+
+                rotationOverrides[nodeIndex] = newLocalRot
             }
         }
 
@@ -244,9 +298,13 @@ class SpringBoneSimulator(
         data class Capsule(val start: Vector3f, val end: Vector3f, val radius: Float) : ResolvedCollider()
     }
 
+    /**
+     * Resolves colliders into entity world space positions.
+     */
     private fun resolveColliders(
         colliderGroupIndices: List<Int>,
         worldMatrices: List<Matrix4f>,
+        modelToWorld: Matrix4f,
     ): List<ResolvedCollider> {
         val result = mutableListOf<ResolvedCollider>()
         for (groupIdx in colliderGroupIndices) {
@@ -254,17 +312,19 @@ class SpringBoneSimulator(
             for (colliderIdx in group.colliderIndices) {
                 val collider = springBone.colliders.getOrNull(colliderIdx) ?: continue
                 val nodeWorld = worldMatrices.getOrNull(collider.nodeIndex) ?: continue
+                // Compute entity-world transform for this collider node
+                val nodeEntityWorld = Matrix4f(modelToWorld).mul(nodeWorld)
                 when (val shape = collider.shape) {
                     is ColliderShape.Sphere -> {
                         val worldPos = Vector3f(shape.offset)
-                        nodeWorld.transformPosition(worldPos)
+                        nodeEntityWorld.transformPosition(worldPos)
                         result.add(ResolvedCollider.Sphere(worldPos, shape.radius))
                     }
                     is ColliderShape.Capsule -> {
                         val worldOffset = Vector3f(shape.offset)
-                        nodeWorld.transformPosition(worldOffset)
+                        nodeEntityWorld.transformPosition(worldOffset)
                         val worldTail = Vector3f(shape.tail)
-                        nodeWorld.transformPosition(worldTail)
+                        nodeEntityWorld.transformPosition(worldTail)
                         result.add(ResolvedCollider.Capsule(worldOffset, worldTail, shape.radius))
                     }
                 }
