@@ -6,6 +6,8 @@ package com.github.narazaka.vrmmod.vrm
 data class VrmMesh(
     val name: String = "",
     val primitives: List<VrmPrimitive> = emptyList(),
+    /** Index into VrmSkeleton.skins. -1 means unskinned. */
+    val skinIndex: Int = -1,
 )
 
 /**

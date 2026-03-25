@@ -424,9 +424,11 @@ object VrmV0Converter {
             node.copy(translation = flipXZ(node.translation))
         }
 
-        val ibms = model.skeleton.inverseBindMatrices.map { similarityTransformM(it) }
+        val skins = model.skeleton.skins.map { skin ->
+            skin.copy(inverseBindMatrices = skin.inverseBindMatrices.map { similarityTransformM(it) })
+        }
 
-        val skeleton = model.skeleton.copy(nodes = nodes, inverseBindMatrices = ibms)
+        val skeleton = model.skeleton.copy(nodes = nodes, skins = skins)
 
         val springBone = convertSpringBoneCoordinates(model.springBone)
 

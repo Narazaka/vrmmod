@@ -2,6 +2,7 @@ package com.github.narazaka.vrmmod.render
 
 import com.github.narazaka.vrmmod.vrm.VrmNode
 import com.github.narazaka.vrmmod.vrm.VrmSkeleton
+import com.github.narazaka.vrmmod.vrm.VrmSkin
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -91,8 +92,7 @@ class VrmSkinningEngineTest {
                 VrmNode(name = "bone", translation = Vector3f(0f, 2f, 0f)),
             ),
             rootNodeIndices = listOf(0),
-            jointNodeIndices = listOf(0),
-            inverseBindMatrices = listOf(Matrix4f()), // identity
+            skins = listOf(VrmSkin(jointNodeIndices = listOf(0), inverseBindMatrices = listOf(Matrix4f()))),
         )
 
         val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton)
@@ -112,8 +112,7 @@ class VrmSkinningEngineTest {
                 VrmNode(name = "bone", translation = Vector3f(0f, 2f, 0f)),
             ),
             rootNodeIndices = listOf(0),
-            jointNodeIndices = listOf(0),
-            inverseBindMatrices = listOf(Matrix4f().translate(0f, -2f, 0f)),
+            skins = listOf(VrmSkin(jointNodeIndices = listOf(0), inverseBindMatrices = listOf(Matrix4f().translate(0f, -2f, 0f)))),
         )
 
         val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton)

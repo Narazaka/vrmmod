@@ -151,6 +151,15 @@ object VrmParser {
         val materialModels = model.materialModels
         val binaryData = rawData.binaryData
 
+        // Build mesh index -> skin index mapping from raw glTF nodes.
+        // Each node can reference a mesh and a skin; we need to associate them.
+        val meshToSkinIndex = mutableMapOf<Int, Int>()
+        for (node in gltf.nodes ?: emptyList()) {
+            val meshIdx = node.mesh ?: continue
+            val skinIdx = node.skin ?: continue
+            meshToSkinIndex[meshIdx] = skinIdx
+        }
+
         // Build a mapping from raw glTF mesh index to its morph target accessor indices.
         // This allows us to resolve sparse accessors that JglTF fails to handle.
         val rawMeshes = gltf.meshes ?: emptyList()
@@ -165,6 +174,7 @@ object VrmParser {
                     val rawPrim = rawPrimitives.getOrNull(primIndex)
                     extractPrimitive(prim, materialModels, imageModels, rawPrim, gltf, binaryData)
                 },
+                skinIndex = meshToSkinIndex[meshModelIndex] ?: -1,
             )
         }
     }
@@ -434,19 +444,19 @@ object VrmParser {
             nodeModels.indexOf(root)
         } ?: emptyList()
 
-        // Skin data
-        val skin = model.skinModels.firstOrNull()
-        val jointNodeIndices = skin?.joints?.map { joint ->
-            nodeModels.indexOf(joint)
-        } ?: emptyList()
-
-        val inverseBindMatrices = skin?.let { extractInverseBindMatrices(it) } ?: emptyList()
+        // Skin data: read ALL skins (glTF allows multiple skins for different meshes)
+        val skins = model.skinModels.map { skinModel ->
+            val jointNodeIndices = skinModel.joints.map { joint ->
+                nodeModels.indexOf(joint)
+            }
+            val inverseBindMatrices = extractInverseBindMatrices(skinModel)
+            VrmSkin(jointNodeIndices = jointNodeIndices, inverseBindMatrices = inverseBindMatrices)
+        }
 
         return VrmSkeleton(
             nodes = allNodes,
             rootNodeIndices = rootNodeIndices,
-            jointNodeIndices = jointNodeIndices,
-            inverseBindMatrices = inverseBindMatrices,
+            skins = skins,
         )
     }
 

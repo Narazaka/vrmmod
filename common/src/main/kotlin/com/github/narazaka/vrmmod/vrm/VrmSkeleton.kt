@@ -5,14 +5,26 @@ import org.joml.Quaternionf
 import org.joml.Vector3f
 
 /**
+ * A single skin binding: joints and their inverse bind matrices.
+ * glTF allows multiple skins (e.g., body and clothing use different joint sets).
+ */
+data class VrmSkin(
+    val jointNodeIndices: List<Int> = emptyList(),
+    val inverseBindMatrices: List<Matrix4f> = emptyList(),
+)
+
+/**
  * The skeleton (node tree + skin data) of a VRM model.
  */
 data class VrmSkeleton(
     val nodes: List<VrmNode> = emptyList(),
     val rootNodeIndices: List<Int> = emptyList(),
-    val jointNodeIndices: List<Int> = emptyList(),
-    val inverseBindMatrices: List<Matrix4f> = emptyList(),
-)
+    val skins: List<VrmSkin> = emptyList(),
+) {
+    // Backward-compatible accessors for the primary skin (index 0)
+    val jointNodeIndices: List<Int> get() = skins.firstOrNull()?.jointNodeIndices ?: emptyList()
+    val inverseBindMatrices: List<Matrix4f> get() = skins.firstOrNull()?.inverseBindMatrices ?: emptyList()
+}
 
 /**
  * A single node in the glTF scene graph.

@@ -95,12 +95,15 @@ object VrmRenderer {
             }
         }
 
-        // Compute skinning matrices
-        val skinningMatrices = if (model.skeleton.jointNodeIndices.isNotEmpty()) {
-            VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides)
-        } else {
-            emptyList()
+        // Compute skinning matrices per skin (cached to avoid recomputation)
+        val skinningMatricesCache = mutableMapOf<Int, List<Matrix4f>>()
+        fun getSkinningMatrices(skinIndex: Int): List<Matrix4f> {
+            return skinningMatricesCache.getOrPut(skinIndex) {
+                VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides, skinIndex)
+            }
         }
+        // Pre-compute primary skin for eye offset etc.
+        val skinningMatrices = getSkinningMatrices(0)
 
         // Update eye position for VRM_VRM_CAMERA mode.
         // Compute from HEAD bone's current world matrix (with animation rotation applied)
@@ -129,9 +132,9 @@ object VrmRenderer {
 
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
         // and use appropriate RenderType per alpha mode.
-        data class IndexedPrimitive(val meshIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
+        data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
-            mesh.primitives.map { IndexedPrimitive(meshIndex, it) }
+            mesh.primitives.map { IndexedPrimitive(meshIndex, mesh.skinIndex, it) }
         }.filter { (meshIndex, _) ->
             if (!isFirstPerson) {
                 val annotation = model.firstPersonAnnotations[meshIndex]
@@ -163,7 +166,7 @@ object VrmRenderer {
             }
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
-            for ((meshIndex, primitive) in indexedPrimitives) {
+            for ((meshIndex, meshSkinIndex, primitive) in indexedPrimitives) {
                 // Collect morph weights relevant to this primitive's mesh
                 val primitiveMorphWeights = mutableMapOf<Int, Float>()
                 for ((key2, weight) in morphWeightsMap) {
@@ -179,7 +182,9 @@ object VrmRenderer {
                     } else emptySet()
                 } else emptySet()
 
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode, primitiveMorphWeights, headJoints)
+                // Use the correct skin's skinning matrices for this mesh
+                val meshSkinningMatrices = if (meshSkinIndex >= 0) getSkinningMatrices(meshSkinIndex) else skinningMatrices
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints)
             }
         }
 
