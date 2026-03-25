@@ -59,6 +59,9 @@ object VrmParser {
         val springBoneExtension = extensions?.get("VRMC_springBone")
         val springBone = VrmExtensionParser.parseSpringBone(springBoneExtension)
 
+        // Parse VRMC_materials_mtoon from per-material extensions
+        val mtoonMaterials = VrmExtensionParser.parseMtoonMaterials(gltf.materials)
+
         // Extract geometry and skeleton from high-level model
         val meshes = extractMeshes(model)
         val skeleton = extractSkeleton(model)
@@ -72,6 +75,7 @@ object VrmParser {
             textures = textures,
             expressions = expressions,
             springBone = springBone,
+            mtoonMaterials = mtoonMaterials,
         )
     }
 

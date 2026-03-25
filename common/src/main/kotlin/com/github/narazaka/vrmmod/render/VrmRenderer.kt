@@ -4,6 +4,7 @@ import com.github.narazaka.vrmmod.animation.BonePoseMap
 import com.github.narazaka.vrmmod.animation.PoseContext
 import com.github.narazaka.vrmmod.vrm.HumanBone
 import com.github.narazaka.vrmmod.vrm.VrmModel
+import com.github.narazaka.vrmmod.vrm.VrmMtoonMaterial
 import com.github.narazaka.vrmmod.vrm.VrmPrimitive
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
@@ -116,6 +117,9 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
+        // Build MToon material lookup by material index
+        val mtoonByMaterial = model.mtoonMaterials.associateBy { it.materialIndex }
+
         // Group primitives by texture to avoid buffer interleaving
         val allPrimitives = model.meshes.flatMap { it.primitives }
         val grouped = allPrimitives.groupBy { resolveTexture(state, it.imageIndex) }
@@ -125,7 +129,8 @@ object VrmRenderer {
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
             for (primitive in primitives) {
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode)
+                val mtoon = mtoonByMaterial[primitive.materialIndex]
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, skinningMatrices, isQuadMode, mtoon)
             }
         }
 
@@ -227,6 +232,9 @@ object VrmRenderer {
      * When [skinningMatrices] is non-empty and the primitive has joint/weight data,
      * each vertex is transformed by the skinning engine before being emitted.
      */
+    /** Fixed light direction for pseudo MToon shading (normalized). */
+    private val MTOON_LIGHT_DIR = Vector3f(0.3f, 1.0f, 0.5f).normalize()
+
     private fun drawPrimitive(
         primitive: VrmPrimitive,
         vertexConsumer: com.mojang.blaze3d.vertex.VertexConsumer,
@@ -234,6 +242,7 @@ object VrmRenderer {
         packedLight: Int,
         skinningMatrices: List<Matrix4f>,
         isQuadMode: Boolean,
+        mtoon: VrmMtoonMaterial? = null,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -318,9 +327,32 @@ object VrmRenderer {
                     vCoord = 0f
                 }
 
+                // Compute vertex color from MToon shading
+                val r: Int
+                val g: Int
+                val b: Int
+                if (mtoon != null && hasNormals) {
+                    val dotNL = nx * MTOON_LIGHT_DIR.x + ny * MTOON_LIGHT_DIR.y + nz * MTOON_LIGHT_DIR.z
+                    val shadingGrade = (dotNL + 1f) / 2f + mtoon.shadingShiftFactor
+                    val toony = mtoon.shadingToonyFactor
+                    val lo = 0.5f - toony / 2f
+                    val hi = 0.5f + toony / 2f
+                    // smoothstep
+                    val t = ((shadingGrade - lo) / (hi - lo)).coerceIn(0f, 1f)
+                    val shade = t * t * (3f - 2f * t)
+                    // mix(shadeColor, white, shade) — baseColor is white (1,1,1)
+                    r = ((mtoon.shadeColorFactor.x + (1f - mtoon.shadeColorFactor.x) * shade) * 255f).toInt().coerceIn(0, 255)
+                    g = ((mtoon.shadeColorFactor.y + (1f - mtoon.shadeColorFactor.y) * shade) * 255f).toInt().coerceIn(0, 255)
+                    b = ((mtoon.shadeColorFactor.z + (1f - mtoon.shadeColorFactor.z) * shade) * 255f).toInt().coerceIn(0, 255)
+                } else {
+                    r = 255
+                    g = 255
+                    b = 255
+                }
+
                 vertexConsumer
                     .addVertex(pose, px, py, pz)
-                    .setColor(255, 255, 255, 255)
+                    .setColor(r, g, b, 255)
                     .setUv(u, vCoord)
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(packedLight)

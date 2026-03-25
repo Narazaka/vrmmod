@@ -11,4 +11,5 @@ data class VrmModel(
     val textures: List<VrmTexture> = emptyList(),
     val expressions: List<VrmExpression> = emptyList(),
     val springBone: VrmSpringBone = VrmSpringBone(),
+    val mtoonMaterials: List<VrmMtoonMaterial> = emptyList(),
 )

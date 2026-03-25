@@ -108,6 +108,48 @@ object VrmExtensionParser {
     }
 
     /**
+     * Parses VRMC_materials_mtoon from the raw glTF materials list.
+     *
+     * Each material in the glTF may have an `extensions.VRMC_materials_mtoon` block.
+     * This extracts shadeColorFactor, shadingShiftFactor, and shadingToonyFactor.
+     *
+     * @param rawMaterials the list of raw glTF material objects (from GltfAssetV2.materials)
+     */
+    fun parseMtoonMaterials(rawMaterials: List<Any?>?): List<VrmMtoonMaterial> {
+        if (rawMaterials == null) return emptyList()
+        val result = mutableListOf<VrmMtoonMaterial>()
+        for ((index, rawMat) in rawMaterials.withIndex()) {
+            if (rawMat == null) continue
+            val matJson = toJsonObject(rawMat)
+            val extensions = matJson.getAsJsonObject("extensions") ?: continue
+            val mtoonRaw = extensions.get("VRMC_materials_mtoon") ?: continue
+            if (!mtoonRaw.isJsonObject) continue
+            val mtoon = mtoonRaw.asJsonObject
+
+            val shadeColorFactor = mtoon.getAsJsonArray("shadeColorFactor")?.let { arr ->
+                org.joml.Vector3f(
+                    arr.get(0).asFloat,
+                    arr.get(1).asFloat,
+                    arr.get(2).asFloat,
+                )
+            } ?: org.joml.Vector3f(0f, 0f, 0f)
+
+            val shadingShiftFactor = mtoon.get("shadingShiftFactor")?.asFloat ?: 0f
+            val shadingToonyFactor = mtoon.get("shadingToonyFactor")?.asFloat ?: 0.9f
+
+            result.add(
+                VrmMtoonMaterial(
+                    materialIndex = index,
+                    shadeColorFactor = shadeColorFactor,
+                    shadingShiftFactor = shadingShiftFactor,
+                    shadingToonyFactor = shadingToonyFactor,
+                )
+            )
+        }
+        return result
+    }
+
+    /**
      * Parses the VRMC_springBone extension into [VrmSpringBone].
      */
     fun parseSpringBone(extensionMap: Any?): VrmSpringBone {
