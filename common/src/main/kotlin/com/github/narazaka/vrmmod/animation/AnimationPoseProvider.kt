@@ -169,7 +169,7 @@ class AnimationPoseProvider(
 
     /**
      * Determines the movement direction relative to body facing.
-     * Returns "forward", "backward", or "forward" (default).
+     * Returns "forward", "backward", "left", or "right".
      */
     private fun getMovementDirection(context: PoseContext): String {
         if (!moveDirInitialized) {
@@ -196,9 +196,11 @@ class AnimationPoseProvider(
         while (relAngle > Math.PI) relAngle -= (2 * Math.PI).toFloat()
         while (relAngle < -Math.PI) relAngle += (2 * Math.PI).toFloat()
 
-        val absDeg = Math.toDegrees(relAngle.toDouble()).toFloat()
+        val deg = Math.toDegrees(relAngle.toDouble()).toFloat()
         return when {
-            kotlin.math.abs(absDeg) > 120f -> "backward"
+            deg > 135f || deg < -135f -> "backward"
+            deg > 45f -> "left"
+            deg < -45f -> "right"
             else -> "forward"
         }
     }
@@ -238,11 +240,21 @@ class AnimationPoseProvider(
             context.isSneaking -> "sneak"
             context.limbSwingAmount > config.runThreshold -> "run"
             isMoving && moveDir == "backward" -> "walkBackward"
+            isMoving && moveDir == "left" -> "walkLeft"
+            isMoving && moveDir == "right" -> "walkRight"
             isMoving -> "walk"
             else -> "idle"
         }
         currentStateName = stateName
-        val clipName = config.states[stateName]?.clip ?: "Idle_A"
-        return if (clips.containsKey(clipName)) clipName else clips.keys.firstOrNull() ?: ""
+        val clipName = config.states[stateName]?.clip
+        if (clipName != null && clips.containsKey(clipName)) return clipName
+
+        // Fallback: directional walk -> walk, directional run -> run
+        if (stateName in listOf("walkBackward", "walkLeft", "walkRight")) {
+            val walkClip = config.states["walk"]?.clip
+            if (walkClip != null && clips.containsKey(walkClip)) return walkClip
+        }
+
+        return clips.keys.firstOrNull() ?: ""
     }
 }

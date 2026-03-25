@@ -57,6 +57,8 @@ data class AnimationConfig(
             "idle" to StateConfig("Idle_A"),
             "walk" to StateConfig("Walking_A"),
             "walkBackward" to StateConfig("Walking_A"),
+            "walkLeft" to StateConfig("Walking_A"),
+            "walkRight" to StateConfig("Walking_A"),
             "run" to StateConfig("Running_A"),
             "jump" to StateConfig("Jump_Idle"),
             "sneak" to StateConfig("Sneaking"),
