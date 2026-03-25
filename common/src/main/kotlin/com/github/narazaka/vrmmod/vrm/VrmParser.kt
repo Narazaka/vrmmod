@@ -19,6 +19,7 @@ import org.joml.Quaternionf
 import org.joml.Vector3f
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import com.google.gson.JsonObject
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -50,10 +51,29 @@ object VrmParser {
         val gltfReader = GltfReaderV2()
         val gltf = gltfReader.read(ByteArrayInputStream(jsonBytes))
 
-        // Parse VRM extensions
+        // Detect VRM version and parse extensions
         val extensions = gltf.extensions
-        val vrmExtension = extensions?.get("VRMC_vrm")
-        val vrmJson = vrmExtension?.let { VrmExtensionParser.toJsonObject(it) }
+        val isV1 = extensions?.containsKey("VRMC_vrm") == true
+        val isV0 = !isV1 && extensions?.containsKey("VRM") == true
+
+        val vrmJson: JsonObject?
+        val springBoneExtension: Any?
+
+        if (isV0) {
+            // VRM 0.x: convert to v1 format
+            val v0Extension = extensions!!["VRM"]
+            val v0Json = VrmExtensionParser.toJsonObject(v0Extension!!)
+            val nodeChildren = buildNodeChildrenMap(model)
+            val meshToNodeMap = buildMeshToNodeMap(model)
+            val converted = VrmV0Converter.convertAll(v0Json, nodeChildren, meshToNodeMap)
+            vrmJson = converted.vrmcVrm
+            springBoneExtension = converted.vrmcSpringBone
+        } else {
+            // VRM 1.0: use directly
+            val vrmExtension = extensions?.get("VRMC_vrm")
+            vrmJson = vrmExtension?.let { VrmExtensionParser.toJsonObject(it) }
+            springBoneExtension = extensions?.get("VRMC_springBone")
+        }
 
         val meta = vrmJson?.let { VrmExtensionParser.parseMeta(it) } ?: VrmMeta(name = "")
         val humanoid = vrmJson?.let { VrmExtensionParser.parseHumanoid(it) } ?: VrmHumanoid()
@@ -81,7 +101,6 @@ object VrmParser {
         val lookAtOffset = VrmExtensionParser.parseLookAtOffset(vrmJson)
 
         // Parse VRMC_springBone extension
-        val springBoneExtension = extensions?.get("VRMC_springBone")
         val springBone = VrmExtensionParser.parseSpringBone(springBoneExtension)
 
         // Parse VRMC_materials_mtoon from per-material extensions
@@ -473,6 +492,29 @@ object VrmParser {
             }
         }
         return emptyList()
+    }
+
+    private fun buildNodeChildrenMap(model: GltfModel): Map<Int, List<Int>> {
+        val nodeModels = model.nodeModels
+        val result = mutableMapOf<Int, List<Int>>()
+        for ((idx, node) in nodeModels.withIndex()) {
+            result[idx] = node.children.map { child -> nodeModels.indexOf(child) }
+        }
+        return result
+    }
+
+    private fun buildMeshToNodeMap(model: GltfModel): Map<Int, Int> {
+        val result = mutableMapOf<Int, Int>()
+        for ((nodeIdx, nodeModel) in model.nodeModels.withIndex()) {
+            val meshModels = nodeModel.meshModels
+            if (meshModels.isNotEmpty()) {
+                val meshIdx = model.meshModels.indexOf(meshModels[0])
+                if (meshIdx >= 0 && meshIdx !in result) {
+                    result[meshIdx] = nodeIdx
+                }
+            }
+        }
+        return result
     }
 
     private fun extractTextures(model: GltfModel): List<VrmTexture> {

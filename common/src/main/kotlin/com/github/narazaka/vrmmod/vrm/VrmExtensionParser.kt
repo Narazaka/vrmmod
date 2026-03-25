@@ -158,7 +158,7 @@ object VrmExtensionParser {
      */
     fun parseSpringBone(extensionMap: Any?): VrmSpringBone {
         if (extensionMap == null) return VrmSpringBone()
-        val json = toJsonObject(extensionMap)
+        val json = if (extensionMap is JsonObject) extensionMap else toJsonObject(extensionMap)
 
         val colliders = json.getAsJsonArray("colliders")?.map { element ->
             val obj = element.asJsonObject
