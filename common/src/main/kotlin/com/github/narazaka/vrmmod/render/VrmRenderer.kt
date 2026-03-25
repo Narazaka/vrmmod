@@ -116,12 +116,22 @@ object VrmRenderer {
 
         val pose = poseStack.last()
 
-        // Group primitives by texture to avoid buffer interleaving
+        // Group primitives by (texture, alphaMode) to avoid buffer interleaving
+        // and use appropriate RenderType per alpha mode.
         val allPrimitives = model.meshes.flatMap { it.primitives }
-        val grouped = allPrimitives.groupBy { resolveTexture(state, it.imageIndex) }
+        data class RenderKey(val texture: ResourceLocation, val alphaMode: com.github.narazaka.vrmmod.vrm.AlphaMode)
+        val grouped = allPrimitives.groupBy {
+            RenderKey(resolveTexture(state, it.imageIndex), it.alphaMode)
+        }
 
-        for ((texture, primitives) in grouped) {
-            val renderType = RenderType.entityCutoutNoCull(texture)
+        // Draw opaque/mask first, then translucent
+        val sortedGroups = grouped.entries.sortedBy { if (it.key.alphaMode == com.github.narazaka.vrmmod.vrm.AlphaMode.BLEND) 1 else 0 }
+
+        for ((key, primitives) in sortedGroups) {
+            val renderType = when (key.alphaMode) {
+                com.github.narazaka.vrmmod.vrm.AlphaMode.BLEND -> RenderType.entityTranslucent(key.texture)
+                else -> RenderType.entityCutoutNoCull(key.texture)
+            }
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
             for (primitive in primitives) {

@@ -139,6 +139,17 @@ object VrmParser {
             }
         } ?: -1
 
+        // Resolve alphaMode from material
+        val alphaMode = primitive.materialModel?.let { mat ->
+            if (mat is MaterialModelV2) {
+                when (mat.alphaMode) {
+                    MaterialModelV2.AlphaMode.MASK -> AlphaMode.MASK
+                    MaterialModelV2.AlphaMode.BLEND -> AlphaMode.BLEND
+                    else -> AlphaMode.OPAQUE
+                }
+            } else AlphaMode.OPAQUE
+        } ?: AlphaMode.OPAQUE
+
         return VrmPrimitive(
             positions = positions,
             normals = normals,
@@ -149,6 +160,7 @@ object VrmParser {
             vertexCount = vertexCount,
             materialIndex = materialIndex,
             imageIndex = imageIndex,
+            alphaMode = alphaMode,
             morphTargets = morphTargets,
         )
     }

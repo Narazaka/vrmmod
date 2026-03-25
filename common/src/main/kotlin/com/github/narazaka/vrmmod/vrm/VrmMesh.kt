@@ -11,6 +11,13 @@ data class VrmMesh(
 /**
  * A single draw-call unit within a mesh.
  */
+/**
+ * glTF alphaMode for the material.
+ */
+enum class AlphaMode {
+    OPAQUE, MASK, BLEND
+}
+
 data class VrmPrimitive(
     val positions: FloatArray,
     val normals: FloatArray = floatArrayOf(),
@@ -22,6 +29,7 @@ data class VrmPrimitive(
     val materialIndex: Int = -1,
     /** Index into VrmModel.textures (resolved from material -> baseColorTexture -> image). */
     val imageIndex: Int = -1,
+    val alphaMode: AlphaMode = AlphaMode.OPAQUE,
     val morphTargets: List<VrmMorphTarget> = emptyList(),
 ) {
     override fun equals(other: Any?): Boolean {
