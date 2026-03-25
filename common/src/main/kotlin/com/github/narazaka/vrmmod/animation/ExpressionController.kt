@@ -21,9 +21,9 @@ class ExpressionController {
 
     companion object {
         /** Duration of a single blink (close + open) in seconds. */
-        private const val BLINK_DURATION = 0.15f
-        private const val BLINK_INTERVAL_MIN = 3f
-        private const val BLINK_INTERVAL_MAX = 6f
+        private const val BLINK_DURATION = 0.3f
+        private const val BLINK_INTERVAL_MIN = 2f
+        private const val BLINK_INTERVAL_MAX = 4f
         private const val BLINK_EXPRESSION_NAME = "blink"
 
         private fun randomBlinkInterval(): Float {
@@ -74,7 +74,9 @@ class ExpressionController {
      * Computes the effective morph target weights from all active expressions.
      *
      * @param expressions the list of VRM expressions from the model
-     * @return a map of (meshIndex, morphTargetIndex) to accumulated weight
+     * @return a map of (meshIndex, morphTargetIndex) to accumulated weight.
+     *   The meshIndex comes from [MorphTargetBind.nodeIndex], which has been
+     *   resolved to a mesh index during parsing.
      */
     fun computeMorphWeights(expressions: List<VrmExpression>): Map<Pair<Int, Int>, Float> {
         val result = mutableMapOf<Pair<Int, Int>, Float>()
@@ -82,7 +84,8 @@ class ExpressionController {
             if (weight <= 0f) continue
             val expression = expressions.find { it.name == name || it.preset == name } ?: continue
             for (bind in expression.morphTargetBinds) {
-                val key = Pair(bind.meshIndex, bind.morphTargetIndex)
+                if (bind.nodeIndex < 0) continue
+                val key = Pair(bind.nodeIndex, bind.morphTargetIndex)
                 result[key] = (result[key] ?: 0f) + bind.weight * weight
             }
         }

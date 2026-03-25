@@ -28,9 +28,6 @@ object VrmRenderer {
 
     private var lastRenderTimeNano = 0L
 
-    private var springBoneDebugLogged = false
-    private var springBoneFrameCount = 0
-
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *

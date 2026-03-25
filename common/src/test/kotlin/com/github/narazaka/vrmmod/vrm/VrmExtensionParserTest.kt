@@ -137,7 +137,7 @@ class VrmExtensionParserTest {
             assertNotNull(happy)
             assertEquals("happy", happy!!.preset)
             assertEquals(1, happy.morphTargetBinds.size)
-            assertEquals(0, happy.morphTargetBinds[0].meshIndex)
+            assertEquals(0, happy.morphTargetBinds[0].nodeIndex)
             assertEquals(1, happy.morphTargetBinds[0].morphTargetIndex)
             assertEquals(1.0f, happy.morphTargetBinds[0].weight)
         }

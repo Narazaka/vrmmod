@@ -5,6 +5,7 @@ import de.javagl.jgltf.model.GltfModel
 import de.javagl.jgltf.model.MeshPrimitiveModel
 import de.javagl.jgltf.model.NodeModel
 import de.javagl.jgltf.model.io.GltfModelReader
+import de.javagl.jgltf.model.io.RawGltfData
 import de.javagl.jgltf.model.io.RawGltfDataReader
 import de.javagl.jgltf.model.io.v2.GltfReaderV2
 import de.javagl.jgltf.model.AccessorFloatData
@@ -12,11 +13,14 @@ import de.javagl.jgltf.model.AccessorByteData
 import de.javagl.jgltf.model.AccessorShortData
 import de.javagl.jgltf.model.AccessorIntData
 import de.javagl.jgltf.model.v2.MaterialModelV2
+import de.javagl.jgltf.impl.v2.GlTF
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /**
  * Orchestrates JglTF and [VrmExtensionParser] to produce a complete [VrmModel]
@@ -53,7 +57,19 @@ object VrmParser {
 
         val meta = vrmJson?.let { VrmExtensionParser.parseMeta(it) } ?: VrmMeta(name = "")
         val humanoid = vrmJson?.let { VrmExtensionParser.parseHumanoid(it) } ?: VrmHumanoid()
-        val expressions = VrmExtensionParser.parseExpressions(vrmJson)
+
+        // Build node -> mesh index mapping from high-level model
+        val nodeToMeshIndex = buildNodeToMeshMap(model)
+
+        // Parse expressions, resolving node indices to mesh indices
+        val rawExpressions = VrmExtensionParser.parseExpressions(vrmJson)
+        val expressions = rawExpressions.map { expr ->
+            expr.copy(
+                morphTargetBinds = expr.morphTargetBinds.map { bind ->
+                    bind.copy(nodeIndex = nodeToMeshIndex[bind.nodeIndex] ?: -1)
+                }
+            )
+        }
 
         // Parse VRMC_springBone extension
         val springBoneExtension = extensions?.get("VRMC_springBone")
@@ -63,7 +79,8 @@ object VrmParser {
         val mtoonMaterials = VrmExtensionParser.parseMtoonMaterials(gltf.materials)
 
         // Extract geometry and skeleton from high-level model
-        val meshes = extractMeshes(model)
+        // Pass raw glTF data for sparse accessor resolution
+        val meshes = extractMeshes(model, gltf, rawData)
         val skeleton = extractSkeleton(model)
         val textures = extractTextures(model)
 
@@ -79,14 +96,41 @@ object VrmParser {
         )
     }
 
-    private fun extractMeshes(model: GltfModel): List<VrmMesh> {
+    /**
+     * Builds a mapping from glTF node index to mesh model list index.
+     */
+    private fun buildNodeToMeshMap(model: GltfModel): Map<Int, Int> {
+        val result = mutableMapOf<Int, Int>()
+        for ((nodeIdx, nodeModel) in model.nodeModels.withIndex()) {
+            val meshModels = nodeModel.meshModels
+            if (meshModels.isNotEmpty()) {
+                val meshIdx = model.meshModels.indexOf(meshModels[0])
+                if (meshIdx >= 0) {
+                    result[nodeIdx] = meshIdx
+                }
+            }
+        }
+        return result
+    }
+
+    private fun extractMeshes(model: GltfModel, gltf: GlTF, rawData: RawGltfData): List<VrmMesh> {
         val imageModels = model.imageModels
         val materialModels = model.materialModels
-        return model.meshModels.map { meshModel ->
+        val binaryData = rawData.binaryData
+
+        // Build a mapping from raw glTF mesh index to its morph target accessor indices.
+        // This allows us to resolve sparse accessors that JglTF fails to handle.
+        val rawMeshes = gltf.meshes ?: emptyList()
+
+        return model.meshModels.mapIndexed { meshModelIndex, meshModel ->
+            val rawMesh = rawMeshes.getOrNull(meshModelIndex)
+            val rawPrimitives = rawMesh?.primitives ?: emptyList()
+
             VrmMesh(
                 name = meshModel.name ?: "",
-                primitives = meshModel.meshPrimitiveModels.map {
-                    extractPrimitive(it, materialModels, imageModels)
+                primitives = meshModel.meshPrimitiveModels.mapIndexed { primIndex, prim ->
+                    val rawPrim = rawPrimitives.getOrNull(primIndex)
+                    extractPrimitive(prim, materialModels, imageModels, rawPrim, gltf, binaryData)
                 },
             )
         }
@@ -96,6 +140,9 @@ object VrmParser {
         primitive: MeshPrimitiveModel,
         materialModels: List<de.javagl.jgltf.model.MaterialModel>,
         imageModels: List<de.javagl.jgltf.model.ImageModel>,
+        rawPrimitive: de.javagl.jgltf.impl.v2.MeshPrimitive?,
+        gltf: GlTF,
+        binaryData: ByteBuffer?,
     ): VrmPrimitive {
         val positionAccessor = primitive.attributes["POSITION"]
         val normalAccessor = primitive.attributes["NORMAL"]
@@ -117,9 +164,32 @@ object VrmParser {
         val weights = weightsAccessor?.let { readFloatAccessor(it) } ?: floatArrayOf()
         val indices = indicesAccessor?.let { readIntAccessor(it) } ?: intArrayOf()
 
-        val morphTargets = primitive.targets.map { target ->
-            val posDeltas = target["POSITION"]?.let { readFloatAccessor(it) } ?: floatArrayOf()
-            val normDeltas = target["NORMAL"]?.let { readFloatAccessor(it) } ?: floatArrayOf()
+        // Extract morph targets, resolving sparse accessors from raw glTF data
+        val rawTargets = rawPrimitive?.targets ?: emptyList()
+        val morphTargets = primitive.targets.mapIndexed { targetIdx, target ->
+            val rawTarget = rawTargets.getOrNull(targetIdx)
+            val posAccessor = target["POSITION"]
+            val normAccessor = target["NORMAL"]
+
+            val posDeltas = if (posAccessor != null && posAccessor.accessorData != null) {
+                readFloatAccessor(posAccessor)
+            } else if (rawTarget != null && binaryData != null) {
+                // JglTF failed to resolve this accessor (likely sparse) - resolve manually
+                val accIdx = rawTarget["POSITION"]
+                if (accIdx != null) {
+                    resolveSparseAccessor(accIdx, gltf, binaryData)
+                } else floatArrayOf()
+            } else floatArrayOf()
+
+            val normDeltas = if (normAccessor != null && normAccessor.accessorData != null) {
+                readFloatAccessor(normAccessor)
+            } else if (rawTarget != null && binaryData != null) {
+                val accIdx = rawTarget["NORMAL"]
+                if (accIdx != null) {
+                    resolveSparseAccessor(accIdx, gltf, binaryData)
+                } else floatArrayOf()
+            } else floatArrayOf()
+
             VrmMorphTarget(positionDeltas = posDeltas, normalDeltas = normDeltas)
         }
 
@@ -163,6 +233,106 @@ object VrmParser {
             alphaMode = alphaMode,
             morphTargets = morphTargets,
         )
+    }
+
+    /**
+     * Resolves a sparse accessor from the raw glTF binary data.
+     *
+     * Sparse accessors store only non-zero values at specified indices.
+     * JglTF doesn't resolve these for morph targets, so we do it manually.
+     * The result is a full float array with zeros at non-sparse positions.
+     */
+    private fun resolveSparseAccessor(
+        accessorIndex: Int,
+        gltf: GlTF,
+        binaryData: ByteBuffer,
+    ): FloatArray {
+        val accessors = gltf.accessors ?: return floatArrayOf()
+        val accessor = accessors.getOrNull(accessorIndex) ?: return floatArrayOf()
+        val count = accessor.count ?: return floatArrayOf()
+        val type = accessor.type ?: return floatArrayOf()
+
+        val numComponents = when (type) {
+            "SCALAR" -> 1
+            "VEC2" -> 2
+            "VEC3" -> 3
+            "VEC4" -> 4
+            else -> return floatArrayOf()
+        }
+
+        val result = FloatArray(count * numComponents)
+
+        // If the accessor has a bufferView, read the base data first
+        val bufferViewIndex = accessor.bufferView
+        if (bufferViewIndex != null) {
+            val baseData = readBufferViewFloats(bufferViewIndex, gltf, binaryData, count * numComponents)
+            baseData.copyInto(result)
+        }
+
+        // Apply sparse data on top
+        val sparse = accessor.sparse ?: return result
+        val sparseCount = sparse.count ?: return result
+        val sparseIndices = sparse.indices ?: return result
+        val sparseValues = sparse.values ?: return result
+
+        val indicesBvIndex = sparseIndices.bufferView ?: return result
+        val indicesByteOffset = sparseIndices.byteOffset ?: sparseIndices.defaultByteOffset() ?: 0
+        val indicesComponentType = sparseIndices.componentType ?: return result
+
+        val valuesBvIndex = sparseValues.bufferView ?: return result
+        val valuesByteOffset = sparseValues.byteOffset ?: sparseValues.defaultByteOffset() ?: 0
+
+        val bufferViews = gltf.bufferViews ?: return result
+
+        // Read sparse indices
+        val indicesBv = bufferViews.getOrNull(indicesBvIndex) ?: return result
+        val indicesBvOffset = (indicesBv.byteOffset ?: indicesBv.defaultByteOffset() ?: 0) + indicesByteOffset
+        val indexArray = IntArray(sparseCount)
+        val indicesBuf = binaryData.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        indicesBuf.position(indicesBvOffset)
+        for (i in 0 until sparseCount) {
+            indexArray[i] = when (indicesComponentType) {
+                5121 -> indicesBuf.get().toInt() and 0xFF // UNSIGNED_BYTE
+                5123 -> indicesBuf.short.toInt() and 0xFFFF // UNSIGNED_SHORT
+                5125 -> indicesBuf.int // UNSIGNED_INT
+                else -> 0
+            }
+        }
+
+        // Read sparse values (always FLOAT for morph target POSITION/NORMAL)
+        val valuesBv = bufferViews.getOrNull(valuesBvIndex) ?: return result
+        val valuesBvOffset = (valuesBv.byteOffset ?: valuesBv.defaultByteOffset() ?: 0) + valuesByteOffset
+        val valuesBuf = binaryData.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        valuesBuf.position(valuesBvOffset)
+        for (i in 0 until sparseCount) {
+            val targetIndex = indexArray[i]
+            for (c in 0 until numComponents) {
+                result[targetIndex * numComponents + c] = valuesBuf.float
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Reads float values from a buffer view.
+     */
+    private fun readBufferViewFloats(
+        bufferViewIndex: Int,
+        gltf: GlTF,
+        binaryData: ByteBuffer,
+        count: Int,
+    ): FloatArray {
+        val bufferViews = gltf.bufferViews ?: return floatArrayOf()
+        val bv = bufferViews.getOrNull(bufferViewIndex) ?: return floatArrayOf()
+        val offset = bv.byteOffset ?: bv.defaultByteOffset() ?: 0
+        val buf = binaryData.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        buf.position(offset)
+        val result = FloatArray(count)
+        for (i in 0 until count) {
+            result[i] = buf.float
+        }
+        return result
     }
 
     private fun readFloatAccessor(accessor: AccessorModel): FloatArray {

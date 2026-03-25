@@ -249,7 +249,89 @@ class VrmParserTest {
 
     @Test
     fun `expressions are parsed`() {
-        // Expressions may or may not be present in the test VRM
         println("Expressions: ${vrmModel.expressions.size} (${vrmModel.expressions.map { it.name }})")
+        // Dump blink expression details
+        val blink = vrmModel.expressions.find { it.name == "blink" }
+        if (blink != null) {
+            println("  blink: ${blink.morphTargetBinds.size} binds")
+            for (bind in blink.morphTargetBinds) {
+                println("    meshIndex=${bind.nodeIndex}, morphTargetIndex=${bind.morphTargetIndex}, weight=${bind.weight}")
+                // Check if the mesh has morph targets
+                val mesh = vrmModel.meshes.getOrNull(bind.nodeIndex)
+                if (mesh != null) {
+                    for ((primIdx, prim) in mesh.primitives.withIndex()) {
+                        val morph = prim.morphTargets.getOrNull(bind.morphTargetIndex)
+                        println("      prim[$primIdx] morphTarget[${bind.morphTargetIndex}]: ${if (morph != null) "${morph.positionDeltas.size / 3} deltas" else "NULL"}")
+                    }
+                } else {
+                    println("      mesh ${bind.nodeIndex} NOT FOUND (meshes count: ${vrmModel.meshes.size})")
+                }
+            }
+        }
+        // Check which primitive has blink's non-zero deltas
+        if (blink != null) {
+            val bind = blink.morphTargetBinds[0]
+            val mesh = vrmModel.meshes[bind.nodeIndex]
+            for ((pi, prim) in mesh.primitives.withIndex()) {
+                val morph = prim.morphTargets.getOrNull(bind.morphTargetIndex)
+                if (morph != null) {
+                    var nonZero = 0
+                    var maxD = 0f
+                    for (i in morph.positionDeltas.indices) {
+                        val d = kotlin.math.abs(morph.positionDeltas[i])
+                        if (d > 0.0001f) nonZero++
+                        if (d > maxD) maxD = d
+                    }
+                    val idxMin = if (prim.indices.isNotEmpty()) prim.indices.min() else -1
+                    val idxMax = if (prim.indices.isNotEmpty()) prim.indices.max() else -1
+                    println("    prim[$pi]: deltasVerts=${morph.positionDeltas.size/3}, nonZero=$nonZero, maxDelta=$maxD, idxRange=[$idxMin..$idxMax]")
+                }
+            }
+        }
+        // Check which index ranges have non-zero deltas
+        if (blink != null) {
+            val bind = blink.morphTargetBinds[0]
+            val mesh = vrmModel.meshes[bind.nodeIndex]
+            val morph = mesh.primitives[0].morphTargets[bind.morphTargetIndex]
+            // Find which vertex indices have non-zero deltas
+            val nonZeroIndices = mutableListOf<Int>()
+            for (v in 0 until morph.positionDeltas.size / 3) {
+                val dx = morph.positionDeltas[v * 3]
+                val dy = morph.positionDeltas[v * 3 + 1]
+                val dz = morph.positionDeltas[v * 3 + 2]
+                if (kotlin.math.abs(dx) > 0.0001f || kotlin.math.abs(dy) > 0.0001f || kotlin.math.abs(dz) > 0.0001f) {
+                    nonZeroIndices.add(v)
+                }
+            }
+            println("    Non-zero delta vertex range: ${nonZeroIndices.min()}..${nonZeroIndices.max()} (count=${nonZeroIndices.size})")
+            // Check overlap with each prim's index range
+            for ((pi, prim) in mesh.primitives.withIndex()) {
+                val primIndices = prim.indices.toSet()
+                val overlap = nonZeroIndices.count { it in primIndices }
+                println("    prim[$pi] idxRange=[${prim.indices.min()}..${prim.indices.max()}]: $overlap vertices with blink delta")
+            }
+        }
+        // Check delta magnitude for blink morph target
+        if (blink != null) {
+            val bind = blink.morphTargetBinds[0]
+            val mesh = vrmModel.meshes[bind.nodeIndex]
+            val prim = mesh.primitives[0]
+            val morph = prim.morphTargets[bind.morphTargetIndex]
+            var maxDelta = 0f
+            var nonZeroCount = 0
+            for (i in morph.positionDeltas.indices) {
+                val d = kotlin.math.abs(morph.positionDeltas[i])
+                if (d > 0.0001f) nonZeroCount++
+                if (d > maxDelta) maxDelta = d
+            }
+            println("  blink morph deltas: max=$maxDelta, nonZero=$nonZeroCount/${morph.positionDeltas.size}")
+        }
+        // Also show morph target counts per mesh
+        for ((i, mesh) in vrmModel.meshes.withIndex()) {
+            val morphCounts = mesh.primitives.map { it.morphTargets.size }
+            if (morphCounts.any { it > 0 }) {
+                println("  Mesh $i '${mesh.name}': primitives morphTargets = $morphCounts")
+            }
+        }
     }
 }

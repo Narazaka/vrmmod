@@ -93,7 +93,7 @@ object VrmExtensionParser {
             ?.map { bind ->
                 val b = bind.asJsonObject
                 MorphTargetBind(
-                    meshIndex = b.get("mesh")?.asInt ?: 0,
+                    nodeIndex = b.get("node")?.asInt ?: 0,
                     morphTargetIndex = b.get("index")?.asInt ?: 0,
                     weight = b.get("weight")?.asFloat ?: 0f,
                 )

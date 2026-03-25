@@ -10,7 +10,7 @@ data class VrmExpression(
 )
 
 data class MorphTargetBind(
-    val meshIndex: Int,
+    val nodeIndex: Int,
     val morphTargetIndex: Int,
     val weight: Float,
 )
