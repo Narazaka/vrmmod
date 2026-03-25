@@ -352,20 +352,25 @@ object VrmRenderer {
     ) {
         val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
 
-        // Compute world matrices with current animation overrides
-        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
-
-        // Apply lookAt offset in HEAD's local space
+        // Rest-pose eye position (for baseline XZ)
+        val restWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+        val restHeadMatrix = restWorldMatrices[headBoneNode.nodeIndex]
         val offset = model.lookAtOffsetFromHeadBone
-        val eyeModelPos = Vector3f(offset)
-        headWorldMatrix.transformPosition(eyeModelPos)
+        val restEyePos = Vector3f(offset)
+        restHeadMatrix.transformPosition(restEyePos)
 
-        // Scale to MC blocks
+        // Animated eye position (includes body lean, head rotation)
+        val animWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+        val animHeadMatrix = animWorldMatrices[headBoneNode.nodeIndex]
+        val animEyePos = Vector3f(offset)
+        animHeadMatrix.transformPosition(animEyePos)
+
+        // XZ: delta from rest pose (only animation-driven offset)
+        // Y: unchanged (animated absolute position as before)
         state.currentEyeOffset = Vector3f(
-            eyeModelPos.x * scale,
-            eyeModelPos.y * scale,
-            eyeModelPos.z * scale,
+            (animEyePos.x - restEyePos.x) * scale,
+            animEyePos.y * scale,
+            (animEyePos.z - restEyePos.z) * scale,
         )
     }
 
