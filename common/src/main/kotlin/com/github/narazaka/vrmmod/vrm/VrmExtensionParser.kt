@@ -237,6 +237,30 @@ object VrmExtensionParser {
     /**
      * Parses a Vector3f from either a JSON array [x,y,z] or a JSON object {x,y,z}.
      */
+    /**
+     * Parses firstPerson.meshAnnotations from VRMC_vrm.
+     * Returns a map of node index -> FirstPersonType.
+     */
+    fun parseFirstPerson(json: JsonObject?): Map<Int, FirstPersonType> {
+        if (json == null) return emptyMap()
+        val firstPerson = json.getAsJsonObject("firstPerson") ?: return emptyMap()
+        val annotations = firstPerson.getAsJsonArray("meshAnnotations") ?: return emptyMap()
+        val result = mutableMapOf<Int, FirstPersonType>()
+        for (element in annotations) {
+            val obj = element.asJsonObject
+            val nodeIndex = obj.get("node")?.asInt ?: continue
+            val type = when (obj.get("type")?.asString) {
+                "auto" -> FirstPersonType.AUTO
+                "both" -> FirstPersonType.BOTH
+                "firstPersonOnly" -> FirstPersonType.FIRST_PERSON_ONLY
+                "thirdPersonOnly" -> FirstPersonType.THIRD_PERSON_ONLY
+                else -> FirstPersonType.AUTO
+            }
+            result[nodeIndex] = type
+        }
+        return result
+    }
+
     private fun parseVector3f(element: JsonElement?): org.joml.Vector3f {
         if (element == null) return org.joml.Vector3f()
         if (element.isJsonArray) {

@@ -12,4 +12,16 @@ data class VrmModel(
     val expressions: List<VrmExpression> = emptyList(),
     val springBone: VrmSpringBone = VrmSpringBone(),
     val mtoonMaterials: List<VrmMtoonMaterial> = emptyList(),
+    /** Per-mesh first person annotation. Keys are mesh indices. */
+    val firstPersonAnnotations: Map<Int, FirstPersonType> = emptyMap(),
 )
+
+/**
+ * VRM firstPerson mesh annotation type.
+ */
+enum class FirstPersonType {
+    AUTO,
+    BOTH,
+    FIRST_PERSON_ONLY,
+    THIRD_PERSON_ONLY,
+}

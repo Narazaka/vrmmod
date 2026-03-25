@@ -43,6 +43,7 @@ object VrmRenderer {
         poseStack: PoseStack,
         bufferSource: MultiBufferSource,
         packedLight: Int,
+        isFirstPerson: Boolean = false,
     ) {
         val model = state.model
         val scale = estimateScale(state)
@@ -126,6 +127,25 @@ object VrmRenderer {
         data class IndexedPrimitive(val meshIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, it) }
+        }.filter { (meshIndex, _) ->
+            // Filter meshes based on firstPerson annotations
+            val annotation = model.firstPersonAnnotations[meshIndex]
+            when {
+                annotation == null -> true // no annotation = show in both
+                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
+                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> isFirstPerson
+                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.THIRD_PERSON_ONLY -> !isFirstPerson
+                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> {
+                    // AUTO: for now, treat head-related meshes as thirdPersonOnly
+                    // TODO: implement proper head triangle removal per three-vrm
+                    if (isFirstPerson) {
+                        !isHeadMesh(model, meshIndex)
+                    } else {
+                        true
+                    }
+                }
+                else -> true
+            }
         }
         data class RenderKey(val texture: ResourceLocation, val alphaMode: com.github.narazaka.vrmmod.vrm.AlphaMode)
         val grouped = allPrimitives.groupBy {
@@ -211,6 +231,37 @@ object VrmRenderer {
      * Estimates a uniform scale factor so the model is approximately
      * [TARGET_HEIGHT] blocks tall, based on the hips bone Y position.
      */
+    /**
+     * Checks if a mesh is associated with the head bone or its descendants.
+     * Used for "auto" firstPerson annotation to hide head in first-person view.
+     */
+    private fun isHeadMesh(model: VrmModel, meshIndex: Int): Boolean {
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return false
+        val headNodeIndex = headBoneNode.nodeIndex
+
+        // Check if any node that references this mesh is a descendant of HEAD
+        for ((nodeIdx, node) in model.skeleton.nodes.withIndex()) {
+            if (node.meshIndex == meshIndex) {
+                if (isDescendantOf(model.skeleton, nodeIdx, headNodeIndex)) return true
+            }
+        }
+
+        // Also check: if the mesh contains vertices primarily weighted to head bones
+        // For now, simple node-based check is sufficient
+        return false
+    }
+
+    private fun isDescendantOf(skeleton: com.github.narazaka.vrmmod.vrm.VrmSkeleton, nodeIndex: Int, ancestorIndex: Int): Boolean {
+        if (nodeIndex == ancestorIndex) return true
+        // Walk up the parent chain
+        for ((idx, node) in skeleton.nodes.withIndex()) {
+            if (nodeIndex in node.childIndices) {
+                return isDescendantOf(skeleton, idx, ancestorIndex)
+            }
+        }
+        return false
+    }
+
     private fun estimateScale(state: VrmState): Float {
         val model = state.model
         val hipsNode = model.humanoid.humanBones[HumanBone.HIPS]

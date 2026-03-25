@@ -71,6 +71,12 @@ object VrmParser {
             )
         }
 
+        // Parse firstPerson annotations, resolving node indices to mesh indices
+        val rawFirstPerson = VrmExtensionParser.parseFirstPerson(vrmJson)
+        val firstPersonAnnotations = rawFirstPerson.mapKeys { (nodeIdx, _) ->
+            nodeToMeshIndex[nodeIdx] ?: -1
+        }.filterKeys { it >= 0 }
+
         // Parse VRMC_springBone extension
         val springBoneExtension = extensions?.get("VRMC_springBone")
         val springBone = VrmExtensionParser.parseSpringBone(springBoneExtension)
@@ -93,6 +99,7 @@ object VrmParser {
             expressions = expressions,
             springBone = springBone,
             mtoonMaterials = mtoonMaterials,
+            firstPersonAnnotations = firstPersonAnnotations,
         )
     }
 

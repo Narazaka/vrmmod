@@ -44,7 +44,7 @@ public class LivingEntityRendererMixin {
         if (state == null) return;
 
         PoseContext poseContext = buildPoseContext(renderState);
-        VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight);
+        VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight, false);
         ci.cancel();
     }
 

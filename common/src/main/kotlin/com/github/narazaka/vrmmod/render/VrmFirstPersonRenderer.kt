@@ -70,7 +70,7 @@ object VrmFirstPersonRenderer {
         val renderZ = (player.zOld + (player.z - player.zOld) * partialTick) - camPos.z
         poseStack.translate(renderX, renderY, renderZ)
 
-        VrmRenderer.render(state, poseContext, poseStack, bufferSource, packedLight)
+        VrmRenderer.render(state, poseContext, poseStack, bufferSource, packedLight, isFirstPerson = true)
 
         poseStack.popPose()
     }
