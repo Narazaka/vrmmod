@@ -333,39 +333,15 @@ object VrmRenderer {
         return false
     }
 
-    /**
-     * Updates [VrmState.currentEyeOffset] for VRM_VRM_CAMERA mode.
-     *
-     * Uses the animated HEAD world matrix to track head position including
-     * body lean (so neck interior stays hidden), but replaces the Y component
-     * with rest-pose eye height to avoid walk-animation vertical jitter.
-     */
+    /** No-op: eye offset is set once at load time from rest pose. */
     private fun updateEyeOffset(
-        state: VrmState,
-        model: VrmModel,
-        nodeOverrides: Map<Int, Matrix4f>,
-        scale: Float,
+        @Suppress("UNUSED_PARAMETER") state: VrmState,
+        @Suppress("UNUSED_PARAMETER") model: VrmModel,
+        @Suppress("UNUSED_PARAMETER") nodeOverrides: Map<Int, Matrix4f>,
+        @Suppress("UNUSED_PARAMETER") scale: Float,
     ) {
-        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
-
-        // Animated HEAD matrix (includes body lean, head rotation, etc.)
-        val animWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-        val animHeadMatrix = animWorldMatrices[headBoneNode.nodeIndex]
-
-        // Apply lookAt offset in animated HEAD's local space
-        val offset = model.lookAtOffsetFromHeadBone
-        val animEyePos = Vector3f(offset)
-        animHeadMatrix.transformPosition(animEyePos)
-
-        // Use rest-pose eye Y to avoid vertical jitter from walk animation
-        val restEyeY = state.eyeHeight / scale  // convert back to model space
-
-        // Final eye offset: animated XZ (follows head lean), rest-pose Y (stable)
-        state.currentEyeOffset = Vector3f(
-            animEyePos.x * scale,
-            restEyeY * scale,  // = state.eyeHeight
-            animEyePos.z * scale,
-        )
+        // Eye offset is computed once at model load (VrmPlayerManager.computeEyeHeight)
+        // and stays fixed. This avoids animation jitter and keeps the camera stable.
     }
 
     private fun estimateScale(state: VrmState): Float {
