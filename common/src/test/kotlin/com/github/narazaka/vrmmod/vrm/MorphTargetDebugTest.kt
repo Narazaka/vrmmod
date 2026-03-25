@@ -22,6 +22,23 @@ class MorphTargetDebugTest {
 
         val model = VrmParser.parse(FileInputStream(file))
 
+        // Dump firstPerson annotations
+        println("=== firstPerson ===")
+        println("  annotations: ${model.firstPersonAnnotations}")
+        println("  meshes: ${model.meshes.mapIndexed { i, m -> "$i:${m.name}" }}")
+
+        // Also dump raw firstPerson from glTF
+        val bytes = file.readBytes()
+        val rawData = de.javagl.jgltf.model.io.RawGltfDataReader.read(java.io.ByteArrayInputStream(bytes))
+        val jsonBuf = rawData.jsonData
+        val jsonBytes = ByteArray(jsonBuf.remaining())
+        jsonBuf.get(jsonBytes)
+        val gltf = de.javagl.jgltf.model.io.v2.GltfReaderV2().read(java.io.ByteArrayInputStream(jsonBytes))
+        val vrmExt = gltf.extensions?.get("VRMC_vrm")
+        val vrmJson = vrmExt?.let { VrmExtensionParser.toJsonObject(it) }
+        val fp = vrmJson?.getAsJsonObject("firstPerson")
+        println("  raw firstPerson: $fp")
+
         // Check blink expression
         val blink = model.expressions.find { it.name == "blink" }
         println("=== blink expression ===")

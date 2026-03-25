@@ -27,6 +27,7 @@ object VrmRenderer {
     private const val DEFAULT_SCALE = 0.9f
 
     private var lastRenderTimeNano = 0L
+    private var fpDebugLogged = false
 
     /**
      * Renders the VRM model with animation driven by [poseContext].
@@ -122,29 +123,37 @@ object VrmRenderer {
         val expressionController = state.expressionController
         val morphWeightsMap = expressionController.computeMorphWeights(model.expressions)
 
+        // Debug firstPerson (once)
+        if (isFirstPerson && !fpDebugLogged) {
+            fpDebugLogged = true
+            val log = com.github.narazaka.vrmmod.VrmMod.logger
+            log.info("[VRM FP] annotations: {}", model.firstPersonAnnotations)
+            log.info("[VRM FP] meshes: {}", model.meshes.mapIndexed { i, m -> "$i:${m.name}" })
+            for ((mi, _) in model.firstPersonAnnotations) {
+                log.info("[VRM FP] mesh {} isHeadMesh={}", mi, isHeadMesh(model, mi))
+            }
+        }
+
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
         // and use appropriate RenderType per alpha mode.
         data class IndexedPrimitive(val meshIndex: Int, val primitive: com.github.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, it) }
         }.filter { (meshIndex, _) ->
-            // Filter meshes based on firstPerson annotations
-            val annotation = model.firstPersonAnnotations[meshIndex]
-            when {
-                annotation == null -> true // no annotation = show in both
-                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
-                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> isFirstPerson
-                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.THIRD_PERSON_ONLY -> !isFirstPerson
-                annotation == com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> {
-                    // AUTO: for now, treat head-related meshes as thirdPersonOnly
-                    // TODO: implement proper head triangle removal per three-vrm
-                    if (isFirstPerson) {
-                        !isHeadMesh(model, meshIndex)
-                    } else {
-                        true
-                    }
+            if (!isFirstPerson) {
+                // Third-person: show everything except firstPersonOnly
+                val annotation = model.firstPersonAnnotations[meshIndex]
+                annotation != com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY
+            } else {
+                // First-person: filter based on annotation or auto-detect
+                val annotation = model.firstPersonAnnotations[meshIndex]
+                when (annotation) {
+                    com.github.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
+                    com.github.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> true
+                    com.github.narazaka.vrmmod.vrm.FirstPersonType.THIRD_PERSON_ONLY -> false
+                    com.github.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> !isHeadMesh(model, meshIndex)
+                    null -> !isHeadMesh(model, meshIndex) // no annotation = auto
                 }
-                else -> true
             }
         }
         data class RenderKey(val texture: ResourceLocation, val alphaMode: com.github.narazaka.vrmmod.vrm.AlphaMode)

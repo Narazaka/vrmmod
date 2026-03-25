@@ -398,8 +398,9 @@ object VrmParser {
 
     private fun extractSkeleton(model: GltfModel): VrmSkeleton {
         val nodeModels = model.nodeModels
+        val meshModels = model.meshModels
         val allNodes = nodeModels.mapIndexed { index, nodeModel ->
-            nodeModelToVrmNode(nodeModel, nodeModels)
+            nodeModelToVrmNode(nodeModel, nodeModels, meshModels)
         }
 
         // Root nodes: scene root nodes
@@ -423,7 +424,7 @@ object VrmParser {
         )
     }
 
-    private fun nodeModelToVrmNode(nodeModel: NodeModel, allNodes: List<NodeModel>): VrmNode {
+    private fun nodeModelToVrmNode(nodeModel: NodeModel, allNodes: List<NodeModel>, allMeshModels: List<de.javagl.jgltf.model.MeshModel> = emptyList()): VrmNode {
         val translation = nodeModel.translation?.let { Vector3f(it[0], it[1], it[2]) }
             ?: Vector3f(0f, 0f, 0f)
         val rotation = nodeModel.rotation?.let { Quaternionf(it[0], it[1], it[2], it[3]) }
@@ -435,11 +436,9 @@ object VrmParser {
             allNodes.indexOf(child)
         }
 
-        // Mesh index: find which mesh this node references
+        // Mesh index: find which mesh this node references in the global mesh list
         val meshIndex = nodeModel.meshModels.firstOrNull()?.let { mesh ->
-            // Find the mesh's index in the global mesh list
-            // NodeModel doesn't directly expose this, use -1 as default
-            -1
+            allMeshModels.indexOf(mesh)
         } ?: -1
 
         return VrmNode(
