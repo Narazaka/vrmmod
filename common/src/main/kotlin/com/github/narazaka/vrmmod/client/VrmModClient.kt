@@ -42,10 +42,12 @@ object VrmModClient {
             if (modelPath != null) {
                 val file = File(modelPath)
                 if (file.exists()) {
-                    val animDir = config.animationDir?.let { File(it) }
+                    val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
                     VrmMod.logger.info("Loading local VRM model: {}", modelPath)
                     if (animDir != null) {
                         VrmMod.logger.info("Animation directory: {}", animDir.absolutePath)
+                    } else if (!config.useVrmaAnimation) {
+                        VrmMod.logger.info("VRMA animation disabled, using procedural animation")
                     }
                     VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
                 } else {
