@@ -59,19 +59,23 @@ object VrmRenderer {
         // SpringBone simulation
         val simulator = state.springBoneSimulator
         if (simulator != null) {
-            val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+            val modelSpaceMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // Pass entity position and model scale for movement inertia tracking
-            val entityPos = Vector3f(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
-            val springRotations = simulator.update(worldMatrices, DELTA_TIME, entityPos, scale)
-            if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
-                springBoneDebugLogged = true
-                val log = com.github.narazaka.vrmmod.VrmMod.logger
-                log.info("[VRM SpringBone] rotations count: {}", springRotations.size)
-                springRotations.entries.take(3).forEach { (nodeIdx, rot) ->
-                    log.info("[VRM SpringBone] node {}: rot=({}, {}, {}, {})", nodeIdx, rot.x, rot.y, rot.z, rot.w)
+            // Inject entity world position into worldMatrices so SpringBone
+            // sees true world-space positions (matching three-vrm's matrixWorld).
+            // Only translation is added - no rotation/scale to avoid Z-flip issues.
+            val entityX = poseContext.entityX
+            val entityY = poseContext.entityY
+            val entityZ = poseContext.entityZ
+            val worldMatrices = modelSpaceMatrices.map { m ->
+                Matrix4f(m).also {
+                    it.m30(it.m30() + entityX)
+                    it.m31(it.m31() + entityY)
+                    it.m32(it.m32() + entityZ)
                 }
             }
+
+            val springRotations = simulator.update(worldMatrices, DELTA_TIME)
             // Apply spring bone rotations as local rotation overrides
             for ((nodeIndex, rotation) in springRotations) {
                 val node = model.skeleton.nodes.getOrNull(nodeIndex) ?: continue
