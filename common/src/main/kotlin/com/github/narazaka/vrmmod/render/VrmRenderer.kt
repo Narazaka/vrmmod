@@ -102,6 +102,11 @@ object VrmRenderer {
             emptyList()
         }
 
+        // Update eye position for VRM_VRM_CAMERA mode.
+        // Compute from HEAD bone's current world matrix (with animation rotation applied)
+        // but using rest-pose hips Y for height baseline (avoids walk-animation jitter).
+        updateEyeOffset(state, model, nodeOverrides, scale)
+
         poseStack.pushPose()
 
         // Body rotation in MC space
@@ -326,6 +331,42 @@ object VrmRenderer {
             }
         }
         return false
+    }
+
+    /**
+     * Updates [VrmState.currentEyeOffset] from the current HEAD bone position.
+     *
+     * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
+     *   eyePos = headWorldMatrix * lookAt.offsetFromHeadBone
+     *
+     * The Y component uses the animated HEAD position (captures look direction offset),
+     * but the base height stays close to rest-pose eye height via the scale factor.
+     * XZ offset from HEAD rotation is included so the camera follows head turns
+     * and the neck interior stays hidden.
+     */
+    private fun updateEyeOffset(
+        state: VrmState,
+        model: VrmModel,
+        nodeOverrides: Map<Int, Matrix4f>,
+        scale: Float,
+    ) {
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
+
+        // Compute world matrices with current animation overrides
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
+
+        // Apply lookAt offset in HEAD's local space
+        val offset = model.lookAtOffsetFromHeadBone
+        val eyeModelPos = Vector3f(offset)
+        headWorldMatrix.transformPosition(eyeModelPos)
+
+        // Scale to MC blocks
+        state.currentEyeOffset = Vector3f(
+            eyeModelPos.x * scale,
+            eyeModelPos.y * scale,
+            eyeModelPos.z * scale,
+        )
     }
 
     private fun estimateScale(state: VrmState): Float {

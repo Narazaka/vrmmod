@@ -17,6 +17,14 @@ data class VrmState(
     val poseProvider: PoseProvider = VanillaPoseProvider(),
     val springBoneSimulator: SpringBoneSimulator? = null,
     val expressionController: ExpressionController = ExpressionController(),
-    /** VRM model's eye height in MC blocks (scaled). Used for VRM_VRM_CAMERA mode. */
-    val eyeHeight: Float = 1.62f,  // MC default eye height as fallback
-)
+    /** VRM model's eye height in MC blocks at rest pose (scaled). */
+    val eyeHeight: Float = 1.62f,
+) {
+    /**
+     * Eye position offset from entity feet in MC blocks, updated each frame.
+     * Includes HEAD bone rotation effects but not walk animation translation.
+     * Used by CameraMixin for VRM_VRM_CAMERA mode.
+     */
+    @Volatile
+    var currentEyeOffset: org.joml.Vector3f = org.joml.Vector3f(0f, eyeHeight, 0f)
+}

@@ -3,21 +3,27 @@ package com.github.narazaka.vrmmod.fabric.mixin;
 import com.github.narazaka.vrmmod.client.FirstPersonMode;
 import com.github.narazaka.vrmmod.client.VrmModClient;
 import com.github.narazaka.vrmmod.render.VrmPlayerManager;
+import com.github.narazaka.vrmmod.render.VrmState;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
+import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Adjusts camera position for VRM_VRM_CAMERA first-person mode.
+ *
+ * The camera is positioned at the VRM model's eye position (HEAD bone +
+ * lookAt.offsetFromHeadBone), which follows HEAD rotation so the neck
+ * interior stays hidden when looking around.
+ */
 @Mixin(Camera.class)
 public abstract class CameraMixin {
-
-    @Shadow
-    private Entity entity;
 
     @Shadow
     protected abstract void setPosition(double x, double y, double z);
@@ -26,22 +32,42 @@ public abstract class CameraMixin {
     public abstract net.minecraft.world.phys.Vec3 getPosition();
 
     @Inject(method = "setup", at = @At("RETURN"))
-    private void vrmmod$adjustCameraHeight(BlockGetter level, Entity entity, boolean detached, boolean thirdPerson, float partialTick, CallbackInfo ci) {
+    private void vrmmod$adjustCameraToVrmEye(BlockGetter level, Entity entity, boolean detached, boolean thirdPerson, float partialTick, CallbackInfo ci) {
         if (detached || thirdPerson) return;
         if (VrmModClient.INSTANCE.getCurrentConfig().getFirstPersonMode() != FirstPersonMode.VRM_VRM_CAMERA) return;
 
         var mc = Minecraft.getInstance();
         if (mc.player == null || entity != mc.player) return;
 
-        var state = VrmPlayerManager.INSTANCE.get(mc.player.getUUID());
+        VrmState state = VrmPlayerManager.INSTANCE.get(mc.player.getUUID());
         if (state == null) return;
 
-        // Adjust camera Y to VRM eye height instead of MC default
-        var pos = getPosition();
-        double mcEyeHeight = mc.player.getEyeHeight(mc.player.getPose());
-        double vrmEyeHeight = state.getEyeHeight();
-        double yOffset = vrmEyeHeight - mcEyeHeight;
+        // currentEyeOffset is the eye position relative to entity feet, in MC blocks.
+        // It includes HEAD bone rotation effects (XZ offset from looking around).
+        Vector3f eyeOffset = state.getCurrentEyeOffset();
 
-        setPosition(pos.x, pos.y + yOffset, pos.z);
+        // MC camera is at entity position + eyeHeight.
+        // Replace with VRM eye position.
+        var pos = getPosition();
+
+        // Entity feet position = current camera pos - MC eye height
+        double mcEyeHeight = mc.player.getEyeHeight(mc.player.getPose());
+        double feetY = pos.y - mcEyeHeight;
+
+        // New camera position: entity feet + VRM eye offset
+        // Note: eyeOffset XZ accounts for head rotation, but needs to be rotated
+        // by body yaw to be in world space (eyeOffset is in model space)
+        double bodyYawRad = Math.toRadians(mc.player.yBodyRot + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick);
+        double cos = Math.cos(-bodyYawRad);
+        double sin = Math.sin(-bodyYawRad);
+        // Z-flip: model space Z is flipped relative to MC
+        double worldOffsetX = eyeOffset.x * cos - (-eyeOffset.z) * sin;
+        double worldOffsetZ = eyeOffset.x * sin + (-eyeOffset.z) * cos;
+
+        setPosition(
+                pos.x + worldOffsetX,
+                feetY + eyeOffset.y,
+                pos.z + worldOffsetZ
+        );
     }
 }
