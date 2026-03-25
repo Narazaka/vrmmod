@@ -2,7 +2,6 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.github.narazaka.vrmmod.neoforge.mixin",
-  "refmap": "neoforge-neoforge-refmap.json",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlayerRendererMixin",
