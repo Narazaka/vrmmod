@@ -129,9 +129,18 @@ object VrmRenderer {
             val log = com.github.narazaka.vrmmod.VrmMod.logger
             log.info("[VRM FP] annotations: {}", model.firstPersonAnnotations)
             log.info("[VRM FP] meshes: {}", model.meshes.mapIndexed { i, m -> "$i:${m.name}" })
-            for ((mi, _) in model.firstPersonAnnotations) {
-                log.info("[VRM FP] mesh {} isHeadMesh={}", mi, isHeadMesh(model, mi))
+            // Check isHeadMesh for ALL meshes
+            for (mi in model.meshes.indices) {
+                log.info("[VRM FP] mesh {} '{}' isHeadMesh={}", mi, model.meshes[mi].name, isHeadMesh(model, mi))
             }
+            // Dump nodes with meshIndex
+            val nodesWithMesh = model.skeleton.nodes.withIndex().filter { it.value.meshIndex >= 0 }
+            for ((ni, node) in nodesWithMesh) {
+                log.info("[VRM FP] node {} '{}' meshIndex={}", ni, node.name, node.meshIndex)
+            }
+            // HEAD bone info
+            val headBone = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
+            log.info("[VRM FP] HEAD bone nodeIndex={}", headBone?.nodeIndex)
         }
 
         // Group primitives by (texture, alphaMode) to avoid buffer interleaving
@@ -240,32 +249,62 @@ object VrmRenderer {
      * Estimates a uniform scale factor so the model is approximately
      * [TARGET_HEIGHT] blocks tall, based on the hips bone Y position.
      */
+    /** Cache for head mesh detection results. */
+    private val headMeshCache = mutableMapOf<Int, Boolean>()
+
     /**
-     * Checks if a mesh is associated with the head bone or its descendants.
-     * Used for "auto" firstPerson annotation to hide head in first-person view.
+     * Checks if a mesh has vertices weighted to the head bone or its descendants.
+     * Per three-vrm: a mesh is "head mesh" if any vertex has weight to a bone
+     * that is HEAD or a descendant of HEAD in the skeleton hierarchy.
      */
     private fun isHeadMesh(model: VrmModel, meshIndex: Int): Boolean {
-        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return false
-        val headNodeIndex = headBoneNode.nodeIndex
+        headMeshCache[meshIndex]?.let { return it }
 
-        // Check if any node that references this mesh is a descendant of HEAD
-        for ((nodeIdx, node) in model.skeleton.nodes.withIndex()) {
-            if (node.meshIndex == meshIndex) {
-                if (isDescendantOf(model.skeleton, nodeIdx, headNodeIndex)) return true
+        val headBoneNode = model.humanoid.humanBones[com.github.narazaka.vrmmod.vrm.HumanBone.HEAD]
+        if (headBoneNode == null) {
+            headMeshCache[meshIndex] = false
+            return false
+        }
+
+        // Collect all joint indices that are HEAD or descendants of HEAD
+        val headJointIndices = mutableSetOf<Int>()
+        val skeleton = model.skeleton
+        for ((jointIdx, nodeIdx) in skeleton.jointNodeIndices.withIndex()) {
+            if (isDescendantOfNode(skeleton, nodeIdx, headBoneNode.nodeIndex)) {
+                headJointIndices.add(jointIdx)
             }
         }
 
-        // Also check: if the mesh contains vertices primarily weighted to head bones
-        // For now, simple node-based check is sufficient
+        // Check if any primitive in this mesh has vertices weighted to head joints
+        val mesh = model.meshes.getOrNull(meshIndex)
+        if (mesh == null) {
+            headMeshCache[meshIndex] = false
+            return false
+        }
+
+        for (prim in mesh.primitives) {
+            if (prim.joints.isEmpty()) continue
+            for (v in 0 until prim.vertexCount) {
+                for (i in 0 until 4) {
+                    val ji = if (v * 4 + i < prim.joints.size) prim.joints[v * 4 + i] else 0
+                    val w = if (v * 4 + i < prim.weights.size) prim.weights[v * 4 + i] else 0f
+                    if (w > 0.01f && ji in headJointIndices) {
+                        headMeshCache[meshIndex] = true
+                        return true
+                    }
+                }
+            }
+        }
+
+        headMeshCache[meshIndex] = false
         return false
     }
 
-    private fun isDescendantOf(skeleton: com.github.narazaka.vrmmod.vrm.VrmSkeleton, nodeIndex: Int, ancestorIndex: Int): Boolean {
+    private fun isDescendantOfNode(skeleton: com.github.narazaka.vrmmod.vrm.VrmSkeleton, nodeIndex: Int, ancestorIndex: Int): Boolean {
         if (nodeIndex == ancestorIndex) return true
-        // Walk up the parent chain
         for ((idx, node) in skeleton.nodes.withIndex()) {
             if (nodeIndex in node.childIndices) {
-                return isDescendantOf(skeleton, idx, ancestorIndex)
+                return isDescendantOfNode(skeleton, idx, ancestorIndex)
             }
         }
         return false
