@@ -25,11 +25,14 @@ class VrmModNeoForge(container: ModContainer) {
             // Hook for first-person VRM rendering
             NeoForge.EVENT_BUS.addListener<RenderLevelStageEvent> { event ->
                 if (event.stage == RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
+                    val bufferSource = net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource()
                     VrmFirstPersonRenderer.renderFirstPerson(
                         event.poseStack,
-                        net.minecraft.client.Minecraft.getInstance().renderBuffers().bufferSource(),
+                        bufferSource,
                         event.partialTick.gameTimeDeltaTicks,
                     )
+                    // Flush the buffer so our VRM geometry is actually drawn
+                    bufferSource.endLastBatch()
                 }
             }
         }
