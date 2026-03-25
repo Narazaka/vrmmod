@@ -26,8 +26,15 @@ dependencies {
     shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
 
     // JglTF must be bundled into the mod jar (not provided by MC or NeoForge)
-    implementation("de.javagl:jgltf-model:2.0.4")
-    shadowCommon("de.javagl:jgltf-model:2.0.4")
+    // Exclude Jackson - NeoForge already provides it, and including it causes module conflicts
+    implementation("de.javagl:jgltf-model:2.0.4") {
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson")
+    }
+    shadowCommon("de.javagl:jgltf-model:2.0.4") {
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson")
+    }
 }
 
 tasks.processResources {
@@ -41,6 +48,10 @@ tasks.shadowJar {
     exclude("architectury.common.json")
     // Exclude Jackson (transitive dep of JglTF) - NeoForge already provides it
     exclude("com/fasterxml/**")
+    exclude("META-INF/maven/com.fasterxml*/**")
+    exclude("META-INF/services/com.fasterxml*")
+    exclude("META-INF/LICENSE*")
+    exclude("META-INF/NOTICE*")
     configurations = listOf(shadowCommon)
     archiveClassifier.set("dev-shadow")
 }
