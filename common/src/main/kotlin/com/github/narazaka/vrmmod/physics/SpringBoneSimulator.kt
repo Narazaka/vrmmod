@@ -107,20 +107,29 @@ class SpringBoneSimulator(
      * @param deltaTime seconds per frame
      * @param entityPos entity's absolute world position (for inertia from movement)
      */
+    /**
+     * @param worldMatrices model-space world matrices
+     * @param deltaTime seconds per frame
+     * @param entityPos entity's absolute world position (for inertia from movement)
+     * @param modelScale uniform scale factor (world blocks -> model units)
+     */
     fun update(
         worldMatrices: List<Matrix4f>,
         deltaTime: Float,
         entityPos: Vector3f = Vector3f(),
+        modelScale: Float = 1f,
     ): Map<Int, Quaternionf> {
         if (!initialized) {
             initialize(worldMatrices, entityPos)
             return emptyMap()
         }
 
-        // Entity movement delta in model space direction doesn't matter;
-        // we just offset prevTail by the inverse of entity movement so that
-        // inertia = currentTail - (prevTail + entityDelta) picks up entity motion.
+        // Entity movement delta converted to model space units.
+        // entityDelta is in world blocks; divide by modelScale to get model-space distance.
         val entityDelta = Vector3f(entityPos).sub(prevEntityPos)
+        if (modelScale > 1e-6f) {
+            entityDelta.div(modelScale)
+        }
         prevEntityPos.set(entityPos)
 
         val rotationOverrides = mutableMapOf<Int, Quaternionf>()
@@ -155,17 +164,18 @@ class SpringBoneSimulator(
                     centerWorld.transformPosition(currentTail)
                     prevTail = Vector3f(state.prevTail)
                     centerWorld.transformPosition(prevTail)
+                    // Center space absorbs center node movement but not entity movement.
+                    // Apply entity delta to create inertia from entity motion.
+                    prevTail.sub(entityDelta)
                 } else {
                     currentTail = Vector3f(state.currentTail)
                     prevTail = Vector3f(state.prevTail)
-                    // For springs without center, entity movement creates inertia.
-                    // We DON'T shift prevTail here; instead we don't store in entity
-                    // world space at all. The entity delta will naturally appear as
-                    // head position shift (since worldMatrices are model-space and
-                    // headPos doesn't move with entity). So for non-center springs,
-                    // entity movement won't create inertia in model space.
-                    // This matches UniVRM behavior where center=null means no
-                    // inertia dampening (everything moves together).
+                    // Entity movement creates inertia: the tail was at a world position
+                    // that has shifted by entityDelta. In model space headPos doesn't
+                    // move, but the tail "lags behind". Subtract entityDelta from
+                    // prevTail so inertia = currentTail - (prevTail - entityDelta)
+                    // = (currentTail - prevTail) + entityDelta, picking up entity motion.
+                    prevTail.sub(entityDelta)
                 }
 
                 // Parent rotation (model space)

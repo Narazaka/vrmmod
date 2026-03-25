@@ -61,9 +61,9 @@ object VrmRenderer {
         if (simulator != null) {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
 
-            // Pass entity position for movement inertia tracking
+            // Pass entity position and model scale for movement inertia tracking
             val entityPos = Vector3f(poseContext.entityX, poseContext.entityY, poseContext.entityZ)
-            val springRotations = simulator.update(worldMatrices, DELTA_TIME, entityPos)
+            val springRotations = simulator.update(worldMatrices, DELTA_TIME, entityPos, scale)
             if (!springBoneDebugLogged && springRotations.isNotEmpty()) {
                 springBoneDebugLogged = true
                 val log = com.github.narazaka.vrmmod.VrmMod.logger
