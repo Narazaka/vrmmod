@@ -60,8 +60,8 @@ public abstract class CameraMixin {
         double bodyYawRad = Math.toRadians(
                 mc.player.yBodyRotO + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick
         );
-        // Combined angle = -bodyYaw + PI (matching VrmRenderer's poseStack transforms)
-        double angle = -bodyYawRad + Math.PI;
+        // Combined angle: bodyYaw + PI (MC yaw is clockwise, model faces +Z)
+        double angle = bodyYawRad + Math.PI;
         double cos = Math.cos(angle);
         double sin = Math.sin(angle);
         // Z-flip: negate model Z before rotation

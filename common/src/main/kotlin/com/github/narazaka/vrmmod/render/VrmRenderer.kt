@@ -27,6 +27,7 @@ object VrmRenderer {
     private const val DEFAULT_SCALE = 0.9f
 
     private var lastRenderTimeNano = 0L
+    private var fpXzDebugCounter = 0
 
     /**
      * Renders the VRM model with animation driven by [poseContext].
@@ -367,10 +368,24 @@ object VrmRenderer {
 
         // XZ: delta from rest pose (only animation-driven offset)
         // Y: unchanged (animated absolute position as before)
+        val xzDeltaX = (animEyePos.x - restEyePos.x) * scale
+        val xzDeltaZ = (animEyePos.z - restEyePos.z) * scale
+
+        // Debug log once per second
+        fpXzDebugCounter++
+        if (fpXzDebugCounter % 60 == 0 && (kotlin.math.abs(xzDeltaX) > 0.001f || kotlin.math.abs(xzDeltaZ) > 0.001f)) {
+            com.github.narazaka.vrmmod.VrmMod.logger.info(
+                "[VRM FP XZ] restEye=({},{},{}) animEye=({},{},{}) deltaXZ=({},{})",
+                restEyePos.x, restEyePos.y, restEyePos.z,
+                animEyePos.x, animEyePos.y, animEyePos.z,
+                xzDeltaX, xzDeltaZ,
+            )
+        }
+
         state.currentEyeOffset = Vector3f(
-            (animEyePos.x - restEyePos.x) * scale,
+            xzDeltaX,
             animEyePos.y * scale,
-            (animEyePos.z - restEyePos.z) * scale,
+            xzDeltaZ,
         )
     }
 
