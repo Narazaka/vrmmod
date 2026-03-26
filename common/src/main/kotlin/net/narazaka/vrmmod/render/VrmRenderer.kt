@@ -112,17 +112,7 @@ object VrmRenderer {
 
         poseStack.pushPose()
 
-        // Body rotation in MC space
-        poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
-
-        // VRM model faces +Z. After Z-flip it faces -Z (north in MC).
-        // MC entities face south (+Z) at yaw=0, so rotate 180 degrees,
-        // then Z-flip to convert coordinate system.
-        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
-        poseStack.scale(1f, 1f, -1f)
-
-        // Scale model to approximately player height (~1.8 blocks).
-        poseStack.scale(scale, scale, scale)
+        applyModelTransform(poseStack, bodyYawRad, scale)
 
         val pose = poseStack.last()
 
@@ -140,6 +130,12 @@ object VrmRenderer {
 
         // World matrices for unskinned mesh node transforms
         val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+
+        // Save hand bone world matrices for held item rendering
+        val rightHandBone = model.humanoid.humanBones[HumanBone.RIGHT_HAND]
+        state.rightHandMatrix = if (rightHandBone != null) Matrix4f(worldMatrices[rightHandBone.nodeIndex]) else null
+        val leftHandBone = model.humanoid.humanBones[HumanBone.LEFT_HAND]
+        state.leftHandMatrix = if (leftHandBone != null) Matrix4f(worldMatrices[leftHandBone.nodeIndex]) else null
 
         data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: net.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
@@ -379,6 +375,13 @@ object VrmRenderer {
             animEyePos.y * scale,
             (animEyePos.z - restEyePos.z) * scale,
         )
+    }
+
+    private fun applyModelTransform(poseStack: PoseStack, bodyYawRad: Float, scale: Float) {
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
+        poseStack.scale(1f, 1f, -1f)
+        poseStack.scale(scale, scale, scale)
     }
 
     private fun estimateScale(state: VrmState): Float {
