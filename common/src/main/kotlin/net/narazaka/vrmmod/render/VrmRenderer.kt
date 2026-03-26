@@ -212,6 +212,55 @@ object VrmRenderer {
     }
 
     /**
+     * Renders held items at VRM hand bone positions.
+     */
+    fun renderHeldItems(
+        state: VrmState,
+        rightHandItem: net.minecraft.client.renderer.item.ItemStackRenderState,
+        leftHandItem: net.minecraft.client.renderer.item.ItemStackRenderState,
+        poseStack: PoseStack,
+        bufferSource: MultiBufferSource,
+        packedLight: Int,
+        bodyYawRad: Float,
+    ) {
+        val scale = estimateScale(state)
+        renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+    }
+
+    private fun renderSingleHandItem(
+        handMatrix: Matrix4f?,
+        itemRenderState: net.minecraft.client.renderer.item.ItemStackRenderState,
+        isLeft: Boolean,
+        poseStack: PoseStack,
+        bufferSource: MultiBufferSource,
+        packedLight: Int,
+        bodyYawRad: Float,
+        scale: Float,
+    ) {
+        if (handMatrix == null || itemRenderState.isEmpty) return
+
+        poseStack.pushPose()
+        applyModelTransform(poseStack, bodyYawRad, scale)
+
+        // Apply hand bone world matrix
+        poseStack.last().pose().mul(handMatrix)
+        poseStack.last().normal().mul(org.joml.Matrix3f(handMatrix))
+
+        // Item orientation adjustments for VRM hand bone coordinate system
+        poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
+        poseStack.translate(
+            (if (isLeft) -1 else 1) / 16.0f,
+            0.125f,
+            -0.625f
+        )
+
+        itemRenderState.render(poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY)
+        poseStack.popPose()
+    }
+
+    /**
      * Converts a [BonePoseMap] into per-node-index local transform overrides.
      *
      * For each animated bone, the override matrix combines the node's rest
