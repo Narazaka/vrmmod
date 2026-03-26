@@ -160,12 +160,6 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             Button.builder(Component.translatable("vrmmod.config.save")) { _ -> saveSettings() }
                 .bounds(5, height - 26, 100, 20).build()
         )
-        addRenderableWidget(
-            Button.builder(Component.translatable("vrmmod.config.reload")) { _ ->
-                saveSettings()
-                reloadModel(VrmModClient.currentConfig)
-            }.bounds(110, height - 26, 100, 20).build()
-        )
     }
 
     private fun saveSettings() {
