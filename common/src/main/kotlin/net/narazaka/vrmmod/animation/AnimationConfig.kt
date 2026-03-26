@@ -100,6 +100,7 @@ data class AnimationConfig(
             "move.sprint" to StateConfig("Sprint_Loop"),
             "move.jump" to StateConfig("Jump_Loop"),
             "move.sneak" to StateConfig("Crouch_Idle_Loop"),
+            "move.sneak.idle" to StateConfig("Crouch_Idle_Loop"),
             "move.sneak.walk" to StateConfig("Crouch_Fwd_Loop"),
             "move.swim" to StateConfig("Swim_Fwd_Loop"),
             "move.swim.idle" to StateConfig("Swim_Idle_Loop"),
