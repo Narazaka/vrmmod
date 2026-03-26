@@ -19,6 +19,7 @@
   "vrmmod.config.first_person_mode.vanilla": "VANILLA: MC デフォルトの手",
   "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM_MC_CAMERA: VRM 身体表示、MC カメラ高さ",
   "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM_VRM_CAMERA: VRM 身体表示、VRM 目の高さ",
+  "vrmmod.config.save": "保存",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub が設定されていません。",

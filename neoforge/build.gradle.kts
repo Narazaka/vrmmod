@@ -24,9 +24,6 @@ dependencies {
         exclude(group = "net.neoforged.fancymodloader", module = "loader")
     }
 
-    modApi("me.shedaniel.cloth:cloth-config-neoforge:${rootProject.property("cloth_config_version")}") {
-        exclude(group = "net.fabricmc.fabric-api")
-    }
 
     common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }

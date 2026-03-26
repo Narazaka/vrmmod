@@ -9,10 +9,6 @@ dependencies {
 
     modApi("dev.architectury:architectury:${rootProject.property("architectury_api_version")}")
 
-    modApi("me.shedaniel.cloth:cloth-config:${rootProject.property("cloth_config_version")}") {
-        exclude(group = "net.fabricmc.fabric-api")
-    }
-
     // JglTF for glTF/VRM parsing (api so it's available on platform classpath for Architectury Transformer)
     api("de.javagl:jgltf-model:2.0.4")
 

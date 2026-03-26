@@ -41,7 +41,7 @@ object VrmModClient {
         // Open VRM Mod screen when key is pressed
         ClientTickEvent.CLIENT_POST.register {
             while (VRM_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(VRoidHubScreen(null))
+                Minecraft.getInstance().setScreen(VrmModScreen(null))
             }
         }
 
