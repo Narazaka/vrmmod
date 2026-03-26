@@ -20,4 +20,8 @@ object VrmRenderContext {
     val ON_GROUND: ThreadLocal<Boolean> = ThreadLocal.withInitial { true }
     @JvmField
     val HURT_TIME: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
+    @JvmField
+    val IS_HOLDING_WEAPON: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
+    @JvmField
+    val IS_HOLDING_ITEM: ThreadLocal<Boolean> = ThreadLocal.withInitial { false }
 }

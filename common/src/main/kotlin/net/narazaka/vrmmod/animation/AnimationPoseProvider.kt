@@ -227,16 +227,21 @@ class AnimationPoseProvider(
         }
         if (!isHurt) wasHurt = false
 
-        // Attack swing (left-click) — triggered on rising edge
+        // Swing — triggered on rising edge
         if (context.isSwinging && !wasSwinging) {
             wasSwinging = true
-            val clip = tryState("attack")
+            val stateName = when {
+                context.isHoldingWeapon -> "weaponAttack"
+                context.isHoldingItem -> "interact"
+                else -> "attack"
+            }
+            val clip = tryState(stateName)
             if (clip != null) return clip
         }
         if (!context.isSwinging) wasSwinging = false
 
         // If currently in a one-shot action animation, keep playing until it finishes
-        if (currentStateName in setOf("attack", "hurt", "useItem", "spinAttack", "death")) {
+        if (currentStateName in setOf("attack", "weaponAttack", "interact", "hurt", "useItem", "spinAttack", "death")) {
             val actionClip = clips[currentClipName]
             if (actionClip != null && currentTime < actionClip.duration) {
                 return currentClipName

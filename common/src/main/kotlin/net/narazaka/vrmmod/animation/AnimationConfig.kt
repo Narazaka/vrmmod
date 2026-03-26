@@ -37,20 +37,32 @@ data class AnimationConfig(
 
         fun load(configDir: File): AnimationConfig {
             val file = File(configDir, "vrmmod-animations.json")
-            if (!file.exists()) {
-                val default = AnimationConfig()
+            val loaded = if (file.exists()) {
                 try {
-                    file.parentFile.mkdirs()
-                    file.writeText(gson.toJson(default))
-                } catch (_: Exception) {}
-                return default
-            }
-            return try {
-                Gson().fromJson(file.readText(), AnimationConfig::class.java) ?: AnimationConfig()
-            } catch (e: Exception) {
-                VrmMod.logger.error("Failed to load animation config", e)
+                    Gson().fromJson(file.readText(), AnimationConfig::class.java)
+                } catch (e: Exception) {
+                    VrmMod.logger.error("Failed to load animation config", e)
+                    null
+                }
+            } else null
+
+            // Merge: default states provide a base, user config overrides
+            val merged = if (loaded != null) {
+                loaded.copy(
+                    states = defaultStates() + loaded.states,
+                    transitions = defaultTransitions() + loaded.transitions,
+                )
+            } else {
                 AnimationConfig()
             }
+
+            // Write back so new default states appear in the file
+            try {
+                file.parentFile.mkdirs()
+                file.writeText(gson.toJson(merged))
+            } catch (_: Exception) {}
+
+            return merged
         }
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
@@ -70,6 +82,8 @@ data class AnimationConfig(
             "elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
             "attack" to StateConfig("Punch_Jab", loop = false),
+            "weaponAttack" to StateConfig("Sword_Attack", loop = false),
+            "interact" to StateConfig("Interact", loop = false),
             "hurt" to StateConfig("Hit_Chest", loop = false),
             "useItem" to StateConfig("Interact", loop = false),
             "spinAttack" to StateConfig("Roll", loop = false),

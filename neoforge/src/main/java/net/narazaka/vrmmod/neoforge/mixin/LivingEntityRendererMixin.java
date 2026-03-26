@@ -73,6 +73,8 @@ public class LivingEntityRendererMixin {
                 /* entityX */           VrmRenderContext.ENTITY_X.get(),
                 /* entityY */           VrmRenderContext.ENTITY_Y.get(),
                 /* entityZ */           VrmRenderContext.ENTITY_Z.get(),
+                /* isHoldingWeapon */   VrmRenderContext.IS_HOLDING_WEAPON.get(),
+                /* isHoldingItem */    VrmRenderContext.IS_HOLDING_ITEM.get(),
                 /* hurtTime */          VrmRenderContext.HURT_TIME.get()
         );
     }

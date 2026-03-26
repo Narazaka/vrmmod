@@ -69,6 +69,12 @@ data class PoseContext(
     val entityY: Float = 0f,
     val entityZ: Float = 0f,
 
+    // --- Equipment ---
+    /** True when holding a weapon or tool (sword, axe, pickaxe, etc.) in main hand. */
+    val isHoldingWeapon: Boolean = false,
+    /** True when holding any item in main hand (non-empty). */
+    val isHoldingItem: Boolean = false,
+
     // --- Damage ---
     /** MC hurt time (>0 when recently damaged). */
     val hurtTime: Float = 0f,
