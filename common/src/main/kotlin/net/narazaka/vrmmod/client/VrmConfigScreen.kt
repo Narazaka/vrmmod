@@ -9,19 +9,12 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import java.io.File
 
-/**
- * Creates the Cloth Config settings screen for VRM Mod.
- *
- * When the screen is closed after saving, the current player's VRM model
- * is reloaded with the new settings so changes take effect immediately.
- */
 object VrmConfigScreen {
 
     fun create(parent: Screen?): Screen {
         val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
         val config = VrmModConfig.load(configDir)
 
-        // Mutable holders for the new values
         var newModelPath = config.localModelPath ?: ""
         var newAnimDir = config.animationDir ?: ""
         var newUseVrma = config.useVrmaAnimation
@@ -29,58 +22,58 @@ object VrmConfigScreen {
 
         val builder = ConfigBuilder.create()
             .setParentScreen(parent)
-            .setTitle(Component.literal("VRM Mod Settings"))
+            .setTitle(Component.translatable("vrmmod.config.title"))
             .setSavingRunnable {
                 val newConfig = VrmModConfig(
                     localModelPath = newModelPath.ifBlank { null },
                     animationDir = newAnimDir.ifBlank { null },
                     useVrmaAnimation = newUseVrma,
                     firstPersonMode = newFirstPersonMode,
-                    vroidHubModelId = config.vroidHubModelId, // preserve existing selection
+                    vroidHubModelId = config.vroidHubModelId,
                 )
                 VrmModClient.currentConfig = newConfig
                 VrmModConfig.save(configDir, newConfig)
                 reloadModel(configDir, newConfig)
             }
 
-        val general = builder.getOrCreateCategory(Component.literal("General"))
+        val general = builder.getOrCreateCategory(Component.translatable("vrmmod.config.category.general"))
         val entryBuilder = builder.entryBuilder()
 
         general.addEntry(
-            entryBuilder.startStrField(Component.literal("VRM Model Path"), newModelPath)
+            entryBuilder.startStrField(Component.translatable("vrmmod.config.model_path"), newModelPath)
                 .setDefaultValue("")
-                .setTooltip(Component.literal("Absolute path to the .vrm model file"))
+                .setTooltip(Component.translatable("vrmmod.config.model_path.tooltip"))
                 .setSaveConsumer { newModelPath = it }
                 .build()
         )
 
         general.addEntry(
-            entryBuilder.startStrField(Component.literal("Animation Directory"), newAnimDir)
+            entryBuilder.startStrField(Component.translatable("vrmmod.config.animation_dir"), newAnimDir)
                 .setDefaultValue("")
-                .setTooltip(Component.literal("Directory containing .vrma animation files"))
+                .setTooltip(Component.translatable("vrmmod.config.animation_dir.tooltip"))
                 .setSaveConsumer { newAnimDir = it }
                 .build()
         )
 
         general.addEntry(
-            entryBuilder.startBooleanToggle(Component.literal("Use VRMA Animation"), newUseVrma)
+            entryBuilder.startBooleanToggle(Component.translatable("vrmmod.config.use_vrma"), newUseVrma)
                 .setDefaultValue(true)
-                .setTooltip(Component.literal("Enable .vrma file animation (disable for procedural animation)"))
+                .setTooltip(Component.translatable("vrmmod.config.use_vrma.tooltip"))
                 .setSaveConsumer { newUseVrma = it }
                 .build()
         )
 
         general.addEntry(
             entryBuilder.startEnumSelector(
-                Component.literal("First Person Mode"),
+                Component.translatable("vrmmod.config.first_person_mode"),
                 FirstPersonMode::class.java,
                 newFirstPersonMode,
             )
                 .setDefaultValue(FirstPersonMode.VRM_MC_CAMERA)
                 .setTooltip(
-                    Component.literal("VANILLA: MC default hands"),
-                    Component.literal("VRM_MC_CAMERA: VRM body, MC camera height"),
-                    Component.literal("VRM_VRM_CAMERA: VRM body, VRM eye height (future)"),
+                    Component.translatable("vrmmod.config.first_person_mode.vanilla"),
+                    Component.translatable("vrmmod.config.first_person_mode.vrm_mc_camera"),
+                    Component.translatable("vrmmod.config.first_person_mode.vrm_vrm_camera"),
                 )
                 .setSaveConsumer { newFirstPersonMode = it }
                 .build()
@@ -89,17 +82,12 @@ object VrmConfigScreen {
         return builder.build()
     }
 
-    /**
-     * Unloads the current player's VRM model and reloads it with the new config.
-     */
     private fun reloadModel(configDir: File, config: VrmModConfig) {
         val player = Minecraft.getInstance().player ?: return
         val uuid = player.uuid
 
-        // Unload existing model
         VrmPlayerManager.unload(uuid)
 
-        // Reload with new settings
         val modelPath = config.localModelPath
         if (modelPath != null) {
             val file = File(modelPath)

@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture
  * Standalone Screen for VRoid Hub integration.
  * Handles the full OAuth login flow, model selection, and license display.
  */
-class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VRoid Hub")) {
+class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatable("vrmmod.vroidhub.title")) {
 
     private enum class State {
         LOADING,
@@ -102,19 +102,19 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
         when (state) {
             State.LOGIN -> {
                 addRenderableWidget(
-                    Button.builder(Component.literal("Open VRoid Hub Login")) { _ ->
+                    Button.builder(Component.translatable("vrmmod.vroidhub.login_button")) { _ ->
                         Util.getPlatform().openUri(loginUrl)
                     }.bounds(width / 2 - 100, height / 2 - 40, 200, 20).build()
                 )
 
-                codeInput = EditBox(font, width / 2 - 100, height / 2, 200, 20, Component.literal("Code")).also {
-                    it.setHint(Component.literal("Paste authorization code here"))
+                codeInput = EditBox(font, width / 2 - 100, height / 2, 200, 20, Component.translatable("vrmmod.vroidhub.authenticate")).also {
+                    it.setHint(Component.translatable("vrmmod.vroidhub.code_hint"))
                     it.setMaxLength(256)
                     addRenderableWidget(it)
                 }
 
                 addRenderableWidget(
-                    Button.builder(Component.literal("Authenticate")) { _ ->
+                    Button.builder(Component.translatable("vrmmod.vroidhub.authenticate")) { _ ->
                         val code = codeInput?.value?.trim() ?: ""
                         if (code.isNotBlank() && authSession != null) {
                             state = State.LOGGING_IN
@@ -164,7 +164,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
                 }
 
                 // Use model button (always present, disabled until selection)
-                useModelButton = Button.builder(Component.literal("Use this model (agree to license)")) { _ ->
+                useModelButton = Button.builder(Component.translatable("vrmmod.vroidhub.use_model")) { _ ->
                     selectedModel?.let { onModelConfirmed(it) }
                 }.bounds(5, height - 26, 200, 20).build().also {
                     it.active = selectedModel != null
@@ -173,7 +173,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
                 // Logout
                 addRenderableWidget(
-                    Button.builder(Component.literal("Logout")) { _ ->
+                    Button.builder(Component.translatable("vrmmod.vroidhub.logout")) { _ ->
                         val token = VRoidHubAuth.loadToken(configDir)
                         if (token != null) {
                             CompletableFuture.runAsync {
@@ -191,7 +191,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
         // Close button (always)
         addRenderableWidget(
-            Button.builder(Component.literal("Close")) { _ -> onClose() }
+            Button.builder(Component.translatable("vrmmod.vroidhub.close")) { _ -> onClose() }
                 .bounds(width - 65, height - 26, 60, 20).build()
         )
     }
@@ -230,40 +230,40 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
         when (state) {
             State.NOT_CONFIGURED -> {
-                guiGraphics.drawCenteredString(font, "VRoid Hub is not configured.", width / 2, height / 2 - 20, 0xFF6666)
-                guiGraphics.drawCenteredString(font, "Place vrmmod-vroidhub.json in config/", width / 2, height / 2, 0xAAAAAA)
-                guiGraphics.drawCenteredString(font, "with clientId and clientSecret.", width / 2, height / 2 + 12, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.not_configured"), width / 2, height / 2 - 20, 0xFF6666)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.not_configured.hint1"), width / 2, height / 2, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.not_configured.hint2"), width / 2, height / 2 + 12, 0xAAAAAA)
             }
 
             State.LOADING, State.LOADING_MODELS -> {
-                guiGraphics.drawCenteredString(font, "Loading...", width / 2, height / 2, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.loading"), width / 2, height / 2, 0xAAAAAA)
                 if (userName.isNotBlank()) {
                     guiGraphics.drawCenteredString(font, "Logged in as: $userName", width / 2, 30, 0x66FF66)
                 }
             }
 
             State.LOGIN -> {
-                guiGraphics.drawCenteredString(font, "Login to VRoid Hub", width / 2, height / 2 - 60, 0xFFFFFF)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.login_title"), width / 2, height / 2 - 60, 0xFFFFFF)
             }
 
             State.LOGGING_IN -> {
-                guiGraphics.drawCenteredString(font, "Authenticating...", width / 2, height / 2, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.authenticating"), width / 2, height / 2, 0xAAAAAA)
             }
 
             State.LOGGED_IN -> {
                 // Header
                 if (userName.isNotBlank()) {
-                    guiGraphics.drawString(font, "Logged in: $userName", 5, 22, 0x66FF66)
+                    guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.logged_in", userName), 5, 22, 0x66FF66)
                 }
                 val allModels = getAllDisplayModels()
-                guiGraphics.drawString(font, "Models: ${allModels.size} (★=mine)", 5, 34, 0xAAAAAA)
+                guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.models_count", allModels.size), 5, 34, 0xAAAAAA)
 
                 // Right side: selected model details + license
                 renderModelDetails(guiGraphics)
             }
 
             State.ERROR -> {
-                guiGraphics.drawCenteredString(font, "Error: $errorMessage", width / 2, height / 2, 0xFF6666)
+                guiGraphics.drawCenteredString(font, Component.translatable("vrmmod.vroidhub.error", errorMessage), width / 2, height / 2, 0xFF6666)
             }
         }
     }
@@ -277,7 +277,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
         y += 12
         val variantName = model.name
         if (variantName != null && variantName != model.character?.name && variantName.isNotBlank()) {
-            guiGraphics.drawString(font, "Variant: $variantName", detailX, y, 0xCCCCFF)
+            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.variant", variantName), detailX, y, 0xCCCCFF)
             y += 12
         }
         guiGraphics.drawString(font, "by ${model.character?.user?.name ?: "?"}", detailX, y, 0xAAAAAA)
@@ -288,14 +288,14 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
         }
         val isMine = myModels.any { it.id == model.id }
         if (!isMine && !model.is_other_users_available) {
-            guiGraphics.drawString(font, "Not available for other users", detailX, y, 0xFF4444)
+            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.not_available"), detailX, y, 0xFF4444)
             y += 12
         }
         y += 6
 
         val license = model.license
         if (license != null) {
-            guiGraphics.drawString(font, "--- License ---", detailX, y, 0xFFFF00)
+            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.license.title"), detailX, y, 0xFFFF00)
             y += 12
             y = drawLicense(guiGraphics, detailX, y, "Avatar use", license.characterization_allowed_user)
             y = drawLicense(guiGraphics, detailX, y, "Violence", license.violent_expression)
