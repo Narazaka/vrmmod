@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.narazaka.vrmmod.render.VrmRenderContext;
+import net.minecraft.world.InteractionHand;
 
 import java.util.UUID;
 
@@ -74,6 +75,9 @@ public class LivingEntityRendererMixin {
                 /* entityY */           VrmRenderContext.ENTITY_Y.get(),
                 /* entityZ */           VrmRenderContext.ENTITY_Z.get(),
                 /* mainHandItemTags */  VrmRenderContext.MAIN_HAND_ITEM_TAGS.get(),
+                /* offHandItemTags */   VrmRenderContext.OFF_HAND_ITEM_TAGS.get(),
+                /* isOffHandSwing */    renderState.attackArm != renderState.mainArm,
+                /* isOffHandUse */      renderState.useItemHand != InteractionHand.MAIN_HAND,
                 /* hurtTime */          VrmRenderContext.HURT_TIME.get()
         );
     }

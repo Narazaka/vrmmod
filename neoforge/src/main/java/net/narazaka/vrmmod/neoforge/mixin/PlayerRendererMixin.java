@@ -37,5 +37,16 @@ public class PlayerRendererMixin {
             }
         });
         VrmRenderContext.MAIN_HAND_ITEM_TAGS.set(tags);
+        var offHandItem = player.getOffhandItem();
+        List<String> offTags = new ArrayList<>();
+        offHandItem.getTags().forEach(tagKey -> {
+            var loc = tagKey.location();
+            if (loc.getNamespace().equals("minecraft")) {
+                offTags.add(loc.getPath());
+            } else {
+                offTags.add(loc.toString());
+            }
+        });
+        VrmRenderContext.OFF_HAND_ITEM_TAGS.set(offTags);
     }
 }
