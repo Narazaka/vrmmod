@@ -161,7 +161,7 @@ object VrmConfigScreen {
                         .setTooltip(Component.literal("Toggle ON to open VRoid Hub login page in your browser"))
                         .setSaveConsumer { if (it) {
                             try {
-                                java.awt.Desktop.getDesktop().browse(java.net.URI(authorizeUrl))
+                                net.minecraft.Util.getPlatform().openUri(authorizeUrl)
                                 VrmMod.logger.info("Opened VRoid Hub login page in browser")
                             } catch (e: Exception) {
                                 VrmMod.logger.error("Failed to open browser. URL: {}", authorizeUrl, e)
