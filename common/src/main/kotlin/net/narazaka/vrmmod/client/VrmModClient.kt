@@ -38,10 +38,10 @@ object VrmModClient {
         // Register keybinding
         KeyMappingRegistry.register(VRM_KEY)
 
-        // Open menu screen when key is pressed
+        // Open VRM Mod screen when key is pressed
         ClientTickEvent.CLIENT_POST.register {
             while (VRM_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(VrmMenuScreen(null))
+                Minecraft.getInstance().setScreen(VRoidHubScreen(null))
             }
         }
 

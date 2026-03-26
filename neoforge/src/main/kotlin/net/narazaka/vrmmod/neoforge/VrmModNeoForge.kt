@@ -1,7 +1,7 @@
 package net.narazaka.vrmmod.neoforge
 
 import net.narazaka.vrmmod.VrmMod
-import net.narazaka.vrmmod.client.VrmMenuScreen
+import net.narazaka.vrmmod.client.VRoidHubScreen
 import net.narazaka.vrmmod.client.VrmModClient
 import net.narazaka.vrmmod.render.VrmFirstPersonRenderer
 import net.neoforged.fml.ModContainer
@@ -19,7 +19,7 @@ class VrmModNeoForge(container: ModContainer) {
             VrmModClient.init()
             container.registerExtensionPoint(
                 IConfigScreenFactory::class.java,
-                IConfigScreenFactory { _, parent -> VrmMenuScreen(parent) },
+                IConfigScreenFactory { _, parent -> VRoidHubScreen(parent) },
             )
 
             // Hook for first-person VRM rendering

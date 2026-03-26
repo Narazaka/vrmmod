@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture
  * Standalone Screen for VRoid Hub integration.
  * Handles the full OAuth login flow, model selection, and license display.
  */
-class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatable("vrmmod.vroidhub.title")) {
+class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatable("vrmmod.menu.title")) {
 
     private enum class State {
         LOADING,
@@ -101,6 +101,20 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
         clearWidgets()
         codeInput = null
         useModelButton = null
+
+        // Tab bar at the top
+        val tabY = 4
+        addRenderableWidget(
+            Button.builder(Component.translatable("vrmmod.menu.settings")) { _ ->
+                minecraft?.setScreen(VrmConfigScreen.create(this))
+            }.bounds(5, tabY, 80, 16).build()
+        )
+        val vroidTabLabel = Component.translatable("vrmmod.menu.vroidhub")
+        addRenderableWidget(
+            Button.builder(vroidTabLabel) { _ ->
+                // Already on VRoid Hub tab — no-op
+            }.bounds(90, tabY, 80, 16).build().also { it.active = false }
+        )
 
         when (state) {
             State.LOGIN -> {
