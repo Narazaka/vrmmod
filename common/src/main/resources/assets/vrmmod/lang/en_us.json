@@ -21,6 +21,11 @@
   "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM body (MC eye level)",
   "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM body (VRM eye level)",
   "vrmmod.config.save": "Save",
+  "vrmmod.config.model_source": "Model source: %s",
+  "vrmmod.config.model_source.local": "Local file",
+  "vrmmod.config.model_source.vroidhub": "VRoid Hub",
+  "vrmmod.config.model_source.none": "None",
+  "vrmmod.config.model_source.both": "(Both set — last used source is active)",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub is not configured.",

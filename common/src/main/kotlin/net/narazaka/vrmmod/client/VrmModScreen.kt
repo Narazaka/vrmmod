@@ -325,11 +325,25 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     private fun renderSettings(guiGraphics: GuiGraphics) {
         val labelX = 10
-        val labelWidth = width / 2 - 15
 
         for (row in settingsRows) {
-            val label = Component.translatable(row.labelKey)
-            guiGraphics.drawString(font, label, labelX, row.y + 5, 0xFFFFFF)
+            guiGraphics.drawString(font, Component.translatable(row.labelKey), labelX, row.y + 5, 0xFFFFFF)
+        }
+
+        // Show current model source
+        val config = VrmModClient.currentConfig
+        val hasLocal = !config.localModelPath.isNullOrBlank()
+        val hasVroidHub = !config.vroidHubModelId.isNullOrBlank()
+        val sourceKey = when {
+            hasLocal -> "vrmmod.config.model_source.local"
+            hasVroidHub -> "vrmmod.config.model_source.vroidhub"
+            else -> "vrmmod.config.model_source.none"
+        }
+        val lastRow = settingsRows.lastOrNull()
+        val infoY = (lastRow?.y ?: 30) + 32
+        guiGraphics.drawString(font, Component.translatable("vrmmod.config.model_source", Component.translatable(sourceKey)), labelX, infoY, 0xAAAAAA)
+        if (hasLocal && hasVroidHub) {
+            guiGraphics.drawString(font, Component.translatable("vrmmod.config.model_source.both"), labelX, infoY + 12, 0xAAAA00)
         }
     }
 

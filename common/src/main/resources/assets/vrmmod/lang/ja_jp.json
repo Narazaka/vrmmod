@@ -21,6 +21,11 @@
   "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM 身体 (マイクラ目線)",
   "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM 身体 (VRM 目線)",
   "vrmmod.config.save": "保存",
+  "vrmmod.config.model_source": "モデルソース: %s",
+  "vrmmod.config.model_source.local": "ローカルファイル",
+  "vrmmod.config.model_source.vroidhub": "VRoid Hub",
+  "vrmmod.config.model_source.none": "なし",
+  "vrmmod.config.model_source.both": "（両方設定済み — 最後に使った方が有効）",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub が設定されていません。",
