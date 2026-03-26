@@ -24,7 +24,7 @@ object VRoidHubLicenseDisplay {
 
         net.narazaka.vrmmod.VrmMod.logger.debug(
             "License display: specVersion={}, isVrm10={}, vrmMeta={}, license={}",
-            specVersion, isVrm10, vrmMeta != null, model.license
+            specVersion, isVrm10, vrmMeta, model.license
         )
 
         return if (isVrm10 && vrmMeta != null) {
