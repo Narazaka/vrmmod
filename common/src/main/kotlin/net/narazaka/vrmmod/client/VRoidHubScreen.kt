@@ -201,14 +201,30 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
     }
 
     private fun getAllDisplayModels(): List<CharacterModel> {
+        val myModelIds = myModels.map { it.id }.toSet()
         // My models first, then favorites, deduplicated by ID
         val seen = mutableSetOf<String>()
         val result = mutableListOf<CharacterModel>()
         for (model in myModels + heartModels) {
-            if (model.id !in seen) {
-                seen.add(model.id)
-                result.add(model)
+            if (model.id in seen) continue
+            seen.add(model.id)
+
+            // Filter out non-mine models where avatar use is not permitted
+            if (model.id !in myModelIds) {
+                val vrmMeta = model.latest_character_model_version?.vrm_meta
+                val specVersion = model.latest_character_model_version?.spec_version
+                val isVrm10 = specVersion != null && specVersion.startsWith("1")
+
+                val avatarAllowed = if (isVrm10 && vrmMeta != null) {
+                    vrmMeta.avatarPermission == "everyone"
+                } else {
+                    val license = model.license
+                    license != null && license.characterization_allowed_user == "everyone"
+                }
+                if (!avatarAllowed) continue
             }
+
+            result.add(model)
         }
         return result
     }
