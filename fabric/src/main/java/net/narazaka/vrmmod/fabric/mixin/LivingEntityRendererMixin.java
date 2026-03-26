@@ -52,7 +52,7 @@ public class LivingEntityRendererMixin {
         // yRot appears to already be relative to body in MC 1.21.4 render state
         float headYaw = renderState.yRot;
         float headPitch = renderState.xRot;
-        boolean isSwinging = renderState.attackTime > 0f;
+        boolean isSwinging = renderState.swinging;
         boolean isSprinting = renderState.speedValue > 0.9f;
 
         return new PoseContext(

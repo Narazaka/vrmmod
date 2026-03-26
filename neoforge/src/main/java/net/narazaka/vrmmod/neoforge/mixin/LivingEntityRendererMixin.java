@@ -51,7 +51,7 @@ public class LivingEntityRendererMixin {
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
         float headYaw = renderState.yRot;
         float headPitch = renderState.xRot;
-        boolean isSwinging = renderState.attackTime > 0f;
+        boolean isSwinging = renderState.swinging;
         boolean isSprinting = renderState.speedValue > 0.9f;
 
         return new PoseContext(
