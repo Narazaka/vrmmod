@@ -41,6 +41,8 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
     private var selectedIndex = -1
     private var scrollOffset = 0
     private var detailScrollOffset = 0
+    private var detailTotalLines = 0
+    private var detailVisibleLines = 0
 
     // Buttons that need enable/disable toggling
     private var useModelButton: Button? = null
@@ -165,11 +167,11 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
                     )
                 }
 
-                // Use model button (always present, disabled until selection)
+                // Use model button — disabled until license conditions are fully scrolled
                 useModelButton = Button.builder(Component.translatable("vrmmod.vroidhub.use_model")) { _ ->
                     selectedModel?.let { onModelConfirmed(it) }
                 }.bounds(5, height - 26, 200, 20).build().also {
-                    it.active = selectedModel != null
+                    it.active = false
                     addRenderableWidget(it)
                 }
 
@@ -266,6 +268,16 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
 
                 // Right side: selected model details + license
                 renderModelDetails(guiGraphics)
+
+                // Enable use button only when model is selected AND license is fully viewed
+                val hasScrolledToBottom = selectedModel != null &&
+                    (detailTotalLines <= detailVisibleLines || detailScrollOffset + detailVisibleLines >= detailTotalLines)
+                useModelButton?.active = hasScrolledToBottom
+
+                // Show hint when button is disabled due to unread license
+                if (selectedModel != null && useModelButton?.active == false) {
+                    guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.scroll_to_agree"), 5, height - 38, 0xAAAA00)
+                }
             }
 
             State.ERROR -> {
@@ -325,6 +337,8 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
         // Render with scroll offset, clipped to detail area
         val lineHeight = 10
         val visibleLines = (detailBottom - detailTop) / lineHeight
+        detailTotalLines = lines.size
+        detailVisibleLines = visibleLines
         detailScrollOffset = detailScrollOffset.coerceIn(0, maxOf(0, lines.size - visibleLines))
 
         for (i in detailScrollOffset until minOf(lines.size, detailScrollOffset + visibleLines)) {
