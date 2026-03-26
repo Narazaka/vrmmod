@@ -23,6 +23,12 @@ enum class FirstPersonMode {
     VRM_VRM_CAMERA,
 }
 
+/** Which model source to use when both local and VRoid Hub are configured. */
+enum class ModelSource {
+    LOCAL,
+    VROID_HUB,
+}
+
 data class VrmModConfig(
     val localModelPath: String? = null,
     /** Directory containing .vrma animation files. Null to use built-in procedural animation. */
@@ -33,6 +39,8 @@ data class VrmModConfig(
     val firstPersonMode: FirstPersonMode = FirstPersonMode.VRM_MC_CAMERA,
     /** Selected VRoid Hub model ID. Null means no VRoid Hub model selected. */
     val vroidHubModelId: String? = null,
+    /** Which model source to use. */
+    val modelSource: ModelSource = ModelSource.LOCAL,
 ) {
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()

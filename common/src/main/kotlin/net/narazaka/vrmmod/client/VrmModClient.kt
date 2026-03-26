@@ -66,24 +66,25 @@ object VrmModClient {
                 AnimationConfig.load(configDir)
             }
 
-            val modelPath = config.localModelPath
-            if (modelPath != null) {
-                // Priority 1: local model path
-                val file = File(modelPath)
-                if (file.exists()) {
-                    VrmMod.logger.info("Loading local VRM model: {}", modelPath)
-                    if (animDir != null) {
-                        VrmMod.logger.info("Animation directory: {}", animDir.absolutePath)
-                    } else if (!config.useVrmaAnimation) {
-                        VrmMod.logger.info("VRMA animation disabled, using procedural animation")
+            when (config.modelSource) {
+                ModelSource.LOCAL -> {
+                    val modelPath = config.localModelPath
+                    if (modelPath != null) {
+                        val file = File(modelPath)
+                        if (file.exists()) {
+                            VrmMod.logger.info("Loading local VRM model: {}", modelPath)
+                            VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+                        } else {
+                            VrmMod.logger.warn("Configured VRM model file not found: {}", modelPath)
+                        }
                     }
-                    VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
-                } else {
-                    VrmMod.logger.warn("Configured VRM model file not found: {}", modelPath)
                 }
-            } else if (config.vroidHubModelId != null) {
-                // Priority 2: VRoid Hub model
-                loadVRoidHubModel(player.uuid, config.vroidHubModelId, configDir, animDir, animationConfig)
+                ModelSource.VROID_HUB -> {
+                    val modelId = config.vroidHubModelId
+                    if (modelId != null) {
+                        loadVRoidHubModel(player.uuid, modelId, configDir, animDir, animationConfig)
+                    }
+                }
             }
         }
 

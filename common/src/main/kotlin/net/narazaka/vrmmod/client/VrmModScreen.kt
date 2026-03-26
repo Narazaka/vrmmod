@@ -36,6 +36,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var animDirInput: EditBox? = null
     private var useVrmaToggle: CycleButton<Boolean>? = null
     private var firstPersonButton: CycleButton<FirstPersonMode>? = null
+    private var modelSourceButton: CycleButton<ModelSource>? = null
 
     // --- VRoid Hub state ---
     private var vroidHubState = VRoidHubState.LOADING
@@ -112,19 +113,29 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         val fieldWidth = width / 2 - 15
 
         settingsRows = listOf(
-            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop),
-            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight),
-            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * 2),
-            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * 3),
+            SettingsRow("vrmmod.config.model_source", "vrmmod.config.model_source.tooltip", contentTop),
+            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop + rowHeight),
+            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight * 2),
+            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * 3),
+            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * 4),
         )
 
-        modelPathInput = EditBox(font, fieldX, contentTop, fieldWidth, 18, Component.translatable("vrmmod.config.model_path")).also {
+        modelSourceButton = CycleButton.builder<ModelSource> { source ->
+            Component.translatable("vrmmod.config.model_source.${source.name.lowercase()}")
+        }.withValues(*ModelSource.entries.toTypedArray())
+            .withInitialValue(config.modelSource)
+            .displayOnlyValue()
+            .create(fieldX, contentTop, fieldWidth, 20, Component.translatable("vrmmod.config.model_source")).also {
+                addRenderableWidget(it)
+            }
+
+        modelPathInput = EditBox(font, fieldX, contentTop + rowHeight, fieldWidth, 18, Component.translatable("vrmmod.config.model_path")).also {
             it.value = config.localModelPath ?: ""
             it.setMaxLength(1024)
             addRenderableWidget(it)
         }
 
-        animDirInput = EditBox(font, fieldX, contentTop + rowHeight, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
+        animDirInput = EditBox(font, fieldX, contentTop + rowHeight * 2, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
             it.value = config.animationDir ?: ""
             it.setMaxLength(1024)
             addRenderableWidget(it)
@@ -132,7 +143,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
         useVrmaToggle = CycleButton.onOffBuilder(config.useVrmaAnimation)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 2, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
+            .create(fieldX, contentTop + rowHeight * 3, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
                 addRenderableWidget(it)
             }
 
@@ -141,7 +152,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         }.withValues(*FirstPersonMode.entries.toTypedArray())
             .withInitialValue(config.firstPersonMode)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 3, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
+            .create(fieldX, contentTop + rowHeight * 4, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
                 addRenderableWidget(it)
             }
 
@@ -159,31 +170,33 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             useVrmaAnimation = useVrmaToggle?.value ?: true,
             firstPersonMode = firstPersonButton?.value ?: FirstPersonMode.VRM_MC_CAMERA,
             vroidHubModelId = oldConfig.vroidHubModelId,
+            modelSource = modelSourceButton?.value ?: ModelSource.LOCAL,
         )
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
-
-        // Only reload model if model-related settings changed
-        val modelChanged = oldConfig.localModelPath != newConfig.localModelPath ||
-            oldConfig.animationDir != newConfig.animationDir ||
-            oldConfig.useVrmaAnimation != newConfig.useVrmaAnimation
-        if (modelChanged) {
-            reloadModel(newConfig)
-        }
-
+        reloadModel(newConfig)
         VrmMod.logger.info("Settings saved")
     }
 
     private fun reloadModel(config: VrmModConfig) {
         val player = Minecraft.getInstance().player ?: return
         VrmPlayerManager.unload(player.uuid)
-        val modelPath = config.localModelPath
-        if (modelPath != null) {
-            val file = File(modelPath)
-            if (file.exists()) {
-                val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
-                val animationConfig = AnimationConfig.load(configDir)
-                VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+        when (config.modelSource) {
+            ModelSource.LOCAL -> {
+                val modelPath = config.localModelPath
+                if (modelPath != null) {
+                    val file = File(modelPath)
+                    if (file.exists()) {
+                        val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
+                        val animationConfig = AnimationConfig.load(configDir)
+                        VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+                    }
+                }
+            }
+            ModelSource.VROID_HUB -> {
+                if (config.vroidHubModelId != null) {
+                    VrmModClient.loadVRoidHubModelFromScreen(player.uuid)
+                }
             }
         }
     }
@@ -330,21 +343,6 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             guiGraphics.drawString(font, Component.translatable(row.labelKey), labelX, row.y + 5, 0xFFFFFF)
         }
 
-        // Show current model source
-        val config = VrmModClient.currentConfig
-        val hasLocal = !config.localModelPath.isNullOrBlank()
-        val hasVroidHub = !config.vroidHubModelId.isNullOrBlank()
-        val sourceKey = when {
-            hasLocal -> "vrmmod.config.model_source.local"
-            hasVroidHub -> "vrmmod.config.model_source.vroidhub"
-            else -> "vrmmod.config.model_source.none"
-        }
-        val lastRow = settingsRows.lastOrNull()
-        val infoY = (lastRow?.y ?: 30) + 32
-        guiGraphics.drawString(font, Component.translatable("vrmmod.config.model_source", Component.translatable(sourceKey)), labelX, infoY, 0xAAAAAA)
-        if (hasLocal && hasVroidHub) {
-            guiGraphics.drawString(font, Component.translatable("vrmmod.config.model_source.both"), labelX, infoY + 12, 0xAAAA00)
-        }
     }
 
     /** Render tooltip for settings labels on mouse hover (called after super.render) */
@@ -502,7 +500,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     private fun onModelConfirmed(model: CharacterModel) {
         val config = VrmModConfig.load(configDir)
-        val newConfig = config.copy(vroidHubModelId = model.id)
+        val newConfig = config.copy(vroidHubModelId = model.id, modelSource = ModelSource.VROID_HUB)
         VrmModConfig.save(configDir, newConfig); VrmModClient.currentConfig = newConfig
         Minecraft.getInstance().player?.let { VrmModClient.loadVRoidHubModelFromScreen(it.uuid) }
         onClose()
