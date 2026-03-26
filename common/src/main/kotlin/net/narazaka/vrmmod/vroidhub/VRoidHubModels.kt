@@ -19,6 +19,13 @@ data class CharacterModel(
     val license: CharacterModelLicense? = null,
     val latest_character_model_version: CharacterModelVersion? = null,
     val portrait_image: PortraitImage? = null,
+    val age_limit: AgeLimit? = null,
+)
+
+data class AgeLimit(
+    val is_r18: Boolean = false,
+    val is_r15: Boolean = false,
+    val is_adult: Boolean = false,
 )
 
 data class CharacterInfo(

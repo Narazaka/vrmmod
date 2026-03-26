@@ -214,7 +214,6 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
     private fun buildModelLabel(model: CharacterModel): String {
         val charName = model.character?.name ?: "?"
         val variantName = model.name
-        // Show variant name if it differs from character name
         val displayName = if (variantName != null && variantName != charName && variantName.isNotBlank()) {
             "$charName / $variantName"
         } else {
@@ -222,7 +221,12 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
         }
         val mine = myModels.any { it.id == model.id }
         val prefix = if (mine) "★ " else ""
-        return "$prefix$displayName"
+        val ageSuffix = when {
+            model.age_limit?.is_r18 == true -> " [R18]"
+            model.age_limit?.is_r15 == true -> " [R15]"
+            else -> ""
+        }
+        return "$prefix$displayName$ageSuffix"
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -289,6 +293,15 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
         model.latest_character_model_version?.spec_version?.let {
             lines.add(DetailLine(Component.literal("VRM $it"), 0x888888))
         }
+        // Age limit
+        val ageLimit = model.age_limit
+        if (ageLimit != null) {
+            when {
+                ageLimit.is_r18 -> lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.age_r18"), 0xFF4444))
+                ageLimit.is_r15 -> lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.age_r15"), 0xFF8844))
+            }
+        }
+
         val isMine = myModels.any { it.id == model.id }
         if (!isMine && !model.is_other_users_available) {
             lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.not_available"), 0xFF4444))

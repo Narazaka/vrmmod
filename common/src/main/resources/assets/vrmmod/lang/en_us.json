@@ -35,6 +35,8 @@
   "vrmmod.vroidhub.not_available": "Not available for other users",
   "vrmmod.vroidhub.error": "Error: %s",
   "vrmmod.vroidhub.variant": "Variant: %s",
+  "vrmmod.vroidhub.age_r18": "R18",
+  "vrmmod.vroidhub.age_r15": "R15",
 
   "vrmmod.vroidhub.license.title": "Conditions of Use",
   "vrmmod.vroidhub.license.avatar_use": "Avatar Use",
