@@ -42,6 +42,15 @@ data class VrmModConfig(
     /** Which model source to use. */
     val modelSource: ModelSource = ModelSource.LOCAL,
 ) {
+    /** Resolves localModelPath to a File, supporting both absolute and relative paths.
+     *  Relative paths are resolved from the Minecraft game directory. */
+    fun resolveModelFile(): File? {
+        val path = localModelPath ?: return null
+        val file = File(path)
+        return if (file.isAbsolute) file
+        else net.minecraft.client.Minecraft.getInstance().gameDirectory.resolve(path)
+    }
+
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
 

@@ -68,15 +68,12 @@ object VrmModClient {
 
             when (config.modelSource) {
                 ModelSource.LOCAL -> {
-                    val modelPath = config.localModelPath
-                    if (modelPath != null) {
-                        val file = File(modelPath)
-                        if (file.exists()) {
-                            VrmMod.logger.info("Loading local VRM model: {}", modelPath)
-                            VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
-                        } else {
-                            VrmMod.logger.warn("Configured VRM model file not found: {}", modelPath)
-                        }
+                    val file = config.resolveModelFile()
+                    if (file != null && file.exists()) {
+                        VrmMod.logger.info("Loading local VRM model: {}", file.absolutePath)
+                        VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+                    } else if (file != null) {
+                        VrmMod.logger.warn("Configured VRM model file not found: {}", file.absolutePath)
                     }
                 }
                 ModelSource.VROID_HUB -> {

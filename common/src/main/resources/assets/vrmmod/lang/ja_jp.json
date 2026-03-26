@@ -10,7 +10,7 @@
   "vrmmod.config.title": "VRM Mod 設定",
   "vrmmod.config.category.general": "一般",
   "vrmmod.config.model_path": "VRM モデルパス",
-  "vrmmod.config.model_path.tooltip": ".vrm モデルファイルの絶対パス",
+  "vrmmod.config.model_path.tooltip": ".vrm モデルファイルのパス（絶対パスまたはゲームディレクトリからの相対パス）",
   "vrmmod.config.animation_dir": "アニメーションディレクトリ",
   "vrmmod.config.animation_dir.tooltip": ".vrma アニメーションファイルが入ったディレクトリ",
   "vrmmod.config.use_vrma": "VRMA アニメーション使用",
