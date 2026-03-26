@@ -253,7 +253,10 @@ class AnimationPoseProvider(
 
         // Continuous item use (eating, bow, shield, etc.)
         if (context.isUsingItem) {
-            return resolveState("action.useItem") ?: selectMovementClip(context)
+            val hand = if (context.isOffHandUse) "offHand" else "mainHand"
+            return resolveState("action.useItem.$hand")
+                ?: resolveState("action.useItem")
+                ?: selectMovementClip(context)
         }
 
         return selectMovementClip(context)
@@ -275,15 +278,17 @@ class AnimationPoseProvider(
     }
 
     private fun resolveSwingState(context: PoseContext): String {
-        val weaponTags = context.mainHandItemTags.filter { it in config.weaponTags }
+        val hand = if (context.isOffHandSwing) "offHand" else "mainHand"
+        val itemTags = if (context.isOffHandSwing) context.offHandItemTags else context.mainHandItemTags
+        val weaponTags = itemTags.filter { it in config.weaponTags }
         if (weaponTags.isNotEmpty()) {
             for (tag in weaponTags) {
-                if (config.states.containsKey("action.swing.weapon.$tag"))
-                    return "action.swing.weapon.$tag"
+                if (config.states.containsKey("action.swing.$hand.weapon.$tag"))
+                    return "action.swing.$hand.weapon.$tag"
             }
-            return "action.swing.weapon"
+            return "action.swing.$hand.weapon"
         }
-        if (context.mainHandItemTags.isNotEmpty()) return "action.swing.item"
+        if (itemTags.isNotEmpty()) return "action.swing.$hand.item"
         return "action.swing"
     }
 
