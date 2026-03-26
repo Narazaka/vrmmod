@@ -70,10 +70,8 @@ data class PoseContext(
     val entityZ: Float = 0f,
 
     // --- Equipment ---
-    /** True when holding a weapon or tool (sword, axe, pickaxe, etc.) in main hand. */
-    val isHoldingWeapon: Boolean = false,
-    /** True when holding any item in main hand (non-empty). */
-    val isHoldingItem: Boolean = false,
+    /** Item tags on the main hand item. minecraft: namespace stripped, others preserved. */
+    val mainHandItemTags: List<String> = emptyList(),
 
     // --- Damage ---
     /** MC hurt time (>0 when recently damaged). */
