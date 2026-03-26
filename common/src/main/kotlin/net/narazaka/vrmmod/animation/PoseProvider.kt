@@ -72,6 +72,12 @@ data class PoseContext(
     // --- Equipment ---
     /** Item tags on the main hand item. minecraft: namespace stripped, others preserved. */
     val mainHandItemTags: List<String> = emptyList(),
+    /** Item tags on the off hand item. minecraft: namespace stripped, others preserved. */
+    val offHandItemTags: List<String> = emptyList(),
+    /** True when the swinging arm is the off hand. */
+    val isOffHandSwing: Boolean = false,
+    /** True when the item being continuously used is in the off hand. */
+    val isOffHandUse: Boolean = false,
 
     // --- Damage ---
     /** MC hurt time (>0 when recently damaged). */

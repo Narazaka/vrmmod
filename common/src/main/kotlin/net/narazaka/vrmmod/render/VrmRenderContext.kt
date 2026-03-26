@@ -22,4 +22,6 @@ object VrmRenderContext {
     val HURT_TIME: ThreadLocal<Float> = ThreadLocal.withInitial { 0f }
     @JvmField
     val MAIN_HAND_ITEM_TAGS: ThreadLocal<List<String>> = ThreadLocal.withInitial { emptyList() }
+    @JvmField
+    val OFF_HAND_ITEM_TAGS: ThreadLocal<List<String>> = ThreadLocal.withInitial { emptyList() }
 }
