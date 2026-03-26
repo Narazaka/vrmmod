@@ -27,4 +27,8 @@ data class VrmState(
      */
     @Volatile
     var currentEyeOffset: org.joml.Vector3f = org.joml.Vector3f(0f, eyeHeight, 0f)
+    @Volatile
+    var rightHandMatrix: org.joml.Matrix4f? = null
+    @Volatile
+    var leftHandMatrix: org.joml.Matrix4f? = null
 }
