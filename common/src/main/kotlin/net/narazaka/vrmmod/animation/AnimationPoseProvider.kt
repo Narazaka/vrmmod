@@ -206,25 +206,48 @@ class AnimationPoseProvider(
     }
 
     private fun selectClip(context: PoseContext): String {
-        // Attack takes priority (non-looping)
+        // Death takes absolute priority
+        if (context.deathTime > 0f) {
+            return tryState("death") ?: selectMovementClip(context)
+        }
+
+        // Spin attack (trident riptide) takes priority
+        if (context.isAutoSpinAttack) {
+            return tryState("spinAttack") ?: selectMovementClip(context)
+        }
+
+        // Attack swing (left-click) — triggered on rising edge
         if (context.isSwinging && !wasSwinging) {
             wasSwinging = true
-            currentStateName = "attack"
-            val clipName = config.states["attack"]?.clip ?: ""
-            return if (clips.containsKey(clipName)) clipName else selectMovementClip(context)
+            val clip = tryState("attack")
+            if (clip != null) return clip
         }
         if (!context.isSwinging) wasSwinging = false
 
-        // If currently in attack animation and it hasn't finished, keep playing
-        if (currentStateName == "attack") {
-            val attackClip = clips[currentClipName]
-            if (attackClip != null && currentTime < attackClip.duration) {
-                return currentClipName // keep playing attack
+        // If currently in a one-shot action animation (attack, useItem, spinAttack, death),
+        // keep playing until it finishes
+        if (currentStateName in setOf("attack", "useItem", "spinAttack", "death")) {
+            val actionClip = clips[currentClipName]
+            if (actionClip != null && currentTime < actionClip.duration) {
+                return currentClipName
             }
-            // Attack finished, fall through to movement
+            // Action finished, fall through to movement/item use check
+        }
+
+        // Item use (right-click hold: eating, bow, shield, etc.)
+        if (context.isUsingItem) {
+            return tryState("useItem") ?: selectMovementClip(context)
         }
 
         return selectMovementClip(context)
+    }
+
+    /** Try to activate a state, returning the clip name if available, null otherwise. */
+    private fun tryState(stateName: String): String? {
+        val clipName = config.states[stateName]?.clip ?: return null
+        if (clipName.isBlank() || !clips.containsKey(clipName)) return null
+        currentStateName = stateName
+        return clipName
     }
 
     private fun selectMovementClip(context: PoseContext): String {

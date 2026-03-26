@@ -17,7 +17,6 @@ class VanillaPoseProviderTest {
         limbSwingAmount = 0f,
         isSwinging = false,
         isSneaking = false,
-        isSprinting = false,
         isSwimming = false,
         isFallFlying = false,
         isRiding = false,

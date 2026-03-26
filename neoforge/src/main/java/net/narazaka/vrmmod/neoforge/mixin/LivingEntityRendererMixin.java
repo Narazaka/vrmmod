@@ -49,28 +49,30 @@ public class LivingEntityRendererMixin {
     }
 
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
-        float headYaw = renderState.yRot;
-        float headPitch = renderState.xRot;
-        boolean isSwinging = renderState.swinging;
-        boolean isSprinting = renderState.speedValue > 0.9f;
-
         return new PoseContext(
                 /* partialTick */       0f,
                 /* limbSwing */         renderState.walkAnimationPos,
                 /* limbSwingAmount */   renderState.walkAnimationSpeed,
-                /* isSwinging */        isSwinging,
+                /* speedValue */        renderState.speedValue,
                 /* isSneaking */        renderState.isCrouching,
-                /* isSprinting */       isSprinting,
                 /* isSwimming */        renderState.isVisuallySwimming,
+                /* swimAmount */        renderState.swimAmount,
                 /* isFallFlying */      renderState.isFallFlying,
                 /* isRiding */          renderState.isPassenger,
-                /* headYaw */           headYaw,
-                /* headPitch */         headPitch,
+                /* isInWater */         renderState.isInWater,
+                /* isOnGround */        VrmRenderContext.ON_GROUND.get(),
+                /* isSwinging */        renderState.swinging,
+                /* attackTime */        renderState.attackTime,
+                /* isUsingItem */       renderState.isUsingItem,
+                /* ticksUsingItem */    renderState.ticksUsingItem,
+                /* isAutoSpinAttack */  renderState.isAutoSpinAttack,
+                /* deathTime */         renderState.deathTime,
+                /* headYaw */           renderState.yRot,
+                /* headPitch */         renderState.xRot,
                 /* bodyYaw */           renderState.bodyRot,
                 /* entityX */           VrmRenderContext.ENTITY_X.get(),
                 /* entityY */           VrmRenderContext.ENTITY_Y.get(),
                 /* entityZ */           VrmRenderContext.ENTITY_Z.get(),
-                /* isOnGround */        VrmRenderContext.ON_GROUND.get(),
                 /* hurtTime */          VrmRenderContext.HURT_TIME.get()
         );
     }

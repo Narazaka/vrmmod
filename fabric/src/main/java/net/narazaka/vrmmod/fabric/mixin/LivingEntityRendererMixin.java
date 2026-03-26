@@ -49,30 +49,31 @@ public class LivingEntityRendererMixin {
     }
 
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
-        // yRot appears to already be relative to body in MC 1.21.4 render state
-        float headYaw = renderState.yRot;
-        float headPitch = renderState.xRot;
-        boolean isSwinging = renderState.swinging;
-        boolean isSprinting = renderState.speedValue > 0.9f;
-
         return new PoseContext(
-                0f,
-                renderState.walkAnimationPos,
-                renderState.walkAnimationSpeed,
-                isSwinging,
-                renderState.isCrouching,
-                isSprinting,
-                renderState.isVisuallySwimming,
-                renderState.isFallFlying,
-                renderState.isPassenger,
-                headYaw,
-                headPitch,
-                renderState.bodyRot,
-                VrmRenderContext.ENTITY_X.get(),
-                VrmRenderContext.ENTITY_Y.get(),
-                VrmRenderContext.ENTITY_Z.get(),
-                VrmRenderContext.ON_GROUND.get(),
-                VrmRenderContext.HURT_TIME.get()
+                /* partialTick */       0f,
+                /* limbSwing */         renderState.walkAnimationPos,
+                /* limbSwingAmount */   renderState.walkAnimationSpeed,
+                /* speedValue */        renderState.speedValue,
+                /* isSneaking */        renderState.isCrouching,
+                /* isSwimming */        renderState.isVisuallySwimming,
+                /* swimAmount */        renderState.swimAmount,
+                /* isFallFlying */      renderState.isFallFlying,
+                /* isRiding */          renderState.isPassenger,
+                /* isInWater */         renderState.isInWater,
+                /* isOnGround */        VrmRenderContext.ON_GROUND.get(),
+                /* isSwinging */        renderState.swinging,
+                /* attackTime */        renderState.attackTime,
+                /* isUsingItem */       renderState.isUsingItem,
+                /* ticksUsingItem */    renderState.ticksUsingItem,
+                /* isAutoSpinAttack */  renderState.isAutoSpinAttack,
+                /* deathTime */         renderState.deathTime,
+                /* headYaw */           renderState.yRot,
+                /* headPitch */         renderState.xRot,
+                /* bodyYaw */           renderState.bodyRot,
+                /* entityX */           VrmRenderContext.ENTITY_X.get(),
+                /* entityY */           VrmRenderContext.ENTITY_Y.get(),
+                /* entityZ */           VrmRenderContext.ENTITY_Z.get(),
+                /* hurtTime */          VrmRenderContext.HURT_TIME.get()
         );
     }
 }
