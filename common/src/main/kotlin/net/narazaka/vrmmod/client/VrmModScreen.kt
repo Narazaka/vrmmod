@@ -100,45 +100,49 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     // Settings Tab
     // ========================================================================
 
+    /** Label → tooltip key mapping for settings */
+    private data class SettingsRow(val labelKey: String, val tooltipKey: String, val y: Int)
+    private var settingsRows: List<SettingsRow> = emptyList()
+
     private fun buildSettingsWidgets() {
         val config = VrmModConfig.load(configDir)
         val contentTop = 30
-        val labelX = 10
+        val rowHeight = 26
         val fieldX = width / 2
         val fieldWidth = width / 2 - 15
 
-        // Model Path
+        settingsRows = listOf(
+            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop),
+            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight),
+            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * 2),
+            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * 3),
+        )
+
         modelPathInput = EditBox(font, fieldX, contentTop, fieldWidth, 18, Component.translatable("vrmmod.config.model_path")).also {
             it.value = config.localModelPath ?: ""
-            it.setHint(Component.translatable("vrmmod.config.model_path.tooltip"))
             it.setMaxLength(1024)
             addRenderableWidget(it)
         }
 
-        // Animation Directory
-        animDirInput = EditBox(font, fieldX, contentTop + 26, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
+        animDirInput = EditBox(font, fieldX, contentTop + rowHeight, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
             it.value = config.animationDir ?: ""
-            it.setHint(Component.translatable("vrmmod.config.animation_dir.tooltip"))
             it.setMaxLength(1024)
             addRenderableWidget(it)
         }
 
-        // Use VRMA toggle
         useVrmaToggle = CycleButton.onOffBuilder(config.useVrmaAnimation)
-            .create(fieldX, contentTop + 52, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
+            .create(fieldX, contentTop + rowHeight * 2, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
                 addRenderableWidget(it)
             }
 
-        // First Person Mode
         firstPersonButton = CycleButton.builder<FirstPersonMode> { mode ->
             Component.translatable("vrmmod.config.first_person_mode.${mode.name.lowercase()}")
         }.withValues(*FirstPersonMode.entries.toTypedArray())
             .withInitialValue(config.firstPersonMode)
-            .create(fieldX, contentTop + 78, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
+            .create(fieldX, contentTop + rowHeight * 3, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
                 addRenderableWidget(it)
             }
 
-        // Save button
         addRenderableWidget(
             Button.builder(Component.translatable("vrmmod.config.save")) { _ -> saveSettings() }
                 .bounds(5, height - 26, 100, 20).build()
@@ -300,18 +304,37 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         super.render(guiGraphics, mouseX, mouseY, partialTick)
 
         when (activeTab) {
-            Tab.SETTINGS -> renderSettings(guiGraphics)
+            Tab.SETTINGS -> {
+                renderSettings(guiGraphics)
+                // Tooltips must render last (on top of everything)
+                renderSettingsTooltips(guiGraphics, mouseX, mouseY)
+            }
             Tab.VROID_HUB -> renderVRoidHub(guiGraphics)
         }
     }
 
     private fun renderSettings(guiGraphics: GuiGraphics) {
-        val contentTop = 30
         val labelX = 10
-        guiGraphics.drawString(font, Component.translatable("vrmmod.config.model_path"), labelX, contentTop + 5, 0xFFFFFF)
-        guiGraphics.drawString(font, Component.translatable("vrmmod.config.animation_dir"), labelX, contentTop + 31, 0xFFFFFF)
-        guiGraphics.drawString(font, Component.translatable("vrmmod.config.use_vrma"), labelX, contentTop + 57, 0xFFFFFF)
-        guiGraphics.drawString(font, Component.translatable("vrmmod.config.first_person_mode"), labelX, contentTop + 83, 0xFFFFFF)
+        val labelWidth = width / 2 - 15
+
+        for (row in settingsRows) {
+            val label = Component.translatable(row.labelKey)
+            guiGraphics.drawString(font, label, labelX, row.y + 5, 0xFFFFFF)
+        }
+    }
+
+    /** Render tooltip for settings labels on mouse hover (called after super.render) */
+    private fun renderSettingsTooltips(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val labelX = 10
+        val labelWidth = width / 2 - 15
+
+        for (row in settingsRows) {
+            if (mouseX in labelX..(labelX + labelWidth) && mouseY in row.y..(row.y + 18)) {
+                val tooltip = Component.translatable(row.tooltipKey)
+                guiGraphics.renderTooltip(font, tooltip, mouseX, mouseY)
+                break
+            }
+        }
     }
 
     private fun renderVRoidHub(guiGraphics: GuiGraphics) {

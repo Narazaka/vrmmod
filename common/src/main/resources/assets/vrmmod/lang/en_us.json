@@ -16,9 +16,10 @@
   "vrmmod.config.use_vrma": "Use VRMA Animation",
   "vrmmod.config.use_vrma.tooltip": "Enable .vrma file animation (disable for procedural animation)",
   "vrmmod.config.first_person_mode": "First Person Mode",
-  "vrmmod.config.first_person_mode.vanilla": "VANILLA: MC default hands",
-  "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM_MC_CAMERA: VRM body, MC camera height",
-  "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM_VRM_CAMERA: VRM body, VRM eye height",
+  "vrmmod.config.first_person_mode.tooltip": "How the VRM model is displayed in first-person view",
+  "vrmmod.config.first_person_mode.vanilla": "Default hands",
+  "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM body (MC camera)",
+  "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM body (VRM camera)",
   "vrmmod.config.save": "Save",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
