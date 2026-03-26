@@ -30,6 +30,14 @@ object VRoidHubApi {
         }
     }
 
+    fun getAccountCharacterModels(accessToken: String, count: Int = 100): Result<List<CharacterModel>> {
+        return get("/api/account/character_models?count=$count", accessToken).map {
+            val type = object : TypeToken<VRoidHubResponse<List<CharacterModel>>>() {}.type
+            val resp: VRoidHubResponse<List<CharacterModel>> = gson.fromJson(it, type)
+            resp.data ?: emptyList()
+        }
+    }
+
     fun postDownloadLicense(accessToken: String, characterModelId: String): Result<DownloadLicense> {
         val body = gson.toJson(mapOf("character_model_id" to characterModelId))
         return post("/api/download_licenses", accessToken, body).map {

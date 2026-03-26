@@ -18,13 +18,13 @@ import java.util.concurrent.CompletableFuture
 class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VRoid Hub")) {
 
     private enum class State {
-        LOADING,        // Checking token status
-        NOT_CONFIGURED, // No vrmmod-vroidhub.json
-        LOGIN,          // Show login button + code input
-        LOGGING_IN,     // Exchanging code for token
-        LOGGED_IN,      // Show model list
-        LOADING_MODELS, // Fetching hearts list
-        ERROR,          // Show error message
+        LOADING,
+        NOT_CONFIGURED,
+        LOGIN,
+        LOGGING_IN,
+        LOGGED_IN,
+        LOADING_MODELS,
+        ERROR,
     }
 
     private var state = State.LOADING
@@ -35,31 +35,34 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
     private var authSession: AuthSession? = null
     private var codeInput: EditBox? = null
 
-    private var models: List<CharacterModel> = emptyList()
+    private var heartModels: List<CharacterModel> = emptyList()
+    private var myModels: List<CharacterModel> = emptyList()
     private var selectedModel: CharacterModel? = null
-    private var modelListScrollOffset = 0
+    private var selectedIndex = -1
+    private var scrollOffset = 0
+
+    // Buttons that need enable/disable toggling
+    private var useModelButton: Button? = null
 
     private val configDir get() = Minecraft.getInstance().gameDirectory.resolve("config").toPath()
-    private val gameDir get() = Minecraft.getInstance().gameDirectory.toPath()
 
     override fun init() {
         vroidConfig = VRoidHubConfig.load(configDir)
 
         if (!vroidConfig.isAvailable) {
             state = State.NOT_CONFIGURED
-            addCloseButton()
+            buildWidgets()
             return
         }
 
-        // Check saved token
         val token = VRoidHubAuth.loadToken(configDir)
         if (token != null && !token.isExpired) {
             state = State.LOADING_MODELS
-            addCloseButton()
+            buildWidgets()
             fetchUserAndModels(token.accessToken)
         } else if (token != null) {
-            // Try refresh
             state = State.LOADING
+            buildWidgets()
             CompletableFuture.supplyAsync {
                 VRoidHubAuth.refreshToken(vroidConfig, token.refreshToken)
             }.thenAccept { result ->
@@ -67,89 +70,108 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
                     result.onSuccess { newToken ->
                         VRoidHubAuth.saveToken(configDir, newToken)
                         state = State.LOADING_MODELS
-                        rebuildWidgets()
+                        buildWidgets()
                         fetchUserAndModels(newToken.access_token)
                     }.onFailure {
-                        showLoginState()
+                        setupLoginState()
                     }
                 }
             }
         } else {
-            showLoginState()
+            setupLoginState()
         }
     }
 
-    private fun showLoginState() {
+    private fun setupLoginState() {
         state = State.LOGIN
-        authSession = VRoidHubAuth.buildAuthorizeUrl(vroidConfig).let { (_, session) -> session }
-        rebuildWidgets()
+        val (url, session) = VRoidHubAuth.buildAuthorizeUrl(vroidConfig)
+        authSession = session
+        buildWidgets()
+
+        // Store URL for login button (added in buildWidgets)
+        loginUrl = url
     }
 
-    override fun rebuildWidgets() {
+    private var loginUrl = ""
+
+    private fun buildWidgets() {
         clearWidgets()
+        codeInput = null
+        useModelButton = null
 
         when (state) {
             State.LOGIN -> {
-                val (url, session) = VRoidHubAuth.buildAuthorizeUrl(vroidConfig)
-                authSession = session
-
-                // Login button
                 addRenderableWidget(
                     Button.builder(Component.literal("Open VRoid Hub Login")) { _ ->
-                        Util.getPlatform().openUri(url)
+                        Util.getPlatform().openUri(loginUrl)
                     }.bounds(width / 2 - 100, height / 2 - 40, 200, 20).build()
                 )
 
-                // Code input
                 codeInput = EditBox(font, width / 2 - 100, height / 2, 200, 20, Component.literal("Code")).also {
                     it.setHint(Component.literal("Paste authorization code here"))
                     it.setMaxLength(256)
                     addRenderableWidget(it)
                 }
 
-                // Submit button
                 addRenderableWidget(
                     Button.builder(Component.literal("Authenticate")) { _ ->
                         val code = codeInput?.value?.trim() ?: ""
                         if (code.isNotBlank() && authSession != null) {
                             state = State.LOGGING_IN
-                            rebuildWidgets()
+                            buildWidgets()
                             exchangeToken(code)
                         }
                     }.bounds(width / 2 - 100, height / 2 + 30, 200, 20).build()
                 )
-
-                addCloseButton()
             }
 
             State.LOGGED_IN -> {
-                // Model list buttons (simple vertical list)
-                val listTop = 50
+                val allModels = getAllDisplayModels()
+                val listTop = 52
                 val itemHeight = 22
-                val visibleCount = (height - 120) / itemHeight
-                val displayModels = models.filter { it.is_downloadable }
+                val visibleCount = (height - 100) / itemHeight
 
-                for ((i, model) in displayModels.withIndex().drop(modelListScrollOffset).take(visibleCount)) {
-                    val label = "${model.character?.name ?: "?"} - ${model.character?.user?.name ?: "?"}"
-                    val y = listTop + (i - modelListScrollOffset) * itemHeight
+                for (i in scrollOffset until minOf(scrollOffset + visibleCount, allModels.size)) {
+                    val model = allModels[i]
+                    val label = buildModelLabel(model)
+                    val y = listTop + (i - scrollOffset) * itemHeight
+                    val index = i
                     addRenderableWidget(
-                        Button.builder(Component.literal(label.take(40))) { _ ->
+                        Button.builder(Component.literal(label.take(35))) { _ ->
                             selectedModel = model
-                            rebuildWidgets()
+                            selectedIndex = index
+                            useModelButton?.active = true
                         }.bounds(5, y, width / 2 - 10, 20).build()
                     )
                 }
 
-                // Use model button
-                if (selectedModel != null) {
+                // Scroll buttons
+                if (scrollOffset > 0) {
                     addRenderableWidget(
-                        Button.builder(Component.literal("Use this model (agree to license)")) { _ ->
-                            onModelConfirmed(selectedModel!!)
-                        }.bounds(width / 2 - 150, height - 28, 150, 20).build()
+                        Button.builder(Component.literal("▲")) { _ ->
+                            scrollOffset = maxOf(0, scrollOffset - 5)
+                            buildWidgets()
+                        }.bounds(width / 2 - 20, listTop - 18, 20, 16).build()
+                    )
+                }
+                if (scrollOffset + visibleCount < allModels.size) {
+                    addRenderableWidget(
+                        Button.builder(Component.literal("▼")) { _ ->
+                            scrollOffset = minOf(allModels.size - 1, scrollOffset + 5)
+                            buildWidgets()
+                        }.bounds(width / 2 - 20, height - 48, 20, 16).build()
                     )
                 }
 
-                // Logout button
+                // Use model button (always present, disabled until selection)
+                useModelButton = Button.builder(Component.literal("Use this model (agree to license)")) { _ ->
+                    selectedModel?.let { onModelConfirmed(it) }
+                }.bounds(5, height - 26, 200, 20).build().also {
+                    it.active = selectedModel != null
+                    addRenderableWidget(it)
+                }
+
+                // Logout
                 addRenderableWidget(
                     Button.builder(Component.literal("Logout")) { _ ->
                         val token = VRoidHubAuth.loadToken(configDir)
@@ -159,39 +181,59 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
                             }
                         }
                         VRoidHubAuth.deleteToken(configDir)
-                        state = State.LOGIN
-                        rebuildWidgets()
-                    }.bounds(width / 2 + 10, height - 28, 80, 20).build()
+                        setupLoginState()
+                    }.bounds(210, height - 26, 60, 20).build()
                 )
-
-                addCloseButton()
             }
 
-            else -> addCloseButton()
+            else -> {} // LOADING, NOT_CONFIGURED, ERROR etc. - no interactive widgets needed
         }
-    }
 
-    private fun addCloseButton() {
+        // Close button (always)
         addRenderableWidget(
             Button.builder(Component.literal("Close")) { _ -> onClose() }
-                .bounds(width - 65, height - 28, 60, 20).build()
+                .bounds(width - 65, height - 26, 60, 20).build()
         )
+    }
+
+    private fun getAllDisplayModels(): List<CharacterModel> {
+        // My models first, then favorites, deduplicated by ID
+        val seen = mutableSetOf<String>()
+        val result = mutableListOf<CharacterModel>()
+        for (model in myModels + heartModels) {
+            if (model.id !in seen) {
+                seen.add(model.id)
+                result.add(model)
+            }
+        }
+        return result
+    }
+
+    private fun buildModelLabel(model: CharacterModel): String {
+        val name = model.character?.name ?: model.name ?: "?"
+        val author = model.character?.user?.name ?: ""
+        val mine = myModels.any { it.id == model.id }
+        val prefix = if (mine) "★ " else ""
+        return if (author.isNotBlank()) "$prefix$name ($author)" else "$prefix$name"
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
         super.render(guiGraphics, mouseX, mouseY, partialTick)
 
-        // Title
-        guiGraphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF)
+        guiGraphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF)
 
         when (state) {
             State.NOT_CONFIGURED -> {
                 guiGraphics.drawCenteredString(font, "VRoid Hub is not configured.", width / 2, height / 2 - 20, 0xFF6666)
-                guiGraphics.drawCenteredString(font, "Place vrmmod-vroidhub.json in config/ with clientId and clientSecret.", width / 2, height / 2, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, "Place vrmmod-vroidhub.json in config/", width / 2, height / 2, 0xAAAAAA)
+                guiGraphics.drawCenteredString(font, "with clientId and clientSecret.", width / 2, height / 2 + 12, 0xAAAAAA)
             }
 
-            State.LOADING -> {
+            State.LOADING, State.LOADING_MODELS -> {
                 guiGraphics.drawCenteredString(font, "Loading...", width / 2, height / 2, 0xAAAAAA)
+                if (userName.isNotBlank()) {
+                    guiGraphics.drawCenteredString(font, "Logged in as: $userName", width / 2, 30, 0x66FF66)
+                }
             }
 
             State.LOGIN -> {
@@ -202,49 +244,16 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
                 guiGraphics.drawCenteredString(font, "Authenticating...", width / 2, height / 2, 0xAAAAAA)
             }
 
-            State.LOADING_MODELS -> {
-                guiGraphics.drawCenteredString(font, "Loading models...", width / 2, height / 2, 0xAAAAAA)
-                if (userName.isNotBlank()) {
-                    guiGraphics.drawCenteredString(font, "Logged in as: $userName", width / 2, 30, 0x66FF66)
-                }
-            }
-
             State.LOGGED_IN -> {
+                // Header
                 if (userName.isNotBlank()) {
-                    guiGraphics.drawString(font, "Logged in as: $userName", 5, 30, 0x66FF66)
+                    guiGraphics.drawString(font, "Logged in: $userName", 5, 22, 0x66FF66)
                 }
-                guiGraphics.drawString(font, "Favorites (${models.count { it.is_downloadable }} models)", 5, 40, 0xAAAAAA)
+                val allModels = getAllDisplayModels()
+                guiGraphics.drawString(font, "Models: ${allModels.size} (★=mine)", 5, 34, 0xAAAAAA)
 
                 // Right side: selected model details + license
-                val model = selectedModel
-                if (model != null) {
-                    val detailX = width / 2 + 5
-                    var y = 50
-
-                    guiGraphics.drawString(font, model.character?.name ?: "?", detailX, y, 0xFFFFFF)
-                    y += 12
-                    guiGraphics.drawString(font, "by ${model.character?.user?.name ?: "?"}", detailX, y, 0xAAAAAA)
-                    y += 12
-                    model.latest_character_model_version?.spec_version?.let {
-                        guiGraphics.drawString(font, "VRM $it", detailX, y, 0x888888)
-                        y += 12
-                    }
-                    y += 6
-
-                    val license = model.license
-                    if (license != null) {
-                        guiGraphics.drawString(font, "--- License ---", detailX, y, 0xFFFF00)
-                        y += 12
-                        y = drawLicenseField(guiGraphics, detailX, y, "Avatar use", license.characterization_allowed_user)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Violence", license.violent_expression)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Sexual", license.sexual_expression)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Corp. commercial", license.corporate_commercial_use)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Personal commercial", license.personal_commercial_use)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Modification", license.modification)
-                        y = drawLicenseField(guiGraphics, detailX, y, "Redistribution", license.redistribution)
-                        drawLicenseField(guiGraphics, detailX, y, "Credit", license.credit)
-                    }
-                }
+                renderModelDetails(guiGraphics)
             }
 
             State.ERROR -> {
@@ -253,7 +262,41 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
         }
     }
 
-    private fun drawLicenseField(guiGraphics: GuiGraphics, x: Int, y: Int, label: String, value: String): Int {
+    private fun renderModelDetails(guiGraphics: GuiGraphics) {
+        val model = selectedModel ?: return
+        val detailX = width / 2 + 5
+        var y = 52
+
+        guiGraphics.drawString(font, model.character?.name ?: "?", detailX, y, 0xFFFFFF)
+        y += 12
+        guiGraphics.drawString(font, "by ${model.character?.user?.name ?: "?"}", detailX, y, 0xAAAAAA)
+        y += 12
+        model.latest_character_model_version?.spec_version?.let {
+            guiGraphics.drawString(font, "VRM $it", detailX, y, 0x888888)
+            y += 12
+        }
+        if (!model.is_downloadable) {
+            guiGraphics.drawString(font, "Not downloadable", detailX, y, 0xFF4444)
+            y += 12
+        }
+        y += 6
+
+        val license = model.license
+        if (license != null) {
+            guiGraphics.drawString(font, "--- License ---", detailX, y, 0xFFFF00)
+            y += 12
+            y = drawLicense(guiGraphics, detailX, y, "Avatar use", license.characterization_allowed_user)
+            y = drawLicense(guiGraphics, detailX, y, "Violence", license.violent_expression)
+            y = drawLicense(guiGraphics, detailX, y, "Sexual", license.sexual_expression)
+            y = drawLicense(guiGraphics, detailX, y, "Corp. commercial", license.corporate_commercial_use)
+            y = drawLicense(guiGraphics, detailX, y, "Personal commercial", license.personal_commercial_use)
+            y = drawLicense(guiGraphics, detailX, y, "Modification", license.modification)
+            y = drawLicense(guiGraphics, detailX, y, "Redistribution", license.redistribution)
+            drawLicense(guiGraphics, detailX, y, "Credit", license.credit)
+        }
+    }
+
+    private fun drawLicense(guiGraphics: GuiGraphics, x: Int, y: Int, label: String, value: String): Int {
         val color = when (value) {
             "allow", "everyone", "unnecessary" -> 0x66FF66
             "disallow", "author" -> 0xFF6666
@@ -273,13 +316,13 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
                     VRoidHubAuth.saveToken(configDir, token)
                     VrmMod.logger.info("VRoid Hub login successful")
                     state = State.LOADING_MODELS
-                    rebuildWidgets()
+                    buildWidgets()
                     fetchUserAndModels(token.access_token)
                 }.onFailure { e ->
                     VrmMod.logger.error("VRoid Hub login failed", e)
                     state = State.ERROR
                     errorMessage = e.message ?: "Unknown error"
-                    rebuildWidgets()
+                    buildWidgets()
                 }
             }
         }
@@ -289,13 +332,18 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
         CompletableFuture.supplyAsync {
             val account = VRoidHubApi.getAccount(accessToken).getOrNull()
             val hearts = VRoidHubApi.getHearts(accessToken).getOrElse { emptyList() }
-            Pair(account, hearts)
-        }.thenAccept { (account, hearts) ->
+            val mine = VRoidHubApi.getAccountCharacterModels(accessToken).getOrElse { emptyList() }
+            Triple(account, hearts, mine)
+        }.thenAccept { (account, hearts, mine) ->
             Minecraft.getInstance().execute {
                 userName = account?.user_detail?.user?.name ?: ""
-                models = hearts
+                heartModels = hearts
+                myModels = mine
                 state = State.LOGGED_IN
-                rebuildWidgets()
+                selectedModel = null
+                selectedIndex = -1
+                scrollOffset = 0
+                buildWidgets()
             }
         }
     }
@@ -310,7 +358,6 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
         VrmMod.logger.info("Selected VRoid Hub model: {} ({})", model.character?.name, modelId)
 
-        // Trigger download and load
         val player = Minecraft.getInstance().player
         if (player != null) {
             VrmModClient.loadVRoidHubModelFromScreen(player.uuid)
@@ -321,5 +368,15 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
     override fun onClose() {
         minecraft?.setScreen(parent)
+    }
+
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
+        if (state == State.LOGGED_IN) {
+            val allModels = getAllDisplayModels()
+            scrollOffset = (scrollOffset - scrollY.toInt()).coerceIn(0, maxOf(0, allModels.size - 1))
+            buildWidgets()
+            return true
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
     }
 }
