@@ -143,10 +143,11 @@
 
 ### 中優先
 4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
-5. **VRoid Hub連携**: OAuth + API（フロー詳細は実装時に調査）
+5. ~~**VRoid Hub連携**~~: 完了済み（OAuth PKCE + oob、モデル選択Screen、ライセンス表示、ダウンロードキャッシュ）
 6. ~~**Expression override**~~: 完了済み（three-vrm の VRMExpressionManager に忠実に移植）
 7. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
 8. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
+9. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題。`lookAt.offsetFromHeadBone` の Z が典型的に 0 のためカメラが HEAD と同じ奥行きにある。VRM 仕様・UniVRM・three-vrm にリファレンス実装なし（アプリケーション固有の対策が必要）
 
 ### 低優先
 9. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
