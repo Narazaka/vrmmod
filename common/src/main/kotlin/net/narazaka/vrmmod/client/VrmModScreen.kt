@@ -180,18 +180,11 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     }
 
     private fun reloadModel(config: VrmModConfig) {
-        val player = Minecraft.getInstance().player
-        if (player == null) {
-            VrmMod.logger.warn("reloadModel: player is null, skipping")
-            return
-        }
-        VrmMod.logger.info("reloadModel: modelSource={}, localModelPath={}, vroidHubModelId={}",
-            config.modelSource, config.localModelPath, config.vroidHubModelId)
+        val player = Minecraft.getInstance().player ?: return
         VrmPlayerManager.unload(player.uuid)
         when (config.modelSource) {
             ModelSource.LOCAL -> {
                 val file = config.resolveModelFile()
-                VrmMod.logger.info("reloadModel LOCAL: resolved file={}, exists={}", file?.absolutePath, file?.exists())
                 if (file != null && file.exists()) {
                     val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
                     val animationConfig = AnimationConfig.load(configDir)
@@ -199,7 +192,6 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
                 }
             }
             ModelSource.VROID_HUB -> {
-                VrmMod.logger.info("reloadModel VROID_HUB: modelId={}", config.vroidHubModelId)
                 if (config.vroidHubModelId != null) {
                     VrmModClient.loadVRoidHubModelFromScreen(player.uuid)
                 }
