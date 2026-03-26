@@ -292,7 +292,7 @@ class AnimationPoseProvider(
             context.isRiding -> "move.ride"
             !context.isOnGround -> "move.jump"
             context.isSneaking && isMoving -> "move.sneak.walk"
-            context.isSneaking -> "move.sneak"
+            context.isSneaking -> "move.sneak.idle"
             isSprinting -> "move.sprint.$moveDir"
             isMoving -> "move.walk.$moveDir"
             else -> "move.idle"

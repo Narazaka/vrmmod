@@ -98,9 +98,6 @@ data class AnimationConfig(
             "move.walk.left" to StateConfig("Walk_Loop"),
             "move.walk.right" to StateConfig("Walk_Loop"),
             "move.sprint" to StateConfig("Sprint_Loop"),
-            "move.sprint.backward" to StateConfig("Sprint_Loop"),
-            "move.sprint.left" to StateConfig("Sprint_Loop"),
-            "move.sprint.right" to StateConfig("Sprint_Loop"),
             "move.jump" to StateConfig("Jump_Loop"),
             "move.sneak" to StateConfig("Crouch_Idle_Loop"),
             "move.sneak.walk" to StateConfig("Crouch_Fwd_Loop"),
@@ -123,10 +120,10 @@ data class AnimationConfig(
         )
 
         fun defaultTransitions(): Map<String, Map<String, Float>> = mapOf(
-            "run" to mapOf("idle" to 0.1f, "walk" to 0.2f),
-            "walk" to mapOf("idle" to 0.1f, "run" to 0.2f),
-            "jump" to mapOf("*" to 0.1f),
-            "idle" to mapOf("walk" to 0.15f, "run" to 0.15f),
+            "move.sprint" to mapOf("move.idle" to 0.1f, "move.walk" to 0.2f),
+            "move.walk" to mapOf("move.idle" to 0.1f, "move.sprint" to 0.2f),
+            "move.jump" to mapOf("*" to 0.1f),
+            "move.idle" to mapOf("move.walk" to 0.15f, "move.sprint" to 0.15f),
             "*" to mapOf("*" to 0.25f),
         )
     }
