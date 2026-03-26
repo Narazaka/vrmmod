@@ -18,8 +18,8 @@
   "vrmmod.config.first_person_mode": "一人称モード",
   "vrmmod.config.first_person_mode.tooltip": "一人称視点での VRM モデルの表示方法",
   "vrmmod.config.first_person_mode.vanilla": "デフォルトの手",
-  "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM 身体 (MC カメラ)",
-  "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM 身体 (VRM カメラ)",
+  "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM 身体 (マイクラ目線)",
+  "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM 身体 (VRM 目線)",
   "vrmmod.config.save": "保存",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
