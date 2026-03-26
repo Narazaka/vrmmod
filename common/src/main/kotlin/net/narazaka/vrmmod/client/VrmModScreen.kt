@@ -130,14 +130,14 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             }
 
         modelPathInput = EditBox(font, fieldX, contentTop + rowHeight, fieldWidth, 18, Component.translatable("vrmmod.config.model_path")).also {
-            it.value = config.localModelPath ?: ""
             it.setMaxLength(1024)
+            it.value = config.localModelPath ?: ""
             addRenderableWidget(it)
         }
 
         animDirInput = EditBox(font, fieldX, contentTop + rowHeight * 2, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
-            it.value = config.animationDir ?: ""
             it.setMaxLength(1024)
+            it.value = config.animationDir ?: ""
             addRenderableWidget(it)
         }
 
@@ -181,24 +181,23 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
 
-        // Only reload model when model-related settings changed
-        val modelChanged = oldConfig.modelSource != newConfig.modelSource ||
-            oldConfig.localModelPath != newConfig.localModelPath ||
-            oldConfig.animationDir != newConfig.animationDir ||
-            oldConfig.useVrmaAnimation != newConfig.useVrmaAnimation
-        if (modelChanged) {
-            reloadModel(newConfig)
-        }
-
+        reloadModel(newConfig)
         VrmMod.logger.info("Settings saved")
     }
 
     private fun reloadModel(config: VrmModConfig) {
-        val player = Minecraft.getInstance().player ?: return
+        val player = Minecraft.getInstance().player
+        if (player == null) {
+            VrmMod.logger.warn("reloadModel: player is null, skipping")
+            return
+        }
+        VrmMod.logger.info("reloadModel: modelSource={}, localModelPath={}, vroidHubModelId={}",
+            config.modelSource, config.localModelPath, config.vroidHubModelId)
         VrmPlayerManager.unload(player.uuid)
         when (config.modelSource) {
             ModelSource.LOCAL -> {
                 val file = config.resolveModelFile()
+                VrmMod.logger.info("reloadModel LOCAL: resolved file={}, exists={}", file?.absolutePath, file?.exists())
                 if (file != null && file.exists()) {
                     val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
                     val animationConfig = AnimationConfig.load(configDir)
@@ -206,6 +205,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
                 }
             }
             ModelSource.VROID_HUB -> {
+                VrmMod.logger.info("reloadModel VROID_HUB: modelId={}", config.vroidHubModelId)
                 if (config.vroidHubModelId != null) {
                     VrmModClient.loadVRoidHubModelFromScreen(player.uuid)
                 }
