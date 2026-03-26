@@ -286,8 +286,9 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
             guiGraphics.drawString(font, "VRM $it", detailX, y, 0x888888)
             y += 12
         }
-        if (!model.is_downloadable) {
-            guiGraphics.drawString(font, "Not downloadable", detailX, y, 0xFF4444)
+        val isMine = myModels.any { it.id == model.id }
+        if (!isMine && !model.is_other_users_available) {
+            guiGraphics.drawString(font, "Not available for other users", detailX, y, 0xFF4444)
             y += 12
         }
         y += 6

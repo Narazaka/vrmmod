@@ -14,6 +14,7 @@ data class CharacterModel(
     val id: String = "",
     val name: String? = null,
     val is_downloadable: Boolean = false,
+    val is_other_users_available: Boolean = false,
     val character: CharacterInfo? = null,
     val license: CharacterModelLicense? = null,
     val latest_character_model_version: CharacterModelVersion? = null,
