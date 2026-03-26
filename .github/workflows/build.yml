@@ -30,12 +30,16 @@ jobs:
             neoforge/build/libs/*.jar
           if-no-files-found: error
 
+      - name: Set build timestamp
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: echo "BUILD_TIME=$(date -u +'%Y%m%d-%H%M%S')" >> "$GITHUB_ENV"
+
       - name: Upload to Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.sha }}
-          name: Build ${{ github.sha }}
+          tag_name: build-${{ env.BUILD_TIME }}-${{ github.sha }}
+          name: Build ${{ env.BUILD_TIME }} (${{ github.sha }})
           prerelease: true
           files: |
             fabric/build/libs/!(*-@(sources|dev)).jar
@@ -46,8 +50,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '[.[] | select(.isPrerelease and (.tagName | startswith("build-")))] | sort_by(.tagName) | reverse | .[5:] | .[].tagName' \
+          gh release list --limit 100 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease and (.tagName | startswith("build-")))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' \
           | while read -r tag; do
               gh release delete "$tag" --yes --cleanup-tag
             done
