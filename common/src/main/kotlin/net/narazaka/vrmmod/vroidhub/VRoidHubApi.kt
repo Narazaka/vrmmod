@@ -82,7 +82,15 @@ object VRoidHubApi {
                 .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
             if (response.statusCode() == 200) {
-                Result.success(response.body())
+                val body = response.body()
+                // VRoid Hub serves VRM files gzip-compressed from S3.
+                // Detect gzip magic bytes (0x1F 0x8B) and decompress if needed.
+                val data = if (body.size >= 2 && body[0] == 0x1F.toByte() && body[1] == 0x8B.toByte()) {
+                    java.util.zip.GZIPInputStream(java.io.ByteArrayInputStream(body)).readBytes()
+                } else {
+                    body
+                }
+                Result.success(data)
             } else {
                 Result.failure(RuntimeException("Download failed: ${response.statusCode()}"))
             }
