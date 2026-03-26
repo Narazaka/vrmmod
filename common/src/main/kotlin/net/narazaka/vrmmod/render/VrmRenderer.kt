@@ -144,7 +144,7 @@ object VrmRenderer {
         data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: net.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, mesh.skinIndex, it) }
-        }.filter { (meshIndex, _) ->
+        }.filter { (meshIndex, skinIndex, primitive) ->
             if (!isFirstPerson) {
                 val annotation = model.firstPersonAnnotations[meshIndex]
                 annotation != net.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY
@@ -154,9 +154,17 @@ object VrmRenderer {
                     net.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
                     net.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> true
                     net.narazaka.vrmmod.vrm.FirstPersonType.THIRD_PERSON_ONLY -> false
-                    // AUTO and null: keep mesh, but skip head triangles in drawPrimitive
-                    net.narazaka.vrmmod.vrm.FirstPersonType.AUTO -> true
-                    null -> true
+                    // AUTO and null: skinned meshes → skip head triangles in drawPrimitive
+                    // Unskinned meshes parented to HEAD descendants → hide entirely
+                    net.narazaka.vrmmod.vrm.FirstPersonType.AUTO, null -> {
+                        if (primitive.joints.isEmpty()) {
+                            // Unskinned: check if mesh node is a HEAD descendant
+                            val nodeIdx = meshToNodeIndex[meshIndex]
+                            nodeIdx == null || !isHeadDescendantNode(model, nodeIdx)
+                        } else {
+                            true // Skinned: handled by triangle skipping in drawPrimitive
+                        }
+                    }
                 }
             }
         }
@@ -377,6 +385,16 @@ object VrmRenderer {
     }
 
     /**
+     * Checks if a node is the HEAD bone or a descendant of HEAD in the node tree.
+     * Used for unskinned meshes in first-person mode (three-vrm's _isEraseTarget).
+     */
+    private fun isHeadDescendantNode(model: VrmModel, nodeIndex: Int): Boolean {
+        val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
+            ?: return false
+        return isDescendantOfNode(model.skeleton, nodeIndex, headBoneNode.nodeIndex)
+    }
+
+    /**
      * Updates [VrmState.currentEyeOffset] from the current HEAD bone position.
      *
      * Per three-vrm's VRMLookAt.getLookAtWorldPosition():
@@ -491,23 +509,27 @@ object VrmRenderer {
         for (tri in 0 until triCount) {
             val baseIdx = tri * 3
 
-            // Skip triangles where all 3 vertices are primarily weighted to head joints
+            // Skip triangles where ANY vertex has ANY weight > 0 on a head joint.
+            // Follows three-vrm's _excludeTriangles(): if any of the 3 vertices has
+            // any bone weight referencing a HEAD descendant joint, the entire triangle
+            // is excluded. This is intentionally aggressive to prevent head geometry
+            // from being visible in first-person view.
             if (shouldSkipHeadTris) {
-                var headVertCount = 0
+                var shouldSkip = false
                 for (vi in 0 until 3) {
+                    if (shouldSkip) break
                     val idx = indices[baseIdx + vi]
-                    // Find dominant joint for this vertex
-                    var maxW = 0f
-                    var maxJ = -1
                     for (i in 0 until 4) {
                         val di = idx * 4 + i
                         if (di >= primitive.joints.size) break
                         val w = if (di < primitive.weights.size) primitive.weights[di] else 0f
-                        if (w > maxW) { maxW = w; maxJ = primitive.joints[di] }
+                        if (w > 0f && primitive.joints[di] in skipHeadJoints) {
+                            shouldSkip = true
+                            break
+                        }
                     }
-                    if (maxJ in skipHeadJoints) headVertCount++
                 }
-                if (headVertCount >= 3) continue // skip this triangle
+                if (shouldSkip) continue
             }
             // Emit 3 vertices of the triangle, plus a 4th (duplicate of v2) if QUADS mode
             val verticesInPrimitive = if (isQuadMode) 4 else 3
