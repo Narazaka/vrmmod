@@ -88,7 +88,7 @@
 ### コンフィグ
 - `vrmmod.json`: localModelPath, animationDir, useVrmaAnimation, firstPersonMode
 - `vrmmod-animations.json`: states, transitions, headTracking, walkThreshold, runThreshold, damageExpression, damageExpressionDuration
-- Cloth Config API (17.0.144) による GUI
+- 独自 GUI（Minecraft Screen API）
 - Mod Menu 統合（Fabric）、IConfigScreenFactory（NeoForge）
 - ライブリロード: 設定保存時にモデル即再読み込み
 - キーバインド: デフォルト未割当て
