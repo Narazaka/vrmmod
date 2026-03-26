@@ -40,6 +40,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
     private var selectedModel: CharacterModel? = null
     private var selectedIndex = -1
     private var scrollOffset = 0
+    private var detailScrollOffset = 0
 
     // Buttons that need enable/disable toggling
     private var useModelButton: Button? = null
@@ -139,6 +140,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
                     addRenderableWidget(
                         Button.builder(Component.literal(label.take(35))) { _ ->
                             selectedModel = model
+                            detailScrollOffset = 0
                             selectedIndex = index
                             useModelButton?.active = true
                         }.bounds(5, y, width / 2 - 10, 20).build()
@@ -271,45 +273,61 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
     private fun renderModelDetails(guiGraphics: GuiGraphics) {
         val model = selectedModel ?: return
         val detailX = width / 2 + 5
-        var y = 52
+        val detailTop = 52
+        val detailBottom = height - 34
 
-        guiGraphics.drawString(font, model.character?.name ?: "?", detailX, y, 0xFFFFFF)
-        y += 12
+        // Build all lines to render
+        data class DetailLine(val text: Component, val color: Int)
+        val lines = mutableListOf<DetailLine>()
+
+        lines.add(DetailLine(Component.literal(model.character?.name ?: "?"), 0xFFFFFF))
         val variantName = model.name
         if (variantName != null && variantName != model.character?.name && variantName.isNotBlank()) {
-            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.variant", variantName), detailX, y, 0xCCCCFF)
-            y += 12
+            lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.variant", variantName), 0xCCCCFF))
         }
-        guiGraphics.drawString(font, "by ${model.character?.user?.name ?: "?"}", detailX, y, 0xAAAAAA)
-        y += 12
+        lines.add(DetailLine(Component.literal("by ${model.character?.user?.name ?: "?"}"), 0xAAAAAA))
         model.latest_character_model_version?.spec_version?.let {
-            guiGraphics.drawString(font, "VRM $it", detailX, y, 0x888888)
-            y += 12
+            lines.add(DetailLine(Component.literal("VRM $it"), 0x888888))
         }
         val isMine = myModels.any { it.id == model.id }
         if (!isMine && !model.is_other_users_available) {
-            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.not_available"), detailX, y, 0xFF4444)
-            y += 12
+            lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.not_available"), 0xFF4444))
         }
-        y += 6
 
-        // License display per VRoid Hub guidelines
+        // License
         val licenseItems = VRoidHubLicenseDisplay.buildItems(model)
-        val maxY = height - 34
-        if (licenseItems.isNotEmpty() && y < maxY) {
-            guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.license.title"), detailX, y, 0xFFFF00)
-            y += 10
+        if (licenseItems.isNotEmpty()) {
+            lines.add(DetailLine(Component.literal(""), 0)) // spacer
+            lines.add(DetailLine(Component.translatable("vrmmod.vroidhub.license.title"), 0xFFFF00))
             for (item in licenseItems) {
-                if (y >= maxY) break
                 val color = when (item.isOk) {
                     true -> 0x66FF66
                     false -> 0xFF6666
                     null -> 0xCCCCCC
                 }
-                val text = item.label.copy().append(": ").append(item.value)
-                guiGraphics.drawString(font, text, detailX, y, color)
-                y += 10
+                lines.add(DetailLine(item.label.copy().append(": ").append(item.value), color))
             }
+        }
+
+        // Render with scroll offset, clipped to detail area
+        val lineHeight = 10
+        val visibleLines = (detailBottom - detailTop) / lineHeight
+        detailScrollOffset = detailScrollOffset.coerceIn(0, maxOf(0, lines.size - visibleLines))
+
+        for (i in detailScrollOffset until minOf(lines.size, detailScrollOffset + visibleLines)) {
+            val y = detailTop + (i - detailScrollOffset) * lineHeight
+            val line = lines[i]
+            if (line.text.string.isNotEmpty()) {
+                guiGraphics.drawString(font, line.text, detailX, y, line.color)
+            }
+        }
+
+        // Scroll indicators
+        if (detailScrollOffset > 0) {
+            guiGraphics.drawString(font, "▲", width - 15, detailTop, 0x888888)
+        }
+        if (detailScrollOffset + visibleLines < lines.size) {
+            guiGraphics.drawString(font, "▼", width - 15, detailBottom - 10, 0x888888)
         }
     }
 
@@ -379,9 +397,15 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
         if (state == State.LOGGED_IN) {
-            val allModels = getAllDisplayModels()
-            scrollOffset = (scrollOffset - scrollY.toInt()).coerceIn(0, maxOf(0, allModels.size - 1))
-            buildWidgets()
+            if (mouseX < width / 2.0) {
+                // Left side: model list scroll
+                val allModels = getAllDisplayModels()
+                scrollOffset = (scrollOffset - scrollY.toInt()).coerceIn(0, maxOf(0, allModels.size - 1))
+                buildWidgets()
+            } else {
+                // Right side: detail panel scroll
+                detailScrollOffset = (detailScrollOffset - scrollY.toInt()).coerceAtLeast(0)
+            }
             return true
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
