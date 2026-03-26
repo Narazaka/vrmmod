@@ -210,89 +210,97 @@ class AnimationPoseProvider(
     private fun selectClip(context: PoseContext): String {
         // Death takes absolute priority
         if (context.deathTime > 0f) {
-            return tryState("death") ?: selectMovementClip(context)
+            return resolveState("action.death") ?: selectMovementClip(context)
         }
 
-        // Spin attack (trident riptide) takes priority
+        // Spin attack (trident riptide)
         if (context.isAutoSpinAttack) {
-            return tryState("spinAttack") ?: selectMovementClip(context)
+            return resolveState("action.spinAttack") ?: selectMovementClip(context)
         }
 
-        // Hurt reaction — triggered on rising edge of hurtTime
+        // Hurt reaction — rising edge
         val isHurt = context.hurtTime > 0f
         if (isHurt && !wasHurt) {
             wasHurt = true
-            val clip = tryState("hurt")
-            if (clip != null) return clip
+            resolveState("action.hurt")?.let { return it }
         }
         if (!isHurt) wasHurt = false
 
-        // Swing — triggered on rising edge
+        // Swing — rising edge
         if (context.isSwinging && !wasSwinging) {
             wasSwinging = true
-            val stateName = when {
-                context.isHoldingWeapon -> "weaponAttack"
-                context.isHoldingItem -> "interact"
-                else -> "attack"
-            }
-            val clip = tryState(stateName)
-            if (clip != null) return clip
+            resolveState(resolveSwingState(context))?.let { return it }
         }
         if (!context.isSwinging) wasSwinging = false
 
-        // If currently in a one-shot action animation, keep playing until it finishes
-        if (currentStateName in setOf("attack", "weaponAttack", "interact", "hurt", "useItem", "spinAttack", "death")) {
-            val actionClip = clips[currentClipName]
-            if (actionClip != null && currentTime < actionClip.duration) {
-                return currentClipName
+        // One-shot continuation: use loop field instead of hardcoded set
+        if (currentStateName.isNotEmpty()) {
+            val cfg = config.resolveStateConfig(currentStateName)
+            if (cfg != null && !cfg.loop) {
+                val actionClip = clips[currentClipName]
+                if (actionClip != null && currentTime < actionClip.duration) {
+                    return currentClipName
+                }
             }
         }
 
-        // Item use (right-click hold: eating, bow, shield, etc.)
+        // Continuous item use (eating, bow, shield, etc.)
         if (context.isUsingItem) {
-            return tryState("useItem") ?: selectMovementClip(context)
+            return resolveState("action.useItem") ?: selectMovementClip(context)
         }
 
         return selectMovementClip(context)
     }
 
-    /** Try to activate a state, returning the clip name if available, null otherwise. */
-    private fun tryState(stateName: String): String? {
-        val clipName = config.states[stateName]?.clip ?: return null
-        if (clipName.isBlank() || !clips.containsKey(clipName)) return null
-        currentStateName = stateName
-        return clipName
+    private fun resolveState(stateName: String): String? {
+        var key = stateName
+        while (true) {
+            val clipName = config.states[key]?.clip
+            if (clipName != null && clipName.isNotBlank() && clips.containsKey(clipName)) {
+                currentStateName = key
+                return clipName
+            }
+            val dot = key.lastIndexOf('.')
+            if (dot < 0) break
+            key = key.substring(0, dot)
+        }
+        return null
+    }
+
+    private fun resolveSwingState(context: PoseContext): String {
+        val weaponTags = context.mainHandItemTags.filter { it in config.weaponTags }
+        if (weaponTags.isNotEmpty()) {
+            for (tag in weaponTags) {
+                if (config.states.containsKey("action.swing.weapon.$tag"))
+                    return "action.swing.weapon.$tag"
+            }
+            return "action.swing.weapon"
+        }
+        if (context.mainHandItemTags.isNotEmpty()) return "action.swing.item"
+        return "action.swing"
     }
 
     private fun selectMovementClip(context: PoseContext): String {
         val moveDir = getMovementDirection(context)
         val isMoving = context.limbSwingAmount > config.walkThreshold
+        val isSprinting = context.limbSwingAmount > config.runThreshold
 
         val stateName = when {
-            context.isFallFlying -> "elytra"
-            context.isSwimming && isMoving -> "swim"
-            context.isSwimming -> "swimIdle"
-            context.isRiding -> "ride"
-            !context.isOnGround -> "jump"
-            context.isSneaking && isMoving -> "sneakWalk"
-            context.isSneaking -> "sneak"
-            context.limbSwingAmount > config.runThreshold -> "run"
-            isMoving && moveDir == "backward" -> "walkBackward"
-            isMoving && moveDir == "left" -> "walkLeft"
-            isMoving && moveDir == "right" -> "walkRight"
-            isMoving -> "walk"
-            else -> "idle"
-        }
-        currentStateName = stateName
-        val clipName = config.states[stateName]?.clip
-        if (clipName != null && clips.containsKey(clipName)) return clipName
-
-        // Fallback: directional walk -> walk, directional run -> run
-        if (stateName in listOf("walkBackward", "walkLeft", "walkRight")) {
-            val walkClip = config.states["walk"]?.clip
-            if (walkClip != null && clips.containsKey(walkClip)) return walkClip
+            context.isFallFlying -> "move.elytra"
+            context.isSwimming && isMoving -> "move.swim.forward"
+            context.isSwimming -> "move.swim.idle"
+            context.isRiding -> "move.ride"
+            !context.isOnGround -> "move.jump"
+            context.isSneaking && isMoving -> "move.sneak.walk"
+            context.isSneaking -> "move.sneak"
+            isSprinting -> "move.sprint.$moveDir"
+            isMoving -> "move.walk.$moveDir"
+            else -> "move.idle"
         }
 
-        return clips.keys.firstOrNull() ?: ""
+        return resolveState(stateName)
+            ?: resolveState("move.idle")
+            ?: clips.keys.firstOrNull()
+            ?: ""
     }
 }
