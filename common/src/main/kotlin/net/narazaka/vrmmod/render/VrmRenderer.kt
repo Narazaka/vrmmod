@@ -291,14 +291,21 @@ object VrmRenderer {
      * Estimates a uniform scale factor so the model is approximately
      * [TARGET_HEIGHT] blocks tall, based on the hips bone Y position.
      */
+    private var headJointCacheModelId: Int = 0
     private val headJointIndicesCache = mutableMapOf<Int, Set<Int>>()
 
     /**
      * Collects joint indices that are HEAD descendants for a specific skin.
      * Joint indices are per-skin (each skin has its own jointNodeIndices array),
      * so HEAD joint detection must be done per-skin.
+     * Cache is invalidated when the model changes (identified by identity hash).
      */
     private fun collectHeadJointIndices(model: VrmModel, skinIndex: Int): Set<Int> {
+        val modelId = System.identityHashCode(model)
+        if (modelId != headJointCacheModelId) {
+            headJointIndicesCache.clear()
+            headJointCacheModelId = modelId
+        }
         headJointIndicesCache[skinIndex]?.let { return it }
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
             ?: return emptySet()
