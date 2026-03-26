@@ -35,6 +35,8 @@ class AnimationPoseProvider(
 
     // Attack state
     private var wasSwinging = false
+    private var prevAttackTime = 0f
+    private var forceClipRestart = false
 
     // Cross-fade state
     private var prevPose: BonePoseMap = emptyMap()
@@ -53,9 +55,10 @@ class AnimationPoseProvider(
 
         val targetClipName = selectClip(context)
 
-        // Detect clip change -> start cross-fade
-        if (targetClipName != currentClipName) {
-            val prevStateName = currentStateName
+        // Detect clip change or forced restart -> start cross-fade
+        if (targetClipName != currentClipName || forceClipRestart) {
+            val prevStateName = if (forceClipRestart) currentStateName else currentStateName
+            forceClipRestart = false
             // Snapshot current pose as the "from" pose for blending
             val currentClip = clips[currentClipName]
             if (currentClip != null) {
@@ -226,12 +229,16 @@ class AnimationPoseProvider(
         }
         if (!isHurt) wasHurt = false
 
-        // Swing — rising edge
-        if (context.isSwinging && !wasSwinging) {
-            wasSwinging = true
+        // Swing — rising edge or attackTime reset (continuous swing detection)
+        val isNewSwing = context.isSwinging && (
+            !wasSwinging || context.attackTime < prevAttackTime - 0.1f
+        )
+        wasSwinging = context.isSwinging
+        prevAttackTime = context.attackTime
+        if (isNewSwing) {
+            forceClipRestart = true
             resolveState(resolveSwingState(context))?.let { return it }
         }
-        if (!context.isSwinging) wasSwinging = false
 
         // One-shot continuation: use loop field instead of hardcoded set
         if (currentStateName.isNotEmpty()) {
