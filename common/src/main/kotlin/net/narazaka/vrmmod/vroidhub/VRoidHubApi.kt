@@ -24,17 +24,23 @@ object VRoidHubApi {
 
     fun getHearts(accessToken: String, count: Int = 100): Result<List<CharacterModel>> {
         return get("/api/hearts?count=$count", accessToken).map {
+            net.narazaka.vrmmod.VrmMod.logger.debug("Hearts API response (first 500): {}", it.take(500))
             val type = object : TypeToken<VRoidHubResponse<List<CharacterModel>>>() {}.type
             val resp: VRoidHubResponse<List<CharacterModel>> = gson.fromJson(it, type)
-            resp.data ?: emptyList()
+            val data = resp.data ?: emptyList()
+            net.narazaka.vrmmod.VrmMod.logger.info("Hearts: {} models, first is_downloadable={}", data.size, data.firstOrNull()?.is_downloadable)
+            data
         }
     }
 
     fun getAccountCharacterModels(accessToken: String, count: Int = 100): Result<List<CharacterModel>> {
         return get("/api/account/character_models?count=$count", accessToken).map {
+            net.narazaka.vrmmod.VrmMod.logger.debug("Account models API response (first 500): {}", it.take(500))
             val type = object : TypeToken<VRoidHubResponse<List<CharacterModel>>>() {}.type
             val resp: VRoidHubResponse<List<CharacterModel>> = gson.fromJson(it, type)
-            resp.data ?: emptyList()
+            val data = resp.data ?: emptyList()
+            net.narazaka.vrmmod.VrmMod.logger.info("Account models: {} models", data.size)
+            data
         }
     }
 

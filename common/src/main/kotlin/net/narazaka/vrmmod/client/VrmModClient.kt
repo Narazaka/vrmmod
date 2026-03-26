@@ -176,10 +176,16 @@ object VrmModClient {
             file
         }.thenAccept { file ->
             if (file != null) {
+                VrmMod.logger.info("VRoid Hub model ready, loading: {}", file.absolutePath)
                 Minecraft.getInstance().execute {
                     VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig)
                 }
+            } else {
+                VrmMod.logger.error("VRoid Hub model download returned null")
             }
+        }.exceptionally { e ->
+            VrmMod.logger.error("VRoid Hub model load failed with exception", e)
+            null
         }
     }
 }
