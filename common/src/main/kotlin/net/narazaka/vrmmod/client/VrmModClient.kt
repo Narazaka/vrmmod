@@ -31,28 +31,17 @@ object VrmModClient {
         "category.${VrmMod.MOD_ID}",
     )
 
-    /** Key binding to open VRoid Hub screen (unbound by default). */
-    private val VROID_HUB_KEY = KeyMapping(
-        "key.${VrmMod.MOD_ID}.vroidhub",
-        InputConstants.Type.KEYSYM,
-        InputConstants.UNKNOWN.value,
-        "category.${VrmMod.MOD_ID}",
-    )
 
     fun init() {
         VrmMod.logger.info("Initializing VRM Mod client")
 
-        // Register keybindings
+        // Register keybinding
         KeyMappingRegistry.register(VRM_KEY)
-        KeyMappingRegistry.register(VROID_HUB_KEY)
 
-        // Open config screen when key is pressed
+        // Open menu screen when key is pressed
         ClientTickEvent.CLIENT_POST.register {
             while (VRM_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(VrmConfigScreen.create(null))
-            }
-            while (VROID_HUB_KEY.consumeClick()) {
-                Minecraft.getInstance().setScreen(VRoidHubScreen(null))
+                Minecraft.getInstance().setScreen(VrmMenuScreen(null))
             }
         }
 

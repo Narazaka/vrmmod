@@ -3,6 +3,10 @@
   "key.vrmmod.config": "VRM 設定",
   "key.vrmmod.vroidhub": "VRoid Hub",
 
+  "vrmmod.menu.title": "VRM Mod",
+  "vrmmod.menu.settings": "設定",
+  "vrmmod.menu.vroidhub": "VRoid Hub",
+
   "vrmmod.config.title": "VRM Mod 設定",
   "vrmmod.config.category.general": "一般",
   "vrmmod.config.model_path": "VRM モデルパス",

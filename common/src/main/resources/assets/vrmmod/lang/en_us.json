@@ -3,6 +3,10 @@
   "key.vrmmod.config": "VRM Config",
   "key.vrmmod.vroidhub": "VRoid Hub",
 
+  "vrmmod.menu.title": "VRM Mod",
+  "vrmmod.menu.settings": "Settings",
+  "vrmmod.menu.vroidhub": "VRoid Hub",
+
   "vrmmod.config.title": "VRM Mod Settings",
   "vrmmod.config.category.general": "General",
   "vrmmod.config.model_path": "VRM Model Path",
