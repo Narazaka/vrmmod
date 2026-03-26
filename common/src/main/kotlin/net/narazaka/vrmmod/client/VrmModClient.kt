@@ -114,6 +114,10 @@ object VrmModClient {
         val modelId = config.vroidHubModelId ?: return
         val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
         val animationConfig = AnimationConfig.load(configDir)
+
+        // Unload existing model first
+        VrmPlayerManager.unload(uuid)
+
         loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig)
     }
 

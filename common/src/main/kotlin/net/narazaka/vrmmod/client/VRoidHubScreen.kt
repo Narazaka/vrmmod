@@ -210,11 +210,17 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
     }
 
     private fun buildModelLabel(model: CharacterModel): String {
-        val name = model.character?.name ?: model.name ?: "?"
-        val author = model.character?.user?.name ?: ""
+        val charName = model.character?.name ?: "?"
+        val variantName = model.name
+        // Show variant name if it differs from character name
+        val displayName = if (variantName != null && variantName != charName && variantName.isNotBlank()) {
+            "$charName / $variantName"
+        } else {
+            charName
+        }
         val mine = myModels.any { it.id == model.id }
         val prefix = if (mine) "★ " else ""
-        return if (author.isNotBlank()) "$prefix$name ($author)" else "$prefix$name"
+        return "$prefix$displayName"
     }
 
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
@@ -269,6 +275,11 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.literal("VR
 
         guiGraphics.drawString(font, model.character?.name ?: "?", detailX, y, 0xFFFFFF)
         y += 12
+        val variantName = model.name
+        if (variantName != null && variantName != model.character?.name && variantName.isNotBlank()) {
+            guiGraphics.drawString(font, "Variant: $variantName", detailX, y, 0xCCCCFF)
+            y += 12
+        }
         guiGraphics.drawString(font, "by ${model.character?.user?.name ?: "?"}", detailX, y, 0xAAAAAA)
         y += 12
         model.latest_character_model_version?.spec_version?.let {
