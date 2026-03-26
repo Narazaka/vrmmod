@@ -69,9 +69,9 @@ data class AnimationConfig(
             "elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
             "attack" to StateConfig("Punch_Jab", loop = false),
-            "useItem" to StateConfig("", loop = false),     // eating, drinking, bow draw, etc.
-            "spinAttack" to StateConfig("", loop = false),   // trident riptide
-            "death" to StateConfig("", loop = false),
+            "useItem" to StateConfig("Interact", loop = false),
+            "spinAttack" to StateConfig("Roll", loop = false),
+            "death" to StateConfig("Death01", loop = false),
         )
 
         fun defaultTransitions(): Map<String, Map<String, Float>> = mapOf(
