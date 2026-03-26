@@ -134,11 +134,40 @@ object VrmConfigScreen {
                         .build()
                 )
             } else {
-                // Not logged in - show login instructions
+                // Not logged in
+                // Pre-generate auth session (PKCE) for this screen instance
+                val (authorizeUrl, authSession) = VRoidHubAuth.buildAuthorizeUrl(vroidHubConfig)
+
                 vroidHub.addEntry(
                     entryBuilder.startTextDescription(
-                        Component.literal("Click 'Login' to open VRoid Hub in your browser, then paste the code below.")
+                        Component.literal("1. Click the Login button to open VRoid Hub in your browser")
                     ).build()
+                )
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("2. Authorize the application, then copy the code shown")
+                    ).build()
+                )
+                vroidHub.addEntry(
+                    entryBuilder.startTextDescription(
+                        Component.literal("3. Paste the code below and click Save")
+                    ).build()
+                )
+
+                // Login button — opens system browser
+                vroidHub.addEntry(
+                    entryBuilder.startBooleanToggle(Component.literal("Login (open browser)"), false)
+                        .setDefaultValue(false)
+                        .setTooltip(Component.literal("Toggle ON to open VRoid Hub login page in your browser"))
+                        .setSaveConsumer { if (it) {
+                            try {
+                                java.awt.Desktop.getDesktop().browse(java.net.URI(authorizeUrl))
+                                VrmMod.logger.info("Opened VRoid Hub login page in browser")
+                            } catch (e: Exception) {
+                                VrmMod.logger.error("Failed to open browser. URL: {}", authorizeUrl, e)
+                            }
+                        }}
+                        .build()
                 )
 
                 var authCode = ""
@@ -150,24 +179,7 @@ object VrmConfigScreen {
                         .build()
                 )
 
-                // The login flow is triggered via saving:
-                // 1. User opens browser manually (URL logged to chat)
-                // 2. Pastes code
-                // 3. On save, code is exchanged for token
-                vroidHub.addEntry(
-                    entryBuilder.startTextDescription(
-                        Component.literal("Open this URL in your browser to login:")
-                    ).build()
-                )
-
-                val (authorizeUrl, authSession) = VRoidHubAuth.buildAuthorizeUrl(vroidHubConfig)
-                vroidHub.addEntry(
-                    entryBuilder.startTextDescription(
-                        Component.literal(authorizeUrl)
-                    ).build()
-                )
-
-                // Store auth session for code exchange on save
+                // On save: exchange code for token
                 val originalSaveRunnable = builder.savingRunnable
                 builder.setSavingRunnable {
                     if (authCode.isNotBlank()) {
