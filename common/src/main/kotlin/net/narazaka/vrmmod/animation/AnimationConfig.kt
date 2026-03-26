@@ -65,10 +65,12 @@ data class AnimationConfig(
             "sneak" to StateConfig("Crouch_Idle_Loop"),
             "sneakWalk" to StateConfig("Crouch_Fwd_Loop"),
             "swim" to StateConfig("Swim_Fwd_Loop"),
+            "swimIdle" to StateConfig("Swim_Idle_Loop"),
             "ride" to StateConfig("Sitting_Idle_Loop"),
             "elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
             "attack" to StateConfig("Punch_Jab", loop = false),
+            "hurt" to StateConfig("Hit_Chest", loop = false),
             "useItem" to StateConfig("Interact", loop = false),
             "spinAttack" to StateConfig("Roll", loop = false),
             "death" to StateConfig("Death01", loop = false),

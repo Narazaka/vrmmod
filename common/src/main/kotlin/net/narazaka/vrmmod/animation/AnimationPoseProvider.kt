@@ -205,6 +205,8 @@ class AnimationPoseProvider(
         }
     }
 
+    private var wasHurt = false
+
     private fun selectClip(context: PoseContext): String {
         // Death takes absolute priority
         if (context.deathTime > 0f) {
@@ -216,6 +218,15 @@ class AnimationPoseProvider(
             return tryState("spinAttack") ?: selectMovementClip(context)
         }
 
+        // Hurt reaction — triggered on rising edge of hurtTime
+        val isHurt = context.hurtTime > 0f
+        if (isHurt && !wasHurt) {
+            wasHurt = true
+            val clip = tryState("hurt")
+            if (clip != null) return clip
+        }
+        if (!isHurt) wasHurt = false
+
         // Attack swing (left-click) — triggered on rising edge
         if (context.isSwinging && !wasSwinging) {
             wasSwinging = true
@@ -224,14 +235,12 @@ class AnimationPoseProvider(
         }
         if (!context.isSwinging) wasSwinging = false
 
-        // If currently in a one-shot action animation (attack, useItem, spinAttack, death),
-        // keep playing until it finishes
-        if (currentStateName in setOf("attack", "useItem", "spinAttack", "death")) {
+        // If currently in a one-shot action animation, keep playing until it finishes
+        if (currentStateName in setOf("attack", "hurt", "useItem", "spinAttack", "death")) {
             val actionClip = clips[currentClipName]
             if (actionClip != null && currentTime < actionClip.duration) {
                 return currentClipName
             }
-            // Action finished, fall through to movement/item use check
         }
 
         // Item use (right-click hold: eating, bow, shield, etc.)
@@ -256,7 +265,8 @@ class AnimationPoseProvider(
 
         val stateName = when {
             context.isFallFlying -> "elytra"
-            context.isSwimming -> "swim"
+            context.isSwimming && isMoving -> "swim"
+            context.isSwimming -> "swimIdle"
             context.isRiding -> "ride"
             !context.isOnGround -> "jump"
             context.isSneaking && isMoving -> "sneakWalk"
