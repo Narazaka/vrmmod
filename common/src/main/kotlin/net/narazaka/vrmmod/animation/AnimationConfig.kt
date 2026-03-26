@@ -8,6 +8,7 @@ import java.io.File
 data class AnimationConfig(
     val states: Map<String, StateConfig> = defaultStates(),
     val transitions: Map<String, Map<String, Float>> = defaultTransitions(),
+    val weaponTags: Set<String> = defaultWeaponTags(),
     val headTracking: Boolean = true,
     val walkThreshold: Float = 0.01f,
     val runThreshold: Float = 0.5f,
@@ -21,15 +22,38 @@ data class AnimationConfig(
         val loop: Boolean = true,
     )
 
+    fun resolveStateConfig(stateName: String): StateConfig? {
+        var key = stateName
+        while (true) {
+            states[key]?.let { return it }
+            val dot = key.lastIndexOf('.')
+            if (dot < 0) break
+            key = key.substring(0, dot)
+        }
+        return null
+    }
+
     fun getTransitionDuration(from: String, to: String): Float {
-        // Exact match: transitions[from][to]
-        transitions[from]?.get(to)?.let { return it }
-        // Wildcard from: transitions[from][*]
-        transitions[from]?.get("*")?.let { return it }
-        // Wildcard to: transitions[*][to]
+        var f = from
+        while (true) {
+            val fromMap = transitions[f]
+            if (fromMap != null) {
+                var t = to
+                while (true) {
+                    fromMap[t]?.let { return it }
+                    val dot = t.lastIndexOf('.')
+                    if (dot < 0) break
+                    t = t.substring(0, dot)
+                }
+                fromMap["*"]?.let { return it }
+            }
+            val dot = f.lastIndexOf('.')
+            if (dot < 0) break
+            f = f.substring(0, dot)
+        }
         transitions["*"]?.get(to)?.let { return it }
-        // Default: transitions[*][*]
-        return transitions["*"]?.get("*") ?: 0.25f
+        transitions["*"]?.get("*")?.let { return it }
+        return 0.25f
     }
 
     companion object {
@@ -51,6 +75,7 @@ data class AnimationConfig(
                 loaded.copy(
                     states = defaultStates() + loaded.states,
                     transitions = defaultTransitions() + loaded.transitions,
+                    weaponTags = defaultWeaponTags() + loaded.weaponTags,
                 )
             } else {
                 AnimationConfig()
@@ -67,27 +92,34 @@ data class AnimationConfig(
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
             // Movement
-            "idle" to StateConfig("Idle_Loop"),
-            "walk" to StateConfig("Walk_Loop"),
-            "walkBackward" to StateConfig("Walk_Loop"),
-            "walkLeft" to StateConfig("Walk_Loop"),
-            "walkRight" to StateConfig("Walk_Loop"),
-            "run" to StateConfig("Sprint_Loop"),
-            "jump" to StateConfig("Jump_Loop"),
-            "sneak" to StateConfig("Crouch_Idle_Loop"),
-            "sneakWalk" to StateConfig("Crouch_Fwd_Loop"),
-            "swim" to StateConfig("Swim_Fwd_Loop"),
-            "swimIdle" to StateConfig("Swim_Idle_Loop"),
-            "ride" to StateConfig("Sitting_Idle_Loop"),
-            "elytra" to StateConfig("Swim_Fwd_Loop"),
+            "move.idle" to StateConfig("Idle_Loop"),
+            "move.walk" to StateConfig("Walk_Loop"),
+            "move.walk.backward" to StateConfig("Walk_Loop"),
+            "move.walk.left" to StateConfig("Walk_Loop"),
+            "move.walk.right" to StateConfig("Walk_Loop"),
+            "move.sprint" to StateConfig("Sprint_Loop"),
+            "move.sprint.backward" to StateConfig("Sprint_Loop"),
+            "move.sprint.left" to StateConfig("Sprint_Loop"),
+            "move.sprint.right" to StateConfig("Sprint_Loop"),
+            "move.jump" to StateConfig("Jump_Loop"),
+            "move.sneak" to StateConfig("Crouch_Idle_Loop"),
+            "move.sneak.walk" to StateConfig("Crouch_Fwd_Loop"),
+            "move.swim" to StateConfig("Swim_Fwd_Loop"),
+            "move.swim.idle" to StateConfig("Swim_Idle_Loop"),
+            "move.ride" to StateConfig("Sitting_Idle_Loop"),
+            "move.elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
-            "attack" to StateConfig("Punch_Jab", loop = false),
-            "weaponAttack" to StateConfig("Sword_Attack", loop = false),
-            "interact" to StateConfig("Interact", loop = false),
-            "hurt" to StateConfig("Hit_Chest", loop = false),
-            "useItem" to StateConfig("Interact", loop = false),
-            "spinAttack" to StateConfig("Roll", loop = false),
-            "death" to StateConfig("Death01", loop = false),
+            "action.swing" to StateConfig("Punch_Jab", loop = false),
+            "action.swing.weapon" to StateConfig("Sword_Attack", loop = false),
+            "action.swing.item" to StateConfig("Interact", loop = false),
+            "action.useItem" to StateConfig("Interact", loop = false),
+            "action.hurt" to StateConfig("Hit_Chest", loop = false),
+            "action.spinAttack" to StateConfig("Roll", loop = false),
+            "action.death" to StateConfig("Death01", loop = false),
+        )
+
+        fun defaultWeaponTags(): Set<String> = setOf(
+            "swords", "axes", "pickaxes", "shovels", "hoes"
         )
 
         fun defaultTransitions(): Map<String, Map<String, Float>> = mapOf(
