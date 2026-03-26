@@ -38,10 +38,22 @@ public class LivingEntityRendererMixin {
         UUID uuid = VrmRenderContext.CURRENT_PLAYER_UUID.get();
         if (uuid == null) return;
 
-        // VRM is rendered in all camera modes including first-person
-
         VrmState state = VrmPlayerManager.INSTANCE.get(uuid);
         if (state == null) return;
+
+        // Check if this is the local player in first-person view
+        Minecraft mc = Minecraft.getInstance();
+        boolean isLocalPlayerFirstPerson = mc.player != null
+                && mc.player.getUUID().equals(uuid)
+                && mc.options.getCameraType().isFirstPerson();
+
+        // In first-person, the local player is rendered by VrmFirstPersonRenderer,
+        // so skip the entity renderer to avoid double-rendering.
+        // For third-person or other players, render normally.
+        if (isLocalPlayerFirstPerson) {
+            ci.cancel();
+            return;
+        }
 
         PoseContext poseContext = buildPoseContext(renderState);
         VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight, false);
