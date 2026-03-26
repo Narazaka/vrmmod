@@ -195,7 +195,7 @@ object VrmRenderer {
                 val headJoints = if (isFirstPerson) {
                     val annotation = model.firstPersonAnnotations[meshIndex]
                     if (annotation == null || annotation == net.narazaka.vrmmod.vrm.FirstPersonType.AUTO) {
-                        collectHeadJointIndices(model)
+                        collectHeadJointIndices(model, meshSkinIndex.coerceAtLeast(0))
                     } else emptySet()
                 } else emptySet()
 
@@ -291,86 +291,25 @@ object VrmRenderer {
      * Estimates a uniform scale factor so the model is approximately
      * [TARGET_HEIGHT] blocks tall, based on the hips bone Y position.
      */
-    /** Cache for head mesh detection results. */
-    private val headMeshCache = mutableMapOf<Int, Boolean>()
+    private val headJointIndicesCache = mutableMapOf<Int, Set<Int>>()
 
     /**
-     * Checks if a mesh is primarily associated with the head.
-     *
-     * Uses a majority-vote approach: if more than half the weighted vertices
-     * in the mesh are influenced by HEAD or its descendant joints, the mesh
-     * is considered a head mesh.
-     *
-     * Also uses mesh name heuristics as a fallback.
+     * Collects joint indices that are HEAD descendants for a specific skin.
+     * Joint indices are per-skin (each skin has its own jointNodeIndices array),
+     * so HEAD joint detection must be done per-skin.
      */
-    private fun isHeadMesh(model: VrmModel, meshIndex: Int): Boolean {
-        headMeshCache[meshIndex]?.let { return it }
-
-        val mesh = model.meshes.getOrNull(meshIndex)
-        if (mesh == null) {
-            headMeshCache[meshIndex] = false
-            return false
-        }
-
-        // Name-based heuristic: "Face" mesh is head
-        val nameLower = mesh.name.lowercase()
-        if (nameLower.contains("face")) {
-            headMeshCache[meshIndex] = true
-            return true
-        }
-
-        val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
-        if (headBoneNode == null) {
-            headMeshCache[meshIndex] = false
-            return false
-        }
-
-        // Collect all joint indices that are HEAD or descendants of HEAD
-        val headJointIndices = collectHeadJointIndices(model)
-
-        // Majority vote: count vertices primarily weighted to head joints
-        var headVertices = 0
-        var totalVertices = 0
-        for (prim in mesh.primitives) {
-            if (prim.joints.isEmpty()) continue
-            for (v in 0 until prim.vertexCount) {
-                totalVertices++
-                // Find the joint with the highest weight for this vertex
-                var maxWeight = 0f
-                var maxJoint = -1
-                for (i in 0 until 4) {
-                    val idx = v * 4 + i
-                    if (idx >= prim.joints.size) break
-                    val w = if (idx < prim.weights.size) prim.weights[idx] else 0f
-                    if (w > maxWeight) {
-                        maxWeight = w
-                        maxJoint = prim.joints[idx]
-                    }
-                }
-                if (maxJoint in headJointIndices) headVertices++
-            }
-        }
-
-        // If majority of vertices are head-weighted, it's a head mesh
-        val isHead = totalVertices > 0 && headVertices.toFloat() / totalVertices > 0.5f
-        headMeshCache[meshIndex] = isHead
-        return isHead
-    }
-
-    private var headJointIndicesCache: Set<Int>? = null
-
-    private fun collectHeadJointIndices(model: VrmModel): Set<Int> {
-        headJointIndicesCache?.let { return it }
+    private fun collectHeadJointIndices(model: VrmModel, skinIndex: Int): Set<Int> {
+        headJointIndicesCache[skinIndex]?.let { return it }
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
             ?: return emptySet()
-        val skeleton = model.skeleton
+        val skin = model.skeleton.skins.getOrNull(skinIndex) ?: return emptySet()
         val result = mutableSetOf<Int>()
-        for ((jointIdx, nodeIdx) in skeleton.jointNodeIndices.withIndex()) {
-            if (isDescendantOfNode(skeleton, nodeIdx, headBoneNode.nodeIndex)) {
+        for ((jointIdx, nodeIdx) in skin.jointNodeIndices.withIndex()) {
+            if (isDescendantOfNode(model.skeleton, nodeIdx, headBoneNode.nodeIndex)) {
                 result.add(jointIdx)
             }
         }
-        headJointIndicesCache = result
+        headJointIndicesCache[skinIndex] = result
         return result
     }
 
