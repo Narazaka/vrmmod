@@ -20,7 +20,9 @@ configurations {
 dependencies {
     "neoForge"("net.neoforged:neoforge:${rootProject.property("neoforge_version")}")
     modApi("dev.architectury:architectury-neoforge:${rootProject.property("architectury_api_version")}")
-    implementation("thedarkcolour:kotlinforforge-neoforge:${rootProject.property("kotlin_for_forge_version")}")
+    implementation("thedarkcolour:kotlinforforge-neoforge:${rootProject.property("kotlin_for_forge_version")}") {
+        exclude(group = "net.neoforged.fancymodloader", module = "loader")
+    }
 
     modApi("me.shedaniel.cloth:cloth-config-neoforge:${rootProject.property("cloth_config_version")}") {
         exclude(group = "net.fabricmc.fabric-api")
@@ -32,6 +34,12 @@ dependencies {
     // JglTF must be bundled into the mod jar (not provided by MC or NeoForge)
     // Exclude Jackson - NeoForge already provides it, and including it causes module conflicts
     implementation("de.javagl:jgltf-model:2.0.4") {
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson")
+    }
+    // JglTF must also be on dev runtime classpath (shadow jar bundles it for production,
+    // but dev environment needs it explicitly via developmentNeoForge)
+    developmentNeoForge("de.javagl:jgltf-model:2.0.4") {
         exclude(group = "com.fasterxml.jackson.core")
         exclude(group = "com.fasterxml.jackson")
     }
