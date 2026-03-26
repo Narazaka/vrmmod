@@ -160,6 +160,12 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             Button.builder(Component.translatable("vrmmod.config.save")) { _ -> saveSettings() }
                 .bounds(5, height - 26, 100, 20).build()
         )
+        addRenderableWidget(
+            Button.builder(Component.translatable("vrmmod.config.reload")) { _ ->
+                saveSettings()
+                reloadModel(VrmModClient.currentConfig)
+            }.bounds(110, height - 26, 100, 20).build()
+        )
     }
 
     private fun saveSettings() {
@@ -174,7 +180,16 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         )
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
-        reloadModel(newConfig)
+
+        // Only reload model when model-related settings changed
+        val modelChanged = oldConfig.modelSource != newConfig.modelSource ||
+            oldConfig.localModelPath != newConfig.localModelPath ||
+            oldConfig.animationDir != newConfig.animationDir ||
+            oldConfig.useVrmaAnimation != newConfig.useVrmaAnimation
+        if (modelChanged) {
+            reloadModel(newConfig)
+        }
+
         VrmMod.logger.info("Settings saved")
     }
 

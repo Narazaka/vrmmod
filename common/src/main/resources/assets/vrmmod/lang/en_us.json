@@ -21,6 +21,7 @@
   "vrmmod.config.first_person_mode.vrm_mc_camera": "VRM body (MC eye level)",
   "vrmmod.config.first_person_mode.vrm_vrm_camera": "VRM body (VRM eye level)",
   "vrmmod.config.save": "Save",
+  "vrmmod.config.reload": "Save & Reload",
   "vrmmod.config.model_source": "Model Source",
   "vrmmod.config.model_source.tooltip": "Which model source to use",
   "vrmmod.config.model_source.local": "Local file",
