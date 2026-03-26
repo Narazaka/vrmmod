@@ -162,7 +162,15 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         )
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
-        reloadModel(newConfig)
+
+        // Only reload model if model-related settings changed
+        val modelChanged = oldConfig.localModelPath != newConfig.localModelPath ||
+            oldConfig.animationDir != newConfig.animationDir ||
+            oldConfig.useVrmaAnimation != newConfig.useVrmaAnimation
+        if (modelChanged) {
+            reloadModel(newConfig)
+        }
+
         VrmMod.logger.info("Settings saved")
     }
 
