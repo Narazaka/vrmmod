@@ -295,10 +295,12 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
 
         // License display per VRoid Hub guidelines
         val licenseItems = VRoidHubLicenseDisplay.buildItems(model)
-        if (licenseItems.isNotEmpty()) {
+        val maxY = height - 34
+        if (licenseItems.isNotEmpty() && y < maxY) {
             guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.license.title"), detailX, y, 0xFFFF00)
-            y += 12
+            y += 10
             for (item in licenseItems) {
+                if (y >= maxY) break
                 val color = when (item.isOk) {
                     true -> 0x66FF66
                     false -> 0xFF6666
@@ -306,7 +308,7 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
                 }
                 val text = item.label.copy().append(": ").append(item.value)
                 guiGraphics.drawString(font, text, detailX, y, color)
-                y += 11
+                y += 10
             }
         }
     }

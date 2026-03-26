@@ -18,8 +18,16 @@ object VRoidHubLicenseDisplay {
     )
 
     fun buildItems(model: CharacterModel): List<LicenseItem> {
+        val specVersion = model.latest_character_model_version?.spec_version
+        val isVrm10 = specVersion != null && specVersion.startsWith("1")
         val vrmMeta = model.latest_character_model_version?.vrm_meta
-        return if (vrmMeta != null) {
+
+        net.narazaka.vrmmod.VrmMod.logger.debug(
+            "License display: specVersion={}, isVrm10={}, vrmMeta={}, license={}",
+            specVersion, isVrm10, vrmMeta != null, model.license
+        )
+
+        return if (isVrm10 && vrmMeta != null) {
             buildVrm10Items(vrmMeta)
         } else {
             buildVrm00Items(model.license)
