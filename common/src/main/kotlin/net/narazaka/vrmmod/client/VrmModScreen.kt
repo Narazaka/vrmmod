@@ -131,6 +131,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         }
 
         useVrmaToggle = CycleButton.onOffBuilder(config.useVrmaAnimation)
+            .displayOnlyValue()
             .create(fieldX, contentTop + rowHeight * 2, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
                 addRenderableWidget(it)
             }
@@ -139,6 +140,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             Component.translatable("vrmmod.config.first_person_mode.${mode.name.lowercase()}")
         }.withValues(*FirstPersonMode.entries.toTypedArray())
             .withInitialValue(config.firstPersonMode)
+            .displayOnlyValue()
             .create(fieldX, contentTop + rowHeight * 3, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
                 addRenderableWidget(it)
             }
