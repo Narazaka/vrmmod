@@ -31,16 +31,28 @@ object VrmModClient {
         "category.${VrmMod.MOD_ID}",
     )
 
+    /** Key binding to open VRoid Hub screen (unbound by default). */
+    private val VROID_HUB_KEY = KeyMapping(
+        "key.${VrmMod.MOD_ID}.vroidhub",
+        InputConstants.Type.KEYSYM,
+        InputConstants.UNKNOWN.value,
+        "category.${VrmMod.MOD_ID}",
+    )
+
     fun init() {
         VrmMod.logger.info("Initializing VRM Mod client")
 
-        // Register keybinding
+        // Register keybindings
         KeyMappingRegistry.register(VRM_KEY)
+        KeyMappingRegistry.register(VROID_HUB_KEY)
 
-        // Open config screen when V is pressed
+        // Open config screen when key is pressed
         ClientTickEvent.CLIENT_POST.register {
             while (VRM_KEY.consumeClick()) {
                 Minecraft.getInstance().setScreen(VrmConfigScreen.create(null))
+            }
+            while (VROID_HUB_KEY.consumeClick()) {
+                Minecraft.getInstance().setScreen(VRoidHubScreen(null))
             }
         }
 
@@ -91,6 +103,18 @@ object VrmModClient {
             VrmMod.logger.info("Unloading all VRM models")
             VrmPlayerManager.clear()
         }
+    }
+
+    /**
+     * Called from VRoidHubScreen after model selection to trigger download and load.
+     */
+    fun loadVRoidHubModelFromScreen(uuid: java.util.UUID) {
+        val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
+        val config = VrmModConfig.load(configDir)
+        val modelId = config.vroidHubModelId ?: return
+        val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
+        val animationConfig = AnimationConfig.load(configDir)
+        loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig)
     }
 
     private fun loadVRoidHubModel(
