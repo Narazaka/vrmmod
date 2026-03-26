@@ -45,6 +45,20 @@ data class CharacterModelLicense(
 data class CharacterModelVersion(
     val id: String = "",
     val spec_version: String? = null,
+    val vrm_meta: VrmMeta? = null,
+)
+
+/** VRM 1.0 meta from latest_character_model_version.vrm_meta (API uses camelCase) */
+data class VrmMeta(
+    val avatarPermission: String? = null,
+    val allowExcessivelyViolentUsage: Boolean? = null,
+    val allowExcessivelySexualUsage: Boolean? = null,
+    val allowPoliticalOrReligiousUsage: Boolean? = null,
+    val allowAntisocialOrHateUsage: Boolean? = null,
+    val commercialUsage: String? = null,
+    val allowRedistribution: Boolean? = null,
+    val modification: String? = null,
+    val creditNotation: String? = null,
 )
 
 data class PortraitImage(

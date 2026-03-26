@@ -293,29 +293,22 @@ class VRoidHubScreen(private val parent: Screen?) : Screen(Component.translatabl
         }
         y += 6
 
-        val license = model.license
-        if (license != null) {
+        // License display per VRoid Hub guidelines
+        val licenseItems = VRoidHubLicenseDisplay.buildItems(model)
+        if (licenseItems.isNotEmpty()) {
             guiGraphics.drawString(font, Component.translatable("vrmmod.vroidhub.license.title"), detailX, y, 0xFFFF00)
             y += 12
-            y = drawLicense(guiGraphics, detailX, y, "Avatar use", license.characterization_allowed_user)
-            y = drawLicense(guiGraphics, detailX, y, "Violence", license.violent_expression)
-            y = drawLicense(guiGraphics, detailX, y, "Sexual", license.sexual_expression)
-            y = drawLicense(guiGraphics, detailX, y, "Corp. commercial", license.corporate_commercial_use)
-            y = drawLicense(guiGraphics, detailX, y, "Personal commercial", license.personal_commercial_use)
-            y = drawLicense(guiGraphics, detailX, y, "Modification", license.modification)
-            y = drawLicense(guiGraphics, detailX, y, "Redistribution", license.redistribution)
-            drawLicense(guiGraphics, detailX, y, "Credit", license.credit)
+            for (item in licenseItems) {
+                val color = when (item.isOk) {
+                    true -> 0x66FF66
+                    false -> 0xFF6666
+                    null -> 0xCCCCCC
+                }
+                val text = item.label.copy().append(": ").append(item.value)
+                guiGraphics.drawString(font, text, detailX, y, color)
+                y += 11
+            }
         }
-    }
-
-    private fun drawLicense(guiGraphics: GuiGraphics, x: Int, y: Int, label: String, value: String): Int {
-        val color = when (value) {
-            "allow", "everyone", "unnecessary" -> 0x66FF66
-            "disallow", "author" -> 0xFF6666
-            else -> 0xCCCCCC
-        }
-        guiGraphics.drawString(font, "$label: $value", x, y, color)
-        return y + 11
     }
 
     private fun exchangeToken(code: String) {
