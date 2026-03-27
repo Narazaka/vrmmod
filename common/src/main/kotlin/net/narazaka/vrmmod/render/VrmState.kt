@@ -24,7 +24,7 @@ class VrmState(
     /** Rest-pose world matrices (computed once at model load). */
     val restPoseWorldMatrices: List<org.joml.Matrix4f> = emptyList(),
     /** Scale factor from rest-pose hips Y (cached at model load). */
-    val cachedScale: Float = 0.9f,
+    var cachedScale: Float = 0.9f,
 ) {
     /** Head descendant node indices (cached at model load). */
     val headDescendantNodes: Set<Int> = run {

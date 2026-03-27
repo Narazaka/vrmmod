@@ -51,6 +51,15 @@ object VRoidHubApi {
         }
     }
 
+    fun postDownloadLicenseMultiplay(accessToken: String, characterModelId: String): Result<DownloadLicense> {
+        val body = gson.toJson(mapOf("character_model_id" to characterModelId))
+        return post("/api/download_licenses/multiplay", accessToken, body).map {
+            val type = object : TypeToken<VRoidHubResponse<DownloadLicense>>() {}.type
+            val resp: VRoidHubResponse<DownloadLicense> = gson.fromJson(it, type)
+            resp.data ?: throw RuntimeException("No data in response")
+        }
+    }
+
     fun getDownloadUrl(accessToken: String, licenseId: String): Result<String> {
         return try {
             val request = HttpRequest.newBuilder()
