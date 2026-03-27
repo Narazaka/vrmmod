@@ -191,11 +191,11 @@ object VrmRenderer {
                 key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND && useQuads ->
                     RenderType.entityTranslucent(key.texture)
                 key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND ->
-                    net.minecraft.client.renderer.VrmRenderType.entityTranslucentTriangles(key.texture)
+                    VrmRenderType.entityTranslucentTriangles(key.texture)
                 useQuads ->
                     RenderType.entityCutoutNoCull(key.texture)
                 else ->
-                    net.minecraft.client.renderer.VrmRenderType.entityCutoutNoCullTriangles(key.texture)
+                    VrmRenderType.entityCutoutNoCullTriangles(key.texture)
             }
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS
