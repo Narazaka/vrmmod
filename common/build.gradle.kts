@@ -1,6 +1,10 @@
 import java.util.Base64
 import java.security.SecureRandom
 
+loom {
+    accessWidenerPath = file("src/main/resources/vrmmod.accesswidener")
+}
+
 architectury {
     common(rootProject.property("enabled_platforms").toString().split(","))
 }

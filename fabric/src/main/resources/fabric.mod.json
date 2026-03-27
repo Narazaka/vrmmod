@@ -25,6 +25,7 @@
       }
     ]
   },
+  "accessWidener": "vrmmod.accesswidener",
   "mixins": [
     "vrmmod.mixins.json"
   ],

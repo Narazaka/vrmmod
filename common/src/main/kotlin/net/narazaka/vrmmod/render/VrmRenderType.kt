@@ -16,56 +16,21 @@ import java.util.function.Function
  * but preserves per-vertex normals for TRIANGLES.
  * Using TRIANGLES mode allows smooth shading to work correctly with Iris.
  *
- * Uses reflection to access package-private RenderType.create() and
- * protected RenderStateShard fields, since placing classes in
- * net.minecraft.client.renderer causes JPMS conflicts on NeoForge.
+ * Access to package-private RenderType.create() and protected RenderStateShard
+ * fields is provided by Access Widener (vrmmod.accesswidener).
  */
 object VrmRenderType {
 
-    // Reflection: RenderType.create(String, VertexFormat, Mode, int, CompositeState)
-    private val createMethod = RenderType::class.java.getDeclaredMethod(
-        "create",
-        String::class.java,
-        VertexFormat::class.java,
-        VertexFormat.Mode::class.java,
-        Int::class.javaPrimitiveType,
-        RenderType.CompositeState::class.java,
-    ).also { it.isAccessible = true }
-
-    // Reflection: protected static fields from RenderStateShard
-    private fun <T> getStaticField(name: String): T {
-        @Suppress("UNCHECKED_CAST")
-        return RenderStateShard::class.java.getDeclaredField(name).also { it.isAccessible = true }.get(null) as T
-    }
-
-    private val RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER: RenderStateShard.ShaderStateShard =
-        getStaticField("RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER")
-    private val RENDERTYPE_ENTITY_TRANSLUCENT_SHADER: RenderStateShard.ShaderStateShard =
-        getStaticField("RENDERTYPE_ENTITY_TRANSLUCENT_SHADER")
-    private val NO_TRANSPARENCY: RenderStateShard.TransparencyStateShard =
-        getStaticField("NO_TRANSPARENCY")
-    private val TRANSLUCENT_TRANSPARENCY: RenderStateShard.TransparencyStateShard =
-        getStaticField("TRANSLUCENT_TRANSPARENCY")
-    private val NO_CULL: RenderStateShard.CullStateShard =
-        getStaticField("NO_CULL")
-    private val LIGHTMAP: RenderStateShard.LightmapStateShard =
-        getStaticField("LIGHTMAP")
-    private val OVERLAY: RenderStateShard.OverlayStateShard =
-        getStaticField("OVERLAY")
-
-    private fun create(name: String, format: VertexFormat, mode: VertexFormat.Mode, bufferSize: Int, state: RenderType.CompositeState): RenderType =
-        createMethod.invoke(null, name, format, mode, bufferSize, state) as RenderType
-
     private val ENTITY_CUTOUT_NO_CULL_TRIANGLES: Function<ResourceLocation, RenderType> = Util.memoize { texture ->
         val state = RenderType.CompositeState.builder()
-            .setShaderState(RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER)
+            .setShaderState(RenderStateShard.RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER)
             .setTextureState(RenderStateShard.TextureStateShard(texture, TriState.FALSE, false))
-            .setTransparencyState(NO_TRANSPARENCY)
-            .setCullState(NO_CULL)
-            .setLightmapState(LIGHTMAP)
-            .setOverlayState(OVERLAY)
+            .setTransparencyState(RenderStateShard.NO_TRANSPARENCY)
+            .setCullState(RenderStateShard.NO_CULL)
+            .setLightmapState(RenderStateShard.LIGHTMAP)
+            .setOverlayState(RenderStateShard.OVERLAY)
             .createCompositeState(true)
-        create(
+        RenderType.create(
             "vrm_entity_cutout_no_cull",
             DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
@@ -76,14 +41,14 @@ object VrmRenderType {
 
     private val ENTITY_TRANSLUCENT_TRIANGLES: Function<ResourceLocation, RenderType> = Util.memoize { texture ->
         val state = RenderType.CompositeState.builder()
-            .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+            .setShaderState(RenderStateShard.RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
             .setTextureState(RenderStateShard.TextureStateShard(texture, TriState.FALSE, false))
-            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-            .setCullState(NO_CULL)
-            .setLightmapState(LIGHTMAP)
-            .setOverlayState(OVERLAY)
+            .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+            .setCullState(RenderStateShard.NO_CULL)
+            .setLightmapState(RenderStateShard.LIGHTMAP)
+            .setOverlayState(RenderStateShard.OVERLAY)
             .createCompositeState(true)
-        create(
+        RenderType.create(
             "vrm_entity_translucent",
             DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
