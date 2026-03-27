@@ -94,11 +94,14 @@ object VrmRenderer {
             }
         }
 
+        // Compute animated world matrices once for all subsequent uses
+        val animatedWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
+
         // Compute skinning matrices per skin (cached to avoid recomputation)
         val skinningMatricesCache = mutableMapOf<Int, List<Matrix4f>>()
         fun getSkinningMatrices(skinIndex: Int): List<Matrix4f> {
             return skinningMatricesCache.getOrPut(skinIndex) {
-                VrmSkinningEngine.computeSkinningMatrices(model.skeleton, nodeOverrides, skinIndex)
+                VrmSkinningEngine.computeSkinningMatrices(model.skeleton, animatedWorldMatrices, skinIndex)
             }
         }
         // Pre-compute primary skin for eye offset etc.
@@ -107,7 +110,7 @@ object VrmRenderer {
         // Update eye position for VRM_VRM_CAMERA mode.
         // Compute from HEAD bone's current world matrix (with animation rotation applied)
         // but using rest-pose hips Y for height baseline (avoids walk-animation jitter).
-        updateEyeOffset(state, model, nodeOverrides, scale)
+        updateEyeOffset(state, model, animatedWorldMatrices, scale)
 
         poseStack.pushPose()
 
@@ -127,14 +130,11 @@ object VrmRenderer {
             if (node.meshIndex >= 0) meshToNodeIndex[node.meshIndex] = nodeIdx
         }
 
-        // World matrices for unskinned mesh node transforms
-        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-
         // Save hand bone world matrices for held item rendering
         val rightHandBone = model.humanoid.humanBones[HumanBone.RIGHT_HAND]
-        state.rightHandMatrix = if (rightHandBone != null) Matrix4f(worldMatrices[rightHandBone.nodeIndex]) else null
+        state.rightHandMatrix = if (rightHandBone != null) Matrix4f(animatedWorldMatrices[rightHandBone.nodeIndex]) else null
         val leftHandBone = model.humanoid.humanBones[HumanBone.LEFT_HAND]
-        state.leftHandMatrix = if (leftHandBone != null) Matrix4f(worldMatrices[leftHandBone.nodeIndex]) else null
+        state.leftHandMatrix = if (leftHandBone != null) Matrix4f(animatedWorldMatrices[leftHandBone.nodeIndex]) else null
 
         data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: net.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
@@ -200,7 +200,7 @@ object VrmRenderer {
                 // For unskinned meshes parented to a bone node, apply the node's world matrix.
                 // This is equivalent to three.js's automatic matrixWorld propagation.
                 val nodeWorldMatrix = if (primitive.joints.isEmpty()) {
-                    meshToNodeIndex[meshIndex]?.let { worldMatrices.getOrNull(it) }
+                    meshToNodeIndex[meshIndex]?.let { animatedWorldMatrices.getOrNull(it) }
                 } else null
 
                 drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix)
@@ -413,7 +413,7 @@ object VrmRenderer {
     private fun updateEyeOffset(
         state: VrmState,
         model: VrmModel,
-        nodeOverrides: Map<Int, Matrix4f>,
+        animatedWorldMatrices: List<Matrix4f>,
         scale: Float,
     ) {
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
@@ -426,8 +426,7 @@ object VrmRenderer {
         restHeadMatrix.transformPosition(restEyePos)
 
         // Animated eye position (includes body lean, head rotation)
-        val animWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton, nodeOverrides)
-        val animHeadMatrix = animWorldMatrices[headBoneNode.nodeIndex]
+        val animHeadMatrix = animatedWorldMatrices[headBoneNode.nodeIndex]
         val animEyePos = Vector3f(offset)
         animHeadMatrix.transformPosition(animEyePos)
 

@@ -103,6 +103,24 @@ object VrmSkinningEngine {
     }
 
     /**
+     * Computes skinning matrices using pre-computed world matrices.
+     */
+    fun computeSkinningMatrices(
+        skeleton: VrmSkeleton,
+        worldMatrices: List<Matrix4f>,
+        skinIndex: Int = 0,
+    ): List<Matrix4f> {
+        val skin = skeleton.skins.getOrNull(skinIndex) ?: return emptyList()
+        val joints = skin.jointNodeIndices
+        val ibms = skin.inverseBindMatrices
+
+        return List(joints.size) { j ->
+            val nodeIdx = joints[j]
+            Matrix4f(worldMatrices[nodeIdx]).mul(ibms[j])
+        }
+    }
+
+    /**
      * Transforms a vertex position using linear blend skinning (up to 4 bones).
      *
      * @param position   the rest-pose vertex position
