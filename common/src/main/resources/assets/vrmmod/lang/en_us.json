@@ -35,6 +35,8 @@
   "vrmmod.config.model_source.tooltip": "Which model source to use",
   "vrmmod.config.model_source.local": "Local file",
   "vrmmod.config.model_source.vroid_hub": "VRoid Hub",
+  "vrmmod.config.vroidhub_cache_ttl": "Cache TTL (min)",
+  "vrmmod.config.vroidhub_cache_ttl.tooltip": "How long to cache VRoid Hub model lists before refreshing (in minutes, default: 10080 = 7 days)",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub is not configured.",
@@ -50,6 +52,7 @@
   "vrmmod.vroidhub.models_count": "Models: %d (★=mine)",
   "vrmmod.vroidhub.loading_models": "Loading models...",
   "vrmmod.vroidhub.use_model": "Use this model (agree to license)",
+  "vrmmod.vroidhub.refresh": "Refresh",
   "vrmmod.vroidhub.logout": "Logout",
   "vrmmod.vroidhub.close": "Close",
   "vrmmod.vroidhub.not_available": "Not available for other users",

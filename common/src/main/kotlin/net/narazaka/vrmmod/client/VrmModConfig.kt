@@ -41,6 +41,8 @@ data class VrmModConfig(
     val vroidHubModelId: String? = null,
     /** Which model source to use. */
     val modelSource: ModelSource = ModelSource.LOCAL,
+    /** VRoid Hub API cache TTL in minutes. Model lists are cached and refreshed after this period. */
+    val vroidHubCacheTtlMinutes: Int = 10080,
 ) {
     /** Resolves localModelPath to a File, supporting both absolute and relative paths.
      *  Relative paths are resolved from the Minecraft game directory. */

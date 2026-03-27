@@ -35,6 +35,8 @@
   "vrmmod.config.model_source.tooltip": "使用するモデルのソース",
   "vrmmod.config.model_source.local": "ローカルファイル",
   "vrmmod.config.model_source.vroid_hub": "VRoid Hub",
+  "vrmmod.config.vroidhub_cache_ttl": "キャッシュ有効期間(分)",
+  "vrmmod.config.vroidhub_cache_ttl.tooltip": "VRoid Hub モデル一覧のキャッシュ有効期間（分、デフォルト: 10080 = 7日）",
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub が設定されていません。",
@@ -50,6 +52,7 @@
   "vrmmod.vroidhub.models_count": "モデル: %d件 (★=自分のモデル)",
   "vrmmod.vroidhub.loading_models": "モデルを読み込み中...",
   "vrmmod.vroidhub.use_model": "このモデルを使用する（利用条件に同意）",
+  "vrmmod.vroidhub.refresh": "更新",
   "vrmmod.vroidhub.logout": "ログアウト",
   "vrmmod.vroidhub.close": "閉じる",
   "vrmmod.vroidhub.not_available": "他のユーザーは利用できません",

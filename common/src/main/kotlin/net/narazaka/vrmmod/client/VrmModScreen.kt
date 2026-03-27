@@ -43,6 +43,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var heldItemOffsetZInput: EditBox? = null
     private var heldItemFirstPersonToggle: CycleButton<Boolean>? = null
     private var heldItemThirdPersonToggle: CycleButton<Boolean>? = null
+    private var vroidHubCacheTtlInput: EditBox? = null
 
     // --- VRoid Hub state ---
     private var vroidHubState = VRoidHubState.LOADING
@@ -192,6 +193,15 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_first_person"), Component.translatable("vrmmod.config.held_item_first_person.tooltip"), heldItemFirstPersonToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_third_person"), Component.translatable("vrmmod.config.held_item_third_person.tooltip"), heldItemThirdPersonToggle!!)
 
+        // VRoid Hub category
+        if (vroidConfig.isAvailable) {
+            list.addCategory(Component.translatable("vrmmod.vroidhub.title"))
+            vroidHubCacheTtlInput = EditBox(font, 0, 0, 60, 20, Component.translatable("vrmmod.config.vroidhub_cache_ttl")).also {
+                it.value = config.vroidHubCacheTtlMinutes.toString()
+            }
+            list.addWidgetRow(Component.translatable("vrmmod.config.vroidhub_cache_ttl"), Component.translatable("vrmmod.config.vroidhub_cache_ttl.tooltip"), vroidHubCacheTtlInput!!)
+        }
+
         addRenderableWidget(list)
 
         addRenderableWidget(
@@ -209,6 +219,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             firstPersonMode = firstPersonButton?.value ?: FirstPersonMode.VRM_MC_CAMERA,
             vroidHubModelId = oldConfig.vroidHubModelId,
             modelSource = modelSourceButton?.value ?: ModelSource.LOCAL,
+            vroidHubCacheTtlMinutes = vroidHubCacheTtlInput?.value?.toIntOrNull() ?: 10080,
         )
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
@@ -356,13 +367,23 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
                 }
 
                 addRenderableWidget(
+                    Button.builder(Component.translatable("vrmmod.vroidhub.refresh")) { _ ->
+                        val token = VRoidHubAuth.loadToken(configDir.toPath())
+                        if (token != null && !token.isExpired) {
+                            vroidHubState = VRoidHubState.LOADING_MODELS; buildWidgets()
+                            fetchUserAndModels(token.accessToken, forceRefresh = true)
+                        }
+                    }.bounds(210, height - 26, 60, 20).build()
+                )
+
+                addRenderableWidget(
                     Button.builder(Component.translatable("vrmmod.vroidhub.logout")) { _ ->
                         VRoidHubAuth.loadToken(configDir.toPath())?.let { token ->
                             CompletableFuture.runAsync { VRoidHubAuth.revokeToken(vroidConfig, token.accessToken) }
                         }
                         VRoidHubAuth.deleteToken(configDir.toPath())
                         setupLoginState()
-                    }.bounds(210, height - 26, 60, 20).build()
+                    }.bounds(275, height - 26, 60, 20).build()
                 )
             }
             else -> {}
@@ -483,15 +504,39 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             }
     }
 
-    private fun fetchUserAndModels(accessToken: String) {
+    private fun fetchUserAndModels(accessToken: String, forceRefresh: Boolean = false) {
+        val gameDir = Minecraft.getInstance().gameDirectory.toPath()
+        val ttlMinutes = VrmModClient.currentConfig.vroidHubCacheTtlMinutes
+
+        // Try cached data first
+        if (!forceRefresh) {
+            val cached = VRoidHubModelCache.loadApiCache(gameDir)
+            if (cached != null && !cached.isExpired(ttlMinutes)) {
+                userName = cached.userName
+                heartModels = cached.hearts; myModels = cached.accountModels
+                vroidHubState = VRoidHubState.LOGGED_IN; selectedModel = null; scrollOffset = 0; buildWidgets()
+                return
+            }
+        }
+
         CompletableFuture.supplyAsync {
             Triple(VRoidHubApi.getAccount(accessToken).getOrNull(),
                 VRoidHubApi.getHearts(accessToken).getOrElse { emptyList() },
                 VRoidHubApi.getAccountCharacterModels(accessToken).getOrElse { emptyList() })
         }.thenAccept { (account, hearts, mine) ->
             Minecraft.getInstance().execute {
-                userName = account?.user_detail?.user?.name ?: ""
+                val name = account?.user_detail?.user?.name ?: ""
+                userName = name
                 heartModels = hearts; myModels = mine
+
+                // Save to cache
+                VRoidHubModelCache.saveApiCache(gameDir, net.narazaka.vrmmod.vroidhub.ApiResponseCache(
+                    fetchedAt = java.time.Instant.now().toString(),
+                    userName = name,
+                    hearts = hearts,
+                    accountModels = mine,
+                ))
+
                 vroidHubState = VRoidHubState.LOGGED_IN; selectedModel = null; scrollOffset = 0; buildWidgets()
             }
         }

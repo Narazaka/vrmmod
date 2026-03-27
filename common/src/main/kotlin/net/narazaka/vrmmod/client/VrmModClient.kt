@@ -134,11 +134,14 @@ object VrmModClient {
                 }
             }
 
-            // Check cache: if knownVersionId is set (from screen selection), validate version.
-            // Otherwise (world join), use any cached version without API calls.
+            // Check cache: use knownVersionId if provided, otherwise try API cache,
+            // otherwise use any cached version (no API calls needed).
             val gameDir = Minecraft.getInstance().gameDirectory.toPath()
-            val cached = if (knownVersionId.isNotEmpty()) {
-                VRoidHubModelCache.getCachedModel(gameDir, modelId, knownVersionId)
+            val versionId = knownVersionId.ifEmpty {
+                VRoidHubModelCache.loadApiCache(gameDir)?.findVersionId(modelId) ?: ""
+            }
+            val cached = if (versionId.isNotEmpty()) {
+                VRoidHubModelCache.getCachedModel(gameDir, modelId, versionId)
             } else {
                 VRoidHubModelCache.getCachedModelAnyVersion(gameDir, modelId)
             }
@@ -164,7 +167,7 @@ object VrmModClient {
                 return@supplyAsync null
             }
 
-            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, knownVersionId, vrmBytes)
+            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, versionId, vrmBytes)
             VrmMod.logger.info("VRoid Hub model cached: {}", file.absolutePath)
             file
         }.thenAccept { file ->
