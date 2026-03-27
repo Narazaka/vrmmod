@@ -37,6 +37,12 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var useVrmaToggle: CycleButton<Boolean>? = null
     private var firstPersonButton: CycleButton<FirstPersonMode>? = null
     private var modelSourceButton: CycleButton<ModelSource>? = null
+    private var heldItemScaleInput: EditBox? = null
+    private var heldItemOffsetXInput: EditBox? = null
+    private var heldItemOffsetYInput: EditBox? = null
+    private var heldItemOffsetZInput: EditBox? = null
+    private var heldItemFirstPersonToggle: CycleButton<Boolean>? = null
+    private var heldItemThirdPersonToggle: CycleButton<Boolean>? = null
 
     // --- VRoid Hub state ---
     private var vroidHubState = VRoidHubState.LOADING
@@ -107,17 +113,23 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     private fun buildSettingsWidgets() {
         val config = VrmModConfig.load(configDir)
+        val animConfig = AnimationConfig.load(configDir)
         val contentTop = 30
-        val rowHeight = 26
+        val rowHeight = 22
         val fieldX = width / 2
         val fieldWidth = width / 2 - 15
+        var row = 0
 
         settingsRows = listOf(
-            SettingsRow("vrmmod.config.model_source", "vrmmod.config.model_source.tooltip", contentTop),
-            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop + rowHeight),
-            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight * 2),
-            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * 3),
-            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * 4),
+            SettingsRow("vrmmod.config.model_source", "vrmmod.config.model_source.tooltip", contentTop + rowHeight * row),
+            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop + rowHeight * (row + 1)),
+            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight * (row + 2)),
+            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * (row + 3)),
+            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * (row + 4)),
+            SettingsRow("vrmmod.config.held_item_scale", "vrmmod.config.held_item_scale.tooltip", contentTop + rowHeight * (row + 5)),
+            SettingsRow("vrmmod.config.held_item_offset", "vrmmod.config.held_item_offset.tooltip", contentTop + rowHeight * (row + 6)),
+            SettingsRow("vrmmod.config.held_item_first_person", "vrmmod.config.held_item_first_person.tooltip", contentTop + rowHeight * (row + 7)),
+            SettingsRow("vrmmod.config.held_item_third_person", "vrmmod.config.held_item_third_person.tooltip", contentTop + rowHeight * (row + 8)),
         )
 
         modelSourceButton = CycleButton.builder<ModelSource> { source ->
@@ -156,6 +168,58 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
                 addRenderableWidget(it)
             }
 
+        // Held item settings
+        val offsetFieldWidth = (fieldWidth - 60) / 3
+        val heldItemRow = contentTop + rowHeight * 5
+
+        heldItemScaleInput = EditBox(font, fieldX, heldItemRow, fieldWidth - 55, 18, Component.literal("Scale")).also {
+            it.setMaxLength(10)
+            it.value = animConfig.heldItemScale.toString()
+            addRenderableWidget(it)
+        }
+        addRenderableWidget(
+            Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
+                heldItemScaleInput?.value = "0.67"
+            }.bounds(fieldX + fieldWidth - 50, heldItemRow, 50, 18).build()
+        )
+
+        val offsetRow = contentTop + rowHeight * 6
+        val offset = animConfig.heldItemOffset
+        heldItemOffsetXInput = EditBox(font, fieldX, offsetRow, offsetFieldWidth, 18, Component.literal("X")).also {
+            it.setMaxLength(10)
+            it.value = offset.getOrElse(0) { 0f }.toString()
+            addRenderableWidget(it)
+        }
+        heldItemOffsetYInput = EditBox(font, fieldX + offsetFieldWidth + 2, offsetRow, offsetFieldWidth, 18, Component.literal("Y")).also {
+            it.setMaxLength(10)
+            it.value = offset.getOrElse(1) { 0.0625f }.toString()
+            addRenderableWidget(it)
+        }
+        heldItemOffsetZInput = EditBox(font, fieldX + (offsetFieldWidth + 2) * 2, offsetRow, offsetFieldWidth, 18, Component.literal("Z")).also {
+            it.setMaxLength(10)
+            it.value = offset.getOrElse(2) { -0.125f }.toString()
+            addRenderableWidget(it)
+        }
+        addRenderableWidget(
+            Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
+                heldItemOffsetXInput?.value = "0.0"
+                heldItemOffsetYInput?.value = "0.0625"
+                heldItemOffsetZInput?.value = "-0.125"
+            }.bounds(fieldX + (offsetFieldWidth + 2) * 3, offsetRow, 50, 18).build()
+        )
+
+        heldItemFirstPersonToggle = CycleButton.onOffBuilder(animConfig.heldItemFirstPerson)
+            .displayOnlyValue()
+            .create(fieldX, contentTop + rowHeight * 7, fieldWidth, 20, Component.translatable("vrmmod.config.held_item_first_person")).also {
+                addRenderableWidget(it)
+            }
+
+        heldItemThirdPersonToggle = CycleButton.onOffBuilder(animConfig.heldItemThirdPerson)
+            .displayOnlyValue()
+            .create(fieldX, contentTop + rowHeight * 8, fieldWidth, 20, Component.translatable("vrmmod.config.held_item_third_person")).also {
+                addRenderableWidget(it)
+            }
+
         addRenderableWidget(
             Button.builder(Component.translatable("vrmmod.config.save")) { _ -> saveSettings() }
                 .bounds(5, height - 26, 100, 20).build()
@@ -174,6 +238,20 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         )
         VrmModClient.currentConfig = newConfig
         VrmModConfig.save(configDir, newConfig)
+
+        // Save held item settings to animation config
+        val animConfig = AnimationConfig.load(configDir)
+        val newAnimConfig = animConfig.copy(
+            heldItemScale = heldItemScaleInput?.value?.toFloatOrNull() ?: 0.67f,
+            heldItemOffset = listOf(
+                heldItemOffsetXInput?.value?.toFloatOrNull() ?: 0f,
+                heldItemOffsetYInput?.value?.toFloatOrNull() ?: 0.0625f,
+                heldItemOffsetZInput?.value?.toFloatOrNull() ?: -0.125f,
+            ),
+            heldItemFirstPerson = heldItemFirstPersonToggle?.value ?: true,
+            heldItemThirdPerson = heldItemThirdPersonToggle?.value ?: true,
+        )
+        AnimationConfig.save(configDir, newAnimConfig)
 
         reloadModel(newConfig)
         VrmMod.logger.info("Settings saved")

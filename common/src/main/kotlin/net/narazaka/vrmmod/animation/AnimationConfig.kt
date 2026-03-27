@@ -99,6 +99,14 @@ data class AnimationConfig(
             return merged
         }
 
+        fun save(configDir: File, config: AnimationConfig) {
+            val file = File(configDir, "vrmmod-animations.json")
+            try {
+                file.parentFile.mkdirs()
+                file.writeText(gson.toJson(config))
+            } catch (_: Exception) {}
+        }
+
         fun defaultStates(): Map<String, StateConfig> = mapOf(
             // Movement
             "move.idle" to StateConfig("Idle_Loop"),
