@@ -5,6 +5,19 @@ import net.narazaka.vrmmod.vrm.VrmSkeleton
 import org.joml.Quaternionf
 import org.joml.Vector3f
 
+private fun mirrorPoses(poses: BonePoseMap): BonePoseMap {
+    val result = mutableMapOf<HumanBone, BonePose>()
+    for ((bone, pose) in poses) {
+        val targetBone = bone.mirrorPair() ?: bone
+        val mirroredPose = BonePose(
+            translation = Vector3f(-pose.translation.x, pose.translation.y, pose.translation.z),
+            rotation = Quaternionf(pose.rotation.x, -pose.rotation.y, -pose.rotation.z, pose.rotation.w),
+        )
+        result[targetBone] = mirroredPose
+    }
+    return result
+}
+
 /**
  * A [PoseProvider] that selects and plays animation clips based on Minecraft player state.
  *
