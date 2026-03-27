@@ -353,6 +353,7 @@ object VrmRenderer {
      */
     private var headJointCacheModelId: Int = 0
     private val headJointIndicesCache = mutableMapOf<Int, Set<Int>>()
+    private var headDescendantNodesCache: Set<Int> = emptySet()
 
     /**
      * Collects joint indices that are HEAD descendants for a specific skin.
@@ -364,15 +365,16 @@ object VrmRenderer {
         val modelId = System.identityHashCode(model)
         if (modelId != headJointCacheModelId) {
             headJointIndicesCache.clear()
+            headDescendantNodesCache = emptySet()
             headJointCacheModelId = modelId
         }
         headJointIndicesCache[skinIndex]?.let { return it }
-        val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
-            ?: return emptySet()
+
+        val headDescendants = getHeadDescendants(model)
         val skin = model.skeleton.skins.getOrNull(skinIndex) ?: return emptySet()
         val result = mutableSetOf<Int>()
         for ((jointIdx, nodeIdx) in skin.jointNodeIndices.withIndex()) {
-            if (isDescendantOfNode(model.skeleton, nodeIdx, headBoneNode.nodeIndex)) {
+            if (nodeIdx in headDescendants) {
                 result.add(jointIdx)
             }
         }
@@ -380,24 +382,27 @@ object VrmRenderer {
         return result
     }
 
-    private fun isDescendantOfNode(skeleton: net.narazaka.vrmmod.vrm.VrmSkeleton, nodeIndex: Int, ancestorIndex: Int): Boolean {
-        if (nodeIndex == ancestorIndex) return true
-        for ((idx, node) in skeleton.nodes.withIndex()) {
-            if (nodeIndex in node.childIndices) {
-                return isDescendantOfNode(skeleton, idx, ancestorIndex)
-            }
-        }
-        return false
-    }
-
     /**
      * Checks if a node is the HEAD bone or a descendant of HEAD in the node tree.
      * Used for unskinned meshes in first-person mode (three-vrm's _isEraseTarget).
      */
     private fun isHeadDescendantNode(model: VrmModel, nodeIndex: Int): Boolean {
-        val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
-            ?: return false
-        return isDescendantOfNode(model.skeleton, nodeIndex, headBoneNode.nodeIndex)
+        return nodeIndex in getHeadDescendants(model)
+    }
+
+    private fun getHeadDescendants(model: VrmModel): Set<Int> {
+        if (headDescendantNodesCache.isNotEmpty()) return headDescendantNodesCache
+        val headBoneNode = model.humanoid.humanBones[HumanBone.HEAD] ?: return emptySet()
+        val descendants = mutableSetOf<Int>()
+        fun dfs(nodeIndex: Int) {
+            descendants.add(nodeIndex)
+            for (child in model.skeleton.nodes.getOrNull(nodeIndex)?.childIndices ?: emptyList()) {
+                dfs(child)
+            }
+        }
+        dfs(headBoneNode.nodeIndex)
+        headDescendantNodesCache = descendants
+        return descendants
     }
 
     /**
