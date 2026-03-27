@@ -50,13 +50,7 @@ data class VrmModel(
         ): Map<HumanBone, NormalizedBoneInfo> {
             val worldMatrices = VrmSkinningEngine.computeWorldMatrices(skeleton)
 
-            // Build parent lookup
-            val parentOf = IntArray(skeleton.nodes.size) { -1 }
-            for ((i, node) in skeleton.nodes.withIndex()) {
-                for (child in node.childIndices) {
-                    if (child in skeleton.nodes.indices) parentOf[child] = i
-                }
-            }
+            val parentOf = skeleton.parentOf
 
             val result = mutableMapOf<HumanBone, NormalizedBoneInfo>()
             for ((bone, boneNode) in humanoid.humanBones) {
