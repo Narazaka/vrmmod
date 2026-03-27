@@ -72,7 +72,13 @@
 - 旧: `rotateY(PI) + scale(1,1,-1)` = `scale(-1,1,1)` → X軸ミラー（モデル左右反転）
 - 新: bodyYaw回転 + スケールのみ（VRMとMCは同じ+Z前方なので座標変換不要）
 - headTracking: `rotateY(yawRad)` → `rotateY(-yawRad)` に修正
-- CameraMixin にはまだ旧座標系の名残あり（未修正）
+- CameraMixin: XZ offset の座標変換も修正済み（旧 `bodyYaw+PI` + Z反転 → 単純な `bodyYaw` 回転）
+
+### 利き手対応
+- `PoseContext.isLeftHanded`: `player.mainArm == HumanoidArm.LEFT` から取得
+- mirror フラグと XOR: `shouldMirror = currentMirror != context.isLeftHanded`
+- 左利き設定ではバンドルアニメーション（左手主体）がそのまま再生、右利きでは反転
+- アイテム描画・オフハンド判定は MC の `mainArm`/`attackArm`/`useItemHand` が既に利き手を反映するため変更不要
 
 ### VanillaPoseProvider（vrma不使用時のフォールバック）
 - 歩行/走行/しゃがみ/水泳/エリトラ/騎乗のプロシージャルアニメーション
@@ -155,6 +161,18 @@
 - `hurtTime` は PlayerRenderState に直接なし → `player.hurtTime` を extractRenderState でキャプチャ
 - `rightHandItem` / `leftHandItem` は `ArmedEntityRenderState` から取得（`ItemStackRenderState`）
 - 一人称ではエンティティレンダラーが呼ばれない（`collectVisibleEntities` がカメラエンティティをスキップ）
+- `TieredItem` は MC 1.21.4 に存在しない（`SwordItem` 等の共通親クラスだった）→ `ItemTags` ベースで武器判定
+- `ItemStack.getTags()` は `Stream<TagKey<Item>>` を返す。`TagKey.location()` で `ResourceLocation` 取得
+- `ItemModelResolver.updateForLiving()` で `ItemStack` → `ItemStackRenderState` を構築可能（一人称アイテム描画で使用）
+
+### レイキャスト（エイム）の仕組み
+- `GameRenderer.pick(float)` → `pick(Entity, blockRange, entityRange, partialTick)`
+- レイ起点: `entity.getEyePosition(partialTick)` = 足元 + `entity.eyeHeight`（**Camera は使わない**）
+- レイ方向: `entity.getViewVector(partialTick)` = マウスの yaw/pitch から計算
+- `Entity.eyeHeight` は `private` フィールド、`refreshDimensions()` で `getDimensions(pose).eyeHeight()` から設定
+- `getEyeHeight()` と `getEyePosition()` は `final` → Mixin でオーバーライド不可
+- カメラ位置とレイキャスト起点は独立 → VRM_VRM_CAMERA でカメラを動かしてもエイムがずれる
+- 解決: `GameRendererMixin` で `pick()` 全体を差し替え、起点を `Camera.getPosition()` に変更
 
 ### RenderType
 - `entityCutoutNoCull` は **QUADS モード**（`VertexFormat.Mode.QUADS`）
@@ -221,6 +239,31 @@
 10. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
 11. **README / ドキュメント**: 使い方、設定ファイルの説明
 12. **CI/CD / リリースビルド**: GitHub Actions、Modrinth/CurseForge パッケージング
+
+## 設計書・計画書
+
+### 設計書 (`docs/superpowers/specs/`)
+- `2026-03-24-vrm-minecraft-mod-design.md` — 全体設計
+- `2026-03-26-vroid-hub-integration-design.md` — VRoid Hub 連携
+- `2026-03-27-hierarchical-animation-states-design.md` — 階層型アニメーションステート
+- `2026-03-27-offhand-animation-support-design.md` — オフハンドアニメーション
+- `2026-03-27-held-item-rendering-design.md` — アイテム手持ち描画
+- `2026-03-27-animation-mirror-design.md` — アニメーション左右反転
+- `2026-03-27-settings-scroll-categories-design.md` — 設定画面スクロール・カテゴリ
+
+### 計画書 (`docs/superpowers/plans/`)
+- `2026-03-24-vrm-mod-mvp.md` — MVP計画
+- `2026-03-25-vrm-v0-support.md` — VRM 0.x 対応
+- `2026-03-27-hierarchical-animation-states.md` — 階層型ステート実装
+- `2026-03-27-offhand-animation-support.md` — オフハンド対応実装
+- `2026-03-27-held-item-rendering.md` — アイテム描画実装
+- `2026-03-27-animation-mirror.md` — mirror 実装
+- `2026-03-27-settings-scroll-categories.md` — 設定画面改善
+- `2026-03-27-code-review-fixes.md` — コードレビュー修正
+
+## 開発環境メモ
+- `minecraft-dev-mcp` MCP サーバー: MC 1.21.4 mojmap でインデックス済み（`search_indexed` で高速検索可能）
+- `analyze_mixin` でMixin の妥当性検証が可能
 
 ## リファレンス実装
 - three-vrm (pixiv) をリファレンスとして使用する方針
