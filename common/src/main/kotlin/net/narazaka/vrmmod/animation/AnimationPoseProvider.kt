@@ -77,7 +77,7 @@ class AnimationPoseProvider(
             val currentClip = clips[currentClipName]
             if (currentClip != null) {
                 prevPose = currentClip.sample(currentTime)
-                if (currentMirror) {
+                if (currentMirror != context.isLeftHanded) {
                     prevPose = mirrorPoses(prevPose)
                 }
                 scaleHipsTranslation(prevPose, currentClip)?.let { prevPose = it }
@@ -94,7 +94,8 @@ class AnimationPoseProvider(
         // Sample current clip
         val clip = clips[currentClipName] ?: return emptyMap()
         var poses = clip.sample(currentTime)
-        if (currentMirror) {
+        val shouldMirror = currentMirror != context.isLeftHanded
+        if (shouldMirror) {
             poses = mirrorPoses(poses)
         }
         poses = scaleHipsTranslation(poses, clip) ?: poses

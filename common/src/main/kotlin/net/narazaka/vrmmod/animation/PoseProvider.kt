@@ -78,6 +78,8 @@ data class PoseContext(
     val isOffHandSwing: Boolean = false,
     /** True when the item being continuously used is in the off hand. */
     val isOffHandUse: Boolean = false,
+    /** True when the player's main hand is left. */
+    val isLeftHanded: Boolean = false,
 
     // --- Damage ---
     /** MC hurt time (>0 when recently damaged). */

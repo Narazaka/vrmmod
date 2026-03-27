@@ -90,6 +90,7 @@ public class LivingEntityRendererMixin {
                 /* offHandItemTags */   VrmRenderContext.OFF_HAND_ITEM_TAGS.get(),
                 /* isOffHandSwing */    renderState.attackArm != renderState.mainArm,
                 /* isOffHandUse */      renderState.useItemHand != InteractionHand.MAIN_HAND,
+                /* isLeftHanded */      renderState.mainArm == net.minecraft.world.entity.HumanoidArm.LEFT,
                 /* hurtTime */          VrmRenderContext.HURT_TIME.get()
         );
     }

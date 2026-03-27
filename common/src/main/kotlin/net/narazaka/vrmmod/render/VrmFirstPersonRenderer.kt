@@ -68,6 +68,7 @@ object VrmFirstPersonRenderer {
             entityX = (player.xOld + (player.x - player.xOld) * partialTick).toFloat(),
             entityY = (player.yOld + (player.y - player.yOld) * partialTick).toFloat(),
             entityZ = (player.zOld + (player.z - player.zOld) * partialTick).toFloat(),
+            isLeftHanded = player.mainArm == net.minecraft.world.entity.HumanoidArm.LEFT,
             hurtTime = player.hurtTime.toFloat(),
         )
 
