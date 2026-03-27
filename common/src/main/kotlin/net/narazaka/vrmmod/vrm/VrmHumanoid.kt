@@ -82,6 +82,9 @@ enum class HumanBone(val vrmName: String) {
     RIGHT_LITTLE_DISTAL("rightLittleDistal"),
     ;
 
+    /** Returns the opposite-side bone for left/right pairs, or null for center bones. */
+    fun mirrorPair(): HumanBone? = MIRROR_PAIRS[this]
+
     companion object {
         private val byVrmName = entries.associateBy { it.vrmName }
 
@@ -90,5 +93,33 @@ enum class HumanBone(val vrmName: String) {
          * @return the matching [HumanBone] or null if not found
          */
         fun fromVrmName(name: String): HumanBone? = byVrmName[name]
+
+        private val MIRROR_PAIRS: Map<HumanBone, HumanBone> = buildMap {
+            fun pair(a: HumanBone, b: HumanBone) { put(a, b); put(b, a) }
+            pair(LEFT_EYE, RIGHT_EYE)
+            pair(LEFT_UPPER_LEG, RIGHT_UPPER_LEG)
+            pair(LEFT_LOWER_LEG, RIGHT_LOWER_LEG)
+            pair(LEFT_FOOT, RIGHT_FOOT)
+            pair(LEFT_TOES, RIGHT_TOES)
+            pair(LEFT_SHOULDER, RIGHT_SHOULDER)
+            pair(LEFT_UPPER_ARM, RIGHT_UPPER_ARM)
+            pair(LEFT_LOWER_ARM, RIGHT_LOWER_ARM)
+            pair(LEFT_HAND, RIGHT_HAND)
+            pair(LEFT_THUMB_METACARPAL, RIGHT_THUMB_METACARPAL)
+            pair(LEFT_THUMB_PROXIMAL, RIGHT_THUMB_PROXIMAL)
+            pair(LEFT_THUMB_DISTAL, RIGHT_THUMB_DISTAL)
+            pair(LEFT_INDEX_PROXIMAL, RIGHT_INDEX_PROXIMAL)
+            pair(LEFT_INDEX_INTERMEDIATE, RIGHT_INDEX_INTERMEDIATE)
+            pair(LEFT_INDEX_DISTAL, RIGHT_INDEX_DISTAL)
+            pair(LEFT_MIDDLE_PROXIMAL, RIGHT_MIDDLE_PROXIMAL)
+            pair(LEFT_MIDDLE_INTERMEDIATE, RIGHT_MIDDLE_INTERMEDIATE)
+            pair(LEFT_MIDDLE_DISTAL, RIGHT_MIDDLE_DISTAL)
+            pair(LEFT_RING_PROXIMAL, RIGHT_RING_PROXIMAL)
+            pair(LEFT_RING_INTERMEDIATE, RIGHT_RING_INTERMEDIATE)
+            pair(LEFT_RING_DISTAL, RIGHT_RING_DISTAL)
+            pair(LEFT_LITTLE_PROXIMAL, RIGHT_LITTLE_PROXIMAL)
+            pair(LEFT_LITTLE_INTERMEDIATE, RIGHT_LITTLE_INTERMEDIATE)
+            pair(LEFT_LITTLE_DISTAL, RIGHT_LITTLE_DISTAL)
+        }
     }
 }
