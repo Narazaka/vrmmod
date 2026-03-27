@@ -244,17 +244,19 @@ object VrmRenderer {
         applyModelTransform(poseStack, bodyYawRad, scale)
 
         // Apply hand bone world matrix
-        poseStack.last().pose().mul(handMatrix)
-        poseStack.last().normal().mul(org.joml.Matrix3f(handMatrix))
+        poseStack.mulPose(handMatrix)
 
         // Item orientation adjustments for VRM hand bone coordinate system
-        poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
+        // VRM hand bone: fingers along ±X, palm faces -Y in T-pose
+        // MC items: handle at origin, blade/tip extends +Y
+        // 1. Z rotation: align blade (+Y) with finger direction (±X)
+        poseStack.mulPose(org.joml.Quaternionf().rotateZ((if (isLeft) Math.PI / 2 else -Math.PI / 2).toFloat()))
+        // 2. Y rotation: flip blade face to correct side
         poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
-        poseStack.translate(
-            (if (isLeft) -1 else 1) / 16.0f,
-            0.125f,
-            -0.625f
-        )
+        // 3. X rotation: tilt blade forward 90° (natural hold angle)
+        poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
+        // 4. Offset: shift grip point to hand bone position
+        poseStack.translate(0f, 0.0625f, -0.125f)
 
         itemRenderState.render(poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY)
         poseStack.popPose()
