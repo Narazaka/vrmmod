@@ -254,9 +254,15 @@
 - デフォルト: TRIANGLES モード + NormalMode.AUTO（空 JSON 設定でも最適な動作）
 
 ### 技術的知見
-- NeoForge は JPMS を使うため `net.minecraft.client.renderer` パッケージに mod クラスを置くとパッケージ衝突
+- NeoForge は JPMS を使うため `net.minecraft.client.renderer` パッケージに mod クラスを置くとパッケージ衝突（同一パッケージトリック不可）
 - Fabric は intermediary マッピングのためリフレクションでメソッド名/フィールド名指定が不可
 - Access Widener が Architectury (Fabric + NeoForge) での正規のアクセス手段
+- Iris Issue #1406: 法線上書き問題。修正は TRIANGLES のみ適用、QUADS は意図的に面法線上書き維持（ブロック描画の法線が不正確なため）
+- Iris の `ImmediateState.isRenderingLevel` が true（ワールド描画中）のときのみ QUADS 法線を上書き
+- Iris の `IrisApi.getInstance().isShaderPackInUse()` でシェーダーパック有効を検出可能（リフレクション経由、`ShaderDetector.kt`）
+- Iris は RenderType 名に `entity` を含むものを `gbuffers_entities` にルーティングする（カスタム RenderType 名に `vrm_entity_` prefix を使用）
+- MC 1.21.4 の `VertexFormat.Mode.QUADS` と `TRIANGLES` はどちらも最終的に `GL_TRIANGLES` だが、QUADS は4頂点→6インデックス変換、TRIANGLES は3頂点そのまま
+- Complementary / BSL 等のシェーダーパックは `gbuffers_entities` で `smooth` interpolation を使用（`flat` ではない）。フラットシェーディングの原因はシェーダーパック側ではなく Iris のパイプライン側
 
 ### 設定項目（`vrmmod-animations.json`）
 - `normalMode`: AUTO（デフォルト）/ OFF / ON — 法線モード
@@ -268,8 +274,18 @@
 ### 高優先
 1. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
 
+### 中優先（次に着手予定）
+2. **MToon カスタムシェーダー**: 設計ブレインストーミング途中。以下が合意済み:
+   - **バニラ + Iris 両対応**: バニラ環境ではカスタム RenderType + フラグメントシェーダー、Iris 環境では shader pack として実装。Iris の有無で分岐
+   - **スコープ**: まず A（コア機能のみ）から。baseColor/shadeColor の2色トゥーン + shadingToonyFactor + shadingShiftFactor。パラメータは既にパース済み（`VrmExtensionParser.parseMtoonMaterials`、`VrmMtoonMaterial` data class）
+   - **RenderType 方式**: 既存シェーダー名上書きではなく、カスタムシェーダー名の RenderType を作成（VRM モデルだけに MToon が適用される、他エンティティに影響しない）
+   - **パラメータ受け渡し**: 頂点カラーの RGB に shadeColor をエンコード、toony/shift はまずシェーダー内ハードコード（デフォルト値 toony=0.9, shift=0.0）で始める方針（未確定、次セッションで確認要）
+   - **ON/OFF 切り替え**: バニラでもシェーダー有効/無効を設定で切り替え可能にする
+   - **影色ティント（既存）**: `useShadeColorTint` オプションは頂点カラーに shadeColor を直接設定する方式だが、乗算パイプライン（`texture × vertexColor × lighting`）の制約で影部分だけの色制御は不可能。効果は限定的で微妙。MToon シェーダー実装後は不要になる可能性あり
+   - **将来拡張 B**: shadeMultiplyTexture、matcap、rim light、outline
+   - **将来拡張 C**: MToon 1.0 フル準拠（emissive、UV animation、transparentWithZWrite 等）
+
 ### 中優先
-2. **MToon カスタムシェーダー**: バニラ環境向けカスタム RenderType + フラグメントシェーダーで 2色トゥーンシェーディング（baseColor/shadeColor + toony/shift）。Iris 環境向けは shader pack として別途実装。shadeColorFactor/shadingToonyFactor/shadingShiftFactor は既にパース済み
 3. **一人称カメラ XZ 揺れ問題**: アイドルモーション等でカメラが揺れる。FPSゲームの知見（ビューモデルは揺れるがカメラは固定）を取り入れた設計が必要
 4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
 5. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
