@@ -13,15 +13,25 @@ data class VRoidHubConfig(
     companion object {
         private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
 
+        private val logger get() = try {
+            net.narazaka.vrmmod.VrmMod.logger
+        } catch (_: Exception) {
+            org.slf4j.LoggerFactory.getLogger(VRoidHubConfig::class.java)
+        }
+
         fun load(configDir: Path): VRoidHubConfig {
-            val file = configDir.resolve("vrmmod-vroidhub.json").toFile()
-            if (!file.exists()) return VRoidHubConfig()
-            return try {
-                gson.fromJson(file.readText(), VRoidHubConfig::class.java) ?: VRoidHubConfig()
-            } catch (e: Exception) {
-                net.narazaka.vrmmod.VrmMod.logger.warn("Failed to load VRoid Hub config", e)
-                VRoidHubConfig()
+            val file = configDir.resolve("vrmmod-vroidhub-secrets.json").toFile()
+            if (file.exists()) {
+                try {
+                    val loaded = gson.fromJson(file.readText(), VRoidHubConfig::class.java)
+                    if (loaded != null && loaded.isAvailable) {
+                        return loaded
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Failed to load VRoid Hub config", e)
+                }
             }
+            return VRoidHubSecrets.defaultConfig()
         }
     }
 }
