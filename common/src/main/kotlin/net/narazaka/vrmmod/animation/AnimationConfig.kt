@@ -94,7 +94,9 @@ data class AnimationConfig(
             try {
                 file.parentFile.mkdirs()
                 file.writeText(gson.toJson(merged))
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                VrmMod.logger.warn("Failed to write animation config", e)
+            }
 
             return merged
         }
@@ -104,7 +106,9 @@ data class AnimationConfig(
             try {
                 file.parentFile.mkdirs()
                 file.writeText(gson.toJson(config))
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                VrmMod.logger.warn("Failed to save animation config", e)
+            }
         }
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
