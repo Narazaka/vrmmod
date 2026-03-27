@@ -44,6 +44,20 @@ object VrmFirstPersonRenderer {
         val walkPos = player.walkAnimation.position(partialTick)
         val walkSpeed = player.walkAnimation.speed(partialTick)
 
+        // Extract item tags from player entity (same logic as PlayerRendererMixin)
+        val mainHandTags = mutableListOf<String>()
+        player.mainHandItem.tags.forEach { tagKey ->
+            val loc = tagKey.location()
+            if (loc.namespace == "minecraft") mainHandTags.add(loc.path)
+            else mainHandTags.add(loc.toString())
+        }
+        val offHandTags = mutableListOf<String>()
+        player.offhandItem.tags.forEach { tagKey ->
+            val loc = tagKey.location()
+            if (loc.namespace == "minecraft") offHandTags.add(loc.path)
+            else offHandTags.add(loc.toString())
+        }
+
         val poseContext = PoseContext(
             partialTick = partialTick,
             limbSwing = walkPos,
@@ -68,6 +82,10 @@ object VrmFirstPersonRenderer {
             entityX = (player.xOld + (player.x - player.xOld) * partialTick).toFloat(),
             entityY = (player.yOld + (player.y - player.yOld) * partialTick).toFloat(),
             entityZ = (player.zOld + (player.z - player.zOld) * partialTick).toFloat(),
+            mainHandItemTags = mainHandTags,
+            offHandItemTags = offHandTags,
+            isOffHandSwing = player.swingingArm != net.minecraft.world.InteractionHand.MAIN_HAND,
+            isOffHandUse = player.usedItemHand != net.minecraft.world.InteractionHand.MAIN_HAND,
             isLeftHanded = player.mainArm == net.minecraft.world.entity.HumanoidArm.LEFT,
             hurtTime = player.hurtTime.toFloat(),
         )
