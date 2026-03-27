@@ -11,6 +11,7 @@ import dev.architectury.registry.client.keymappings.KeyMappingRegistry
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import java.io.File
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -89,6 +90,7 @@ object VrmModClient {
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register { _ ->
             VrmMod.logger.info("Unloading all VRM models")
             VrmPlayerManager.clear()
+            net.narazaka.vrmmod.network.MultiplayModelHandler.reset()
         }
     }
 
@@ -175,6 +177,11 @@ object VrmModClient {
                 VrmMod.logger.info("VRoid Hub model ready, loading: {}", file.absolutePath)
                 Minecraft.getInstance().execute {
                     VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig, useVrmaAnimation)
+                    // Announce model to server for multiplayer sync
+                    val state = VrmPlayerManager.get(uuid)
+                    if (state != null) {
+                        announceModel(uuid, modelId, state.cachedScale)
+                    }
                 }
             } else {
                 VrmMod.logger.error("VRoid Hub model download returned null")
@@ -182,6 +189,48 @@ object VrmModClient {
         }.exceptionally { e ->
             VrmMod.logger.error("VRoid Hub model load failed with exception", e)
             null
+        }
+    }
+
+    /**
+     * Sends the current player's VRM model info to the server for multiplayer sync.
+     */
+    private fun announceModel(uuid: UUID, modelId: String?, scale: Float) {
+        if (modelId == null) {
+            try {
+                dev.architectury.networking.NetworkManager.sendToServer(
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload(null, null, 1.0f)
+                )
+            } catch (e: Exception) {
+                VrmMod.logger.debug("Could not send model clear (server may not have mod): {}", e.message)
+            }
+            return
+        }
+
+        val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
+        val vroidConfig = VRoidHubConfig.load(configDir.toPath())
+        if (!vroidConfig.isAvailable) return
+
+        CompletableFuture.supplyAsync {
+            val token = VRoidHubAuth.loadToken(configDir.toPath()) ?: return@supplyAsync null
+            val licenseResult = VRoidHubApi.postDownloadLicenseMultiplay(token.accessToken, modelId)
+            licenseResult.getOrElse { e ->
+                VrmMod.logger.warn("Failed to get multiplay license: {}", e.message)
+                null
+            }
+        }.thenAccept { license ->
+            try {
+                dev.architectury.networking.NetworkManager.sendToServer(
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload(
+                        vroidHubModelId = modelId,
+                        multiplayLicenseId = license?.id,
+                        scale = scale,
+                    )
+                )
+                VrmMod.logger.info("Announced VRM model to server: {} (license: {})", modelId, license?.id != null)
+            } catch (e: Exception) {
+                VrmMod.logger.debug("Could not send model announce (server may not have mod): {}", e.message)
+            }
         }
     }
 }
