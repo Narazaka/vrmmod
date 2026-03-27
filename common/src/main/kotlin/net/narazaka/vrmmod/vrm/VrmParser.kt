@@ -319,7 +319,7 @@ object VrmParser {
         val bufferViewIndex = accessor.bufferView
         if (bufferViewIndex != null) {
             val accessorByteOffset = accessor.byteOffset ?: accessor.defaultByteOffset() ?: 0
-            val baseData = readBufferViewFloats(bufferViewIndex, gltf, binaryData, count * numComponents, accessorByteOffset)
+            val baseData = readBufferViewFloats(bufferViewIndex, gltf, binaryData, count * numComponents, accessorByteOffset, numComponents)
             baseData.copyInto(result)
         }
 
@@ -369,7 +369,11 @@ object VrmParser {
     }
 
     /**
-     * Reads float values from a buffer view.
+     * Reads float values from a buffer view, respecting byteStride.
+     *
+     * @param numComponents number of float components per element (e.g. 3 for VEC3)
+     *   Used to determine element size for stride calculation. When 0, reads
+     *   sequentially (legacy tightly-packed behavior).
      */
     private fun readBufferViewFloats(
         bufferViewIndex: Int,
@@ -377,15 +381,35 @@ object VrmParser {
         binaryData: ByteBuffer,
         count: Int,
         accessorByteOffset: Int = 0,
+        numComponents: Int = 0,
     ): FloatArray {
         val bufferViews = gltf.bufferViews ?: return floatArrayOf()
         val bv = bufferViews.getOrNull(bufferViewIndex) ?: return floatArrayOf()
         val offset = (bv.byteOffset ?: bv.defaultByteOffset() ?: 0) + accessorByteOffset
         val buf = binaryData.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-        buf.position(offset)
+
+        val byteStride = bv.byteStride ?: 0
+        val elementByteSize = if (numComponents > 0) numComponents * 4 else 0
+        val hasStride = byteStride > 0 && elementByteSize > 0 && byteStride != elementByteSize
+
+        if (!hasStride) {
+            // Tightly packed: read sequentially
+            buf.position(offset)
+            val result = FloatArray(count)
+            for (i in 0 until count) {
+                result[i] = buf.float
+            }
+            return result
+        }
+
+        // Interleaved: respect byteStride between elements
+        val numElements = count / numComponents
         val result = FloatArray(count)
-        for (i in 0 until count) {
-            result[i] = buf.float
+        for (elem in 0 until numElements) {
+            buf.position(offset + elem * byteStride)
+            for (comp in 0 until numComponents) {
+                result[elem * numComponents + comp] = buf.float
+            }
         }
         return result
     }
