@@ -107,13 +107,18 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Attack swing ----
 
     private fun applySwingAttack(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        val existing = poses[HumanBone.RIGHT_UPPER_ARM]
+        // Determine which arm is swinging:
+        // isOffHandSwing XOR isLeftHanded → true means left arm swings
+        val isLeftArm = ctx.isOffHandSwing != ctx.isLeftHanded
+        val upperArm = if (isLeftArm) HumanBone.LEFT_UPPER_ARM else HumanBone.RIGHT_UPPER_ARM
+        val lowerArm = if (isLeftArm) HumanBone.LEFT_LOWER_ARM else HumanBone.RIGHT_LOWER_ARM
+
+        val existing = poses[upperArm]
         val baseRot = existing?.rotation ?: Quaternionf()
-        poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
+        poses[upperArm] = BonePose(
             rotation = Quaternionf(baseRot).rotateX(-1.2f),
         )
-        // Bend elbow more during attack
-        poses[HumanBone.RIGHT_LOWER_ARM] = BonePose(
+        poses[lowerArm] = BonePose(
             rotation = Quaternionf().rotateX(Math.toRadians(45.0).toFloat()),
         )
     }
