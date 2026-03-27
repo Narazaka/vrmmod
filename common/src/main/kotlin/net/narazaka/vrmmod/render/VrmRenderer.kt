@@ -224,11 +224,8 @@ object VrmRenderer {
         bodyYawRad: Float,
     ) {
         val scale = estimateScale(state)
-        // VRM LEFT_HAND bone = physical right hand (Z-flip), RIGHT_HAND = physical left hand
-        // MC rightHandItem = main hand → physical right hand = LEFT_HAND bone, isLeft=false
-        // MC leftHandItem = off hand → physical left hand = RIGHT_HAND bone, isLeft=true
-        renderSingleHandItem(state.leftHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
-        renderSingleHandItem(state.rightHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
     }
 
     private fun renderSingleHandItem(
