@@ -28,6 +28,7 @@ logs/
 
 # Claude Code
 .claude/
+.worktrees/
 
 # Extracted class files (from javap/jar xf by subagents)
 /de/
