@@ -1,4 +1,4 @@
-# VRM Mod 現状と残課題（2026-03-25時点）
+# VRM Mod 現状と残課題（2026-03-27時点）
 
 ## 完成済み機能
 
@@ -31,12 +31,48 @@
 - hips translation: vrma/モデルの高さ比でスケーリング。rest position を置き換え（加算ではない）
 - クロスフェード: クリップ切替時に slerp/lerp でブレンド。状態依存の遷移時間
 - 方向検出: entityPos差分とbodyYawの角度差で forward/backward/left/right を判定
-- 攻撃モーション: isSwinging の立ち上がりエッジで1回再生
 - headTracking: アニメーションのHEAD回転にheadYaw/headPitchを乗算
 - JSON設定（`vrmmod-animations.json`）: states, transitions（ネストマップ+ワイルドカード）, thresholds
 - animationDir に `vrmmod-animations.json` があればそちらを優先読み込み
 - バンドルアニメーション: Quaternius UAL1_Standard.vrma (CC0) を mod リソースに同梱
 - デフォルトクリップ名は vrma-quaternius-v2 準拠
+- `useVrmaAnimation=false` でバンドル含む全VRMAを無効化し VanillaPoseProvider にフォールバック
+
+### 階層型アニメーションステート
+- ドット区切りのステート名（`move.walk.forward`, `action.swing.weapon.swords` 等）
+- `resolveState()`: 右端のセグメントを削りながらフォールバック解決
+- `resolveStateConfig()`: StateConfig も同じ階層フォールバック
+- `getTransitionDuration()`: from/to 両方で階層フォールバック + ワイルドカード `*`
+- `weaponTags`: 設定ファイルで武器タグを定義（デフォルト: swords, axes, pickaxes, shovels, hoes）
+- アイテムタグ自動検出: `ItemStack.getTags()` で全タグ取得、`minecraft:` namespace 省略
+- オフハンド対応: `attackArm != mainArm` でswing手判定、`useItemHand` で継続使用手判定
+- `PoseContext.mainHandItemTags` / `offHandItemTags` / `isOffHandSwing` / `isOffHandUse`
+- 連続swing検出: `attackTime` リセット（値が0.1以上下がる）で連続攻撃/採掘アニメーション
+- `forceClipRestart`: 同じクリップでもアニメーション再生を最初からやり直す
+- one-shot判定: `StateConfig.loop` フィールドベース（ハードコードセットを廃止）
+- デフォルトステート設定は `load()` で旧設定とマージ（新ステートの自動追加）
+
+### アニメーション左右反転（mirror）
+- `StateConfig.mirror: Boolean`: per-state の左右反転フラグ
+- `HumanBone.mirrorPair()`: 左右ボーンペアマッピング（25ペア）
+- `mirrorPoses()`: ボーンペア入替 + translation.x 反転 + rotation.y/z 反転
+- バンドルアニメーション（Quaternius）は左手主体のため、mainHand.weapon 等にmirror適用
+- computePose でサンプリング後・scaleHipsTranslation前に適用（クロスフェードスナップショットにも適用）
+
+### アイテム手持ち描画
+- VRM手ボーン（RIGHT_HAND/LEFT_HAND）のワールド行列を `VrmState` に毎フレーム保存
+- `renderHeldItems()` / `renderSingleHandItem()`: 手ボーン位置にMCアイテムを描画
+- `applyModelTransform()`: bodyYaw回転 + スケールを共通関数化（VRMメッシュ/アイテム共用）
+- アイテム向き調整: Z回転（指方向）→ Y180°（面反転）→ X-90°（刃を前に傾ける）
+- 一人称アイテム: `VrmFirstPersonRenderer` で `ItemModelResolver.updateForLiving()` を使用
+- 設定: `heldItemScale`(0.67), `heldItemOffset`[x,y,z], `heldItemFirstPerson`, `heldItemThirdPerson`
+- `PlayerRenderState.rightHandItem`/`leftHandItem`（三人称）は `ArmedEntityRenderState` から取得
+
+### Z-flip 除去
+- 旧: `rotateY(PI) + scale(1,1,-1)` = `scale(-1,1,1)` → X軸ミラー（モデル左右反転）
+- 新: bodyYaw回転 + スケールのみ（VRMとMCは同じ+Z前方なので座標変換不要）
+- headTracking: `rotateY(yawRad)` → `rotateY(-yawRad)` に修正
+- CameraMixin にはまだ旧座標系の名残あり（未修正）
 
 ### VanillaPoseProvider（vrma不使用時のフォールバック）
 - 歩行/走行/しゃがみ/水泳/エリトラ/騎乗のプロシージャルアニメーション
@@ -74,24 +110,28 @@
 - Fabric: `WorldRenderEvents.AFTER_ENTITIES` でフック
 - NeoForge: `RenderLevelStageEvent.Stage.AFTER_ENTITIES` でフック
 - カメラ相対位置でVRMモデルを描画
-- バニラ手の非表示: `PlayerRenderer.renderRightHand/renderLeftHand` を Mixin でキャンセル
+- バニラ手の非表示: `ItemInHandRenderer.renderHandsWithItems` を Mixin でキャンセル
 - 3モード: VANILLA / VRM_MC_CAMERA / VRM_VRM_CAMERA
 - 三角形単位HEAD除去: 3頂点全てがHEADの子孫ジョイントに主にウェイトされている三角形をスキップ
 - `collectHeadJointIndices`: HEAD ボーンの子孫ジョイントインデックスを収集（キャッシュ）
+- 一人称アイテム描画: `VrmFirstPersonRenderer` で `ItemModelResolver.updateForLiving()` を使い手持ちアイテム描画
 
 ### VRM_VRM_CAMERA モード
 - rest-pose の HEAD ワールド行列 × lookAt.offsetFromHeadBone で eyeHeight 計算（モデルロード時1回）
 - 毎フレーム: アニメーション後の HEAD XZ offset（body lean追従）+ rest-pose Y（jitter回避）
-- CameraMixin: XZ offset を `bodyYawRad + PI` で回転して MC ワールド空間に変換（Z-flip考慮）
+- CameraMixin: XZ offset を回転して MC ワールド空間に変換（※旧Z-flip座標系の名残あり — 要修正）
 - MC のしゃがみ等のカメラ Y 変動はそのまま保持
 
 ### コンフィグ
-- `vrmmod.json`: localModelPath, animationDir, useVrmaAnimation, firstPersonMode
-- `vrmmod-animations.json`: states, transitions, headTracking, walkThreshold, runThreshold, damageExpression, damageExpressionDuration
-- 独自 GUI（Minecraft Screen API）
+- `vrmmod.json`: localModelPath, animationDir, useVrmaAnimation, firstPersonMode, modelSource, vroidHubModelId
+- `vrmmod-animations.json`: states(階層型), transitions(階層フォールバック+ワイルドカード), weaponTags, headTracking, walkThreshold, runThreshold, damageExpression, damageExpressionDuration, heldItemScale, heldItemOffset, heldItemFirstPerson, heldItemThirdPerson
+- 独自 GUI（`VrmModScreen` + `VrmSettingsList`）: スクロール可能なカテゴリ分け設定画面
+- カテゴリ: 一般（モデルソース、パス、アニメーション、一人称モード）、表示（アイテムスケール/位置/表示トグル）
+- リセットボタン: アイテムスケール/位置をデフォルト値に戻す
 - Mod Menu 統合（Fabric）、IConfigScreenFactory（NeoForge）
 - ライブリロード: 設定保存時にモデル即再読み込み
 - キーバインド: デフォルト未割当て
+- デフォルトステート/weaponTags のマージ: 新ステート追加時に既存設定を壊さない
 
 ### ビルド・プラットフォーム
 - Architectury API (15.0.3) で Fabric / NeoForge 両対応
@@ -107,10 +147,12 @@
 - Mixin は `LivingEntityRenderer.render(LivingEntityRenderState, ...)` をターゲット
 - `PlayerRenderer.extractRenderState(AbstractClientPlayer, PlayerRenderState, float)` でプレイヤーUUIDをキャプチャ
 - UUID は `VrmRenderContext`（ThreadLocal）で extractRenderState → render 間を受け渡し
-- `PlayerRenderState` のフィールド: `walkAnimationPos`, `walkAnimationSpeed`, `bodyRot`, `yRot`, `xRot`, `isCrouching`, `isVisuallySwimming`, `isFallFlying`, `isPassenger`, `attackTime`, `speedValue`, `swinging`
+- `PlayerRenderState` のフィールド: `walkAnimationPos`, `walkAnimationSpeed`, `bodyRot`, `yRot`, `xRot`, `isCrouching`, `isVisuallySwimming`, `isFallFlying`, `isPassenger`, `attackTime`, `speedValue`, `swinging`, `isUsingItem`, `ticksUsingItem`, `isAutoSpinAttack`, `deathTime`, `attackArm`, `mainArm`, `useItemHand`
 - `isSprinting` は存在しない → `speedValue > 0.9f` で代用
 - `headYaw` は `renderState.yRot`（body 相対値として既に入っている）
 - `hurtTime` は PlayerRenderState に直接なし → `player.hurtTime` を extractRenderState でキャプチャ
+- `rightHandItem` / `leftHandItem` は `ArmedEntityRenderState` から取得（`ItemStackRenderState`）
+- 一人称ではエンティティレンダラーが呼ばれない（`collectVisibleEntities` がカメラエンティティをスキップ）
 
 ### RenderType
 - `entityCutoutNoCull` は **QUADS モード**（`VertexFormat.Mode.QUADS`）
@@ -120,14 +162,14 @@
 ### 座標系変換
 - VRM: 右手系 Y-up、+Z が前方
 - MC: Y-up、+Z が南（エンティティのデフォルト前方）
-- poseStack 変換順: `rotateY(-bodyYawRad)` → `rotateY(PI)` → `scale(1,1,-1)`
-- poseStack は後から適用されたものが先に作用（行列は右から左）
-- SpringBone の worldMatrices には `entityTranslation * rotateY(-bodyYaw)` を注入（Z-flip は含めない — Quaternion で表現不可）
+- 両方 +Z が前方 → 座標系変換不要（Z-flip を除去済み）
+- poseStack 変換: `rotateY(-bodyYawRad)` → `scale(s, s, s)` のみ
+- SpringBone の worldMatrices には `entityTranslation * rotateY(-bodyYaw)` を注入
 
 ### Mixin 配置
-- `PlayerRendererMixin`: extractRenderState フック（UUID + entityPos + onGround + hurtTime キャプチャ）
-- `LivingEntityRendererMixin`: render フック（VRM描画 + バニラキャンセル）
-- `HandRendererMixin`: renderRightHand/renderLeftHand キャンセル
+- `PlayerRendererMixin`: extractRenderState フック（UUID + entityPos + onGround + hurtTime + mainHandItemTags + offHandItemTags キャプチャ）
+- `LivingEntityRendererMixin`: render フック（VRM描画 + アイテム描画 + バニラキャンセル）
+- `HandRendererMixin`: renderHandsWithItems キャンセル（VANILLA モード以外）
 - `CameraMixin`: VRM_VRM_CAMERA モードのカメラ Y/XZ 調整
 - Mixin は Java で記述（Kotlin バイトコードとの互換性問題）
 - `refmap` を vrmmod.mixins.json に明示
@@ -137,26 +179,22 @@
 ## 残課題
 
 ### 高優先
-1. ~~**NeoForge Mixin 追加**~~: 完了済み
-2. ~~**テスト修正**~~: 完了済み
-3. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
+1. **CameraMixin Z-flip名残修正**: eyeOffset の座標変換式が旧座標系（`bodyYawRad + PI` + Z反転）のまま
+2. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
 
 ### 中優先
-4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
-5. ~~**VRoid Hub連携**~~: 完了済み（OAuth PKCE + oob、モデル選択Screen、ライセンス表示、ダウンロードキャッシュ）
-6. ~~**Expression override**~~: 完了済み（three-vrm の VRMExpressionManager に忠実に移植）
-7. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
-8. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
-9. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題。`lookAt.offsetFromHeadBone` の Z が典型的に 0 のためカメラが HEAD と同じ奥行きにある。VRM 仕様・UniVRM・three-vrm にリファレンス実装なし（アプリケーション固有の対策が必要）
+3. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
+4. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
+5. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
+6. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題
 
 ### 低優先
-9. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
-10. ~~**VRM 0.x 対応**~~: 完了済み（VrmV0Converter で v0 JSON → v1 JSON 変換、VrmParser で自動検出）
-11. **特殊メッシュの描画破綻**: `Cynthia_Maya_VRM_チアリーダー.vrm` のポンポンメッシュのみがノイズ状に描画される。VRM Live Viewer では正常に表示される。mesh[2] '.baked(copy)' (31721頂点, 7プリミティブ, skin=2) に含まれ、データ破綻（NaN, インデックス範囲外, サイズ不一致）は検出されていない。原因未特定。VRM 0.x 変換とは無関係（他の VRM 0.x モデルでは発生しない）
-13. **Vivecraft IK**: VR 一人称、3点IK
-13. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
-14. **README / ドキュメント**: 使い方、設定ファイルの説明
-15. **CI/CD / リリースビルド**: GitHub Actions、Modrinth/CurseForge パッケージング
+7. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
+8. **特殊メッシュの描画破綻**: `Cynthia_Maya_VRM_チアリーダー.vrm` のポンポンメッシュのみがノイズ状に描画される
+9. **Vivecraft IK**: VR 一人称、3点IK
+10. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
+11. **README / ドキュメント**: 使い方、設定ファイルの説明
+12. **CI/CD / リリースビルド**: GitHub Actions、Modrinth/CurseForge パッケージング
 
 ## リファレンス実装
 - three-vrm (pixiv) をリファレンスとして使用する方針
