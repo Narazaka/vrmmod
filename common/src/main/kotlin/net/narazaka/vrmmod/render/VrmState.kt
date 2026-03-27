@@ -21,7 +21,27 @@ class VrmState(
     val animationConfig: AnimationConfig = AnimationConfig(),
     /** VRM model's eye height in MC blocks at rest pose (scaled). */
     val eyeHeight: Float = 1.62f,
+    /** Rest-pose world matrices (computed once at model load). */
+    val restPoseWorldMatrices: List<org.joml.Matrix4f> = emptyList(),
+    /** Scale factor from rest-pose hips Y (cached at model load). */
+    val cachedScale: Float = 0.9f,
 ) {
+    /** Head descendant node indices (cached at model load). */
+    val headDescendantNodes: Set<Int> = run {
+        val headBone = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
+        if (headBone != null) {
+            val descendants = mutableSetOf<Int>()
+            fun dfs(idx: Int) {
+                descendants.add(idx)
+                for (child in model.skeleton.nodes.getOrNull(idx)?.childIndices ?: emptyList()) dfs(child)
+            }
+            dfs(headBone.nodeIndex)
+            descendants.toSet()
+        } else emptySet()
+    }
+
+    /** Head joint indices per skin (cached on first access). */
+    val headJointIndicesCache: MutableMap<Int, Set<Int>> = mutableMapOf()
     /**
      * Eye position offset from entity feet in MC blocks, updated each frame.
      * Includes HEAD bone rotation effects but not walk animation translation.

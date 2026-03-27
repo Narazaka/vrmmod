@@ -73,6 +73,9 @@ object VrmPlayerManager {
                     } else {
                         null
                     }
+                    // Compute rest-pose world matrices once
+                    val restPoseWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+
                     val poseProvider = if (clips.isNotEmpty()) {
                         VrmMod.logger.info(
                             "Using animation pose provider with {} clips: {}",
@@ -85,10 +88,8 @@ object VrmPlayerManager {
                             if (hipsBoneNode != null) {
                                 val hipsNode = model.skeleton.nodes.getOrNull(hipsBoneNode.nodeIndex)
                                 if (hipsNode != null) {
-                                    // Compute hips world Y by walking up the skeleton
-                                    val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
                                     val hipsWorldPos = org.joml.Vector3f()
-                                    worldMatrices[hipsBoneNode.nodeIndex].getTranslation(hipsWorldPos)
+                                    restPoseWorldMatrices[hipsBoneNode.nodeIndex].getTranslation(hipsWorldPos)
                                     provider.modelHipsHeight = hipsWorldPos.y
                                 }
                             }
@@ -100,8 +101,18 @@ object VrmPlayerManager {
                         damageExpressions = animationConfig.damageExpression,
                         damageExpressionDuration = animationConfig.damageExpressionDuration,
                     )
+                    // Compute scale from world-space hips Y
+                    val cachedScale = run {
+                        val hipsNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HIPS]
+                        if (hipsNode != null && hipsNode.nodeIndex in model.skeleton.nodes.indices) {
+                            val hipsWorldPos = org.joml.Vector3f()
+                            restPoseWorldMatrices[hipsNode.nodeIndex].getTranslation(hipsWorldPos)
+                            if (hipsWorldPos.y > 0f) 1.8f / (hipsWorldPos.y * 2f) else 0.9f
+                        } else 0.9f
+                    }
+
                     // Compute VRM eye height in MC blocks
-                    val eyeHeight = computeEyeHeight(model)
+                    val eyeHeight = computeEyeHeight(model, restPoseWorldMatrices, cachedScale)
 
                     val state = VrmState(
                         model = model,
@@ -111,6 +122,8 @@ object VrmPlayerManager {
                         expressionController = expressionCtrl,
                         animationConfig = animationConfig,
                         eyeHeight = eyeHeight,
+                        restPoseWorldMatrices = restPoseWorldMatrices,
+                        cachedScale = cachedScale,
                     )
                     states[playerUUID] = state
                     VrmMod.logger.info(
@@ -165,24 +178,19 @@ object VrmPlayerManager {
      * The result is scaled by the same factor as VrmRenderer to convert
      * from VRM model space (meters) to MC blocks.
      */
-    private fun computeEyeHeight(model: net.narazaka.vrmmod.vrm.VrmModel): Float {
+    private fun computeEyeHeight(
+        model: net.narazaka.vrmmod.vrm.VrmModel,
+        restPoseWorldMatrices: List<org.joml.Matrix4f>,
+        scale: Float,
+    ): Float {
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
             ?: return 1.62f
 
-        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
-        val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
+        val headWorldMatrix = restPoseWorldMatrices[headBoneNode.nodeIndex]
 
         val offset = model.lookAtOffsetFromHeadBone
         val eyePos = org.joml.Vector3f(offset)
         headWorldMatrix.transformPosition(eyePos)
-
-        val hipsNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HIPS]
-        val scale = if (hipsNode != null) {
-            val hipsWorldPos = org.joml.Vector3f()
-            worldMatrices[hipsNode.nodeIndex].getTranslation(hipsWorldPos)
-            val hipsY = hipsWorldPos.y
-            if (hipsY > 0f) 1.8f / (hipsY * 2f) else 0.9f
-        } else 0.9f
 
         val eyeHeight = eyePos.y * scale
         VrmMod.logger.info(

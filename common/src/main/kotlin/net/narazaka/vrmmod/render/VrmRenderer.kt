@@ -23,11 +23,6 @@ object VrmRenderer {
     private data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: VrmPrimitive)
     private data class RenderKey(val texture: ResourceLocation, val alphaMode: net.narazaka.vrmmod.vrm.AlphaMode)
 
-    /** Target height in blocks for the rendered model. */
-    private const val TARGET_HEIGHT = 1.8f
-
-    /** Fallback scale if hips position cannot be determined. */
-    private const val DEFAULT_SCALE = 0.9f
 
     /**
      * Renders the VRM model with animation driven by [poseContext].
@@ -47,13 +42,15 @@ object VrmRenderer {
         isFirstPerson: Boolean = false,
     ) {
         val model = state.model
-        val scale = estimateScale(state)
+        val scale = state.cachedScale
         val bodyYawRad = Math.toRadians(poseContext.bodyYaw.toDouble()).toFloat()
 
         // Compute bone poses from the animation provider
         val bonePoseMap = state.poseProvider.computePose(model.skeleton, poseContext)
         val nodeOverrides = convertToNodeOverrides(
-            model, bonePoseMap, isAbsolute = state.poseProvider.isAbsoluteRotation
+            model, bonePoseMap,
+            isAbsolute = state.poseProvider.isAbsoluteRotation,
+            restPoseWorldMatrices = state.restPoseWorldMatrices,
         ).toMutableMap()
 
         // Compute delta time for physics and expression animation
@@ -152,7 +149,7 @@ object VrmRenderer {
                         if (primitive.joints.isEmpty()) {
                             // Unskinned: check if mesh node is a HEAD descendant
                             val nodeIdx = meshToNodeIndex[meshIndex]
-                            nodeIdx == null || !isHeadDescendantNode(model, nodeIdx)
+                            nodeIdx == null || !isHeadDescendantNode(state, nodeIdx)
                         } else {
                             true // Skinned: handled by triangle skipping in drawPrimitive
                         }
@@ -186,7 +183,7 @@ object VrmRenderer {
                 val headJoints = if (isFirstPerson) {
                     val annotation = model.firstPersonAnnotations[meshIndex]
                     if (annotation == null || annotation == net.narazaka.vrmmod.vrm.FirstPersonType.AUTO) {
-                        collectHeadJointIndices(model, meshSkinIndex.coerceAtLeast(0))
+                        collectHeadJointIndices(state, meshSkinIndex.coerceAtLeast(0))
                     } else emptySet()
                 } else emptySet()
 
@@ -224,7 +221,7 @@ object VrmRenderer {
         val ox = offset.getOrElse(0) { 0f }
         val oy = offset.getOrElse(1) { 0.0625f }
         val oz = offset.getOrElse(2) { -0.125f }
-        val scale = estimateScale(state)
+        val scale = state.cachedScale
         renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz)
         renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz)
     }
@@ -285,6 +282,7 @@ object VrmRenderer {
         model: VrmModel,
         bonePoseMap: BonePoseMap,
         isAbsolute: Boolean = false,
+        restPoseWorldMatrices: List<Matrix4f> = emptyList(),
     ): Map<Int, Matrix4f> {
         val overrides = mutableMapOf<Int, Matrix4f>()
         for ((bone, pose) in bonePoseMap) {
@@ -311,8 +309,7 @@ object VrmRenderer {
                 // raw bone's parent local space (three-vrm: parent.matrixWorld.inverse())
                 val translation = if (pose.translation.x != 0f || pose.translation.y != 0f || pose.translation.z != 0f) {
                     if (info != null && info.parentNodeIndex >= 0) {
-                        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
-                        val parentWorldMatrix = worldMatrices[info.parentNodeIndex]
+                        val parentWorldMatrix = restPoseWorldMatrices[info.parentNodeIndex]
                         val localPos = Vector3f(pose.translation)
                         Matrix4f(parentWorldMatrix).invert().transformPosition(localPos)
                         localPos
@@ -343,37 +340,19 @@ object VrmRenderer {
     }
 
     /**
-     * Estimates a uniform scale factor so the model is approximately
-     * [TARGET_HEIGHT] blocks tall, based on the hips bone Y position.
-     */
-    private var headJointCacheModelId: Int = 0
-    private val headJointIndicesCache = mutableMapOf<Int, Set<Int>>()
-    private var headDescendantNodesCache: Set<Int> = emptySet()
-
-    /**
      * Collects joint indices that are HEAD descendants for a specific skin.
      * Joint indices are per-skin (each skin has its own jointNodeIndices array),
      * so HEAD joint detection must be done per-skin.
-     * Cache is invalidated when the model changes (identified by identity hash).
+     * Results are cached in [VrmState.headJointIndicesCache].
      */
-    private fun collectHeadJointIndices(model: VrmModel, skinIndex: Int): Set<Int> {
-        val modelId = System.identityHashCode(model)
-        if (modelId != headJointCacheModelId) {
-            headJointIndicesCache.clear()
-            headDescendantNodesCache = emptySet()
-            headJointCacheModelId = modelId
-        }
-        headJointIndicesCache[skinIndex]?.let { return it }
-
-        val headDescendants = getHeadDescendants(model)
-        val skin = model.skeleton.skins.getOrNull(skinIndex) ?: return emptySet()
+    private fun collectHeadJointIndices(state: VrmState, skinIndex: Int): Set<Int> {
+        state.headJointIndicesCache[skinIndex]?.let { return it }
+        val skin = state.model.skeleton.skins.getOrNull(skinIndex) ?: return emptySet()
         val result = mutableSetOf<Int>()
         for ((jointIdx, nodeIdx) in skin.jointNodeIndices.withIndex()) {
-            if (nodeIdx in headDescendants) {
-                result.add(jointIdx)
-            }
+            if (nodeIdx in state.headDescendantNodes) result.add(jointIdx)
         }
-        headJointIndicesCache[skinIndex] = result
+        state.headJointIndicesCache[skinIndex] = result
         return result
     }
 
@@ -381,23 +360,8 @@ object VrmRenderer {
      * Checks if a node is the HEAD bone or a descendant of HEAD in the node tree.
      * Used for unskinned meshes in first-person mode (three-vrm's _isEraseTarget).
      */
-    private fun isHeadDescendantNode(model: VrmModel, nodeIndex: Int): Boolean {
-        return nodeIndex in getHeadDescendants(model)
-    }
-
-    private fun getHeadDescendants(model: VrmModel): Set<Int> {
-        if (headDescendantNodesCache.isNotEmpty()) return headDescendantNodesCache
-        val headBoneNode = model.humanoid.humanBones[HumanBone.HEAD] ?: return emptySet()
-        val descendants = mutableSetOf<Int>()
-        fun dfs(nodeIndex: Int) {
-            descendants.add(nodeIndex)
-            for (child in model.skeleton.nodes.getOrNull(nodeIndex)?.childIndices ?: emptyList()) {
-                dfs(child)
-            }
-        }
-        dfs(headBoneNode.nodeIndex)
-        headDescendantNodesCache = descendants
-        return descendants
+    private fun isHeadDescendantNode(state: VrmState, nodeIndex: Int): Boolean {
+        return nodeIndex in state.headDescendantNodes
     }
 
     /**
@@ -420,8 +384,7 @@ object VrmRenderer {
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD] ?: return
 
         // Rest-pose eye position (for baseline XZ)
-        val restWorldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
-        val restHeadMatrix = restWorldMatrices[headBoneNode.nodeIndex]
+        val restHeadMatrix = state.restPoseWorldMatrices[headBoneNode.nodeIndex]
         val offset = model.lookAtOffsetFromHeadBone
         val restEyePos = Vector3f(offset)
         restHeadMatrix.transformPosition(restEyePos)
@@ -446,18 +409,6 @@ object VrmRenderer {
         poseStack.scale(scale, scale, scale)
     }
 
-    private fun estimateScale(state: VrmState): Float {
-        val model = state.model
-        val hipsNode = model.humanoid.humanBones[HumanBone.HIPS] ?: return DEFAULT_SCALE
-        val nodeIndex = hipsNode.nodeIndex
-        if (nodeIndex !in model.skeleton.nodes.indices) return DEFAULT_SCALE
-
-        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
-        val hipsWorldPos = Vector3f()
-        worldMatrices[nodeIndex].getTranslation(hipsWorldPos)
-        val hipsY = hipsWorldPos.y
-        return if (hipsY > 0f) TARGET_HEIGHT / (hipsY * 2f) else DEFAULT_SCALE
-    }
 
     /**
      * Resolves the texture ResourceLocation for a given image index.
