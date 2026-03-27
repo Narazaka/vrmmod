@@ -36,6 +36,8 @@ data class AnimationConfig(
     val normalMode: NormalMode = NormalMode.AUTO,
     /** Use legacy degenerate-quad (QUADS mode) RenderType instead of TRIANGLES. */
     val useDegenerateQuadRenderType: Boolean = false,
+    /** Apply MToon shade color tinting to vertex colors. */
+    val useShadeColorTint: Boolean = false,
 ) {
     data class StateConfig(
         val clip: String,

@@ -42,6 +42,8 @@
   "vrmmod.config.normal_mode.auto": "Auto",
   "vrmmod.config.normal_mode.off": "Unlit",
   "vrmmod.config.normal_mode.on": "Model Normals",
+  "vrmmod.config.use_shade_color_tint": "Shade Color Tint",
+  "vrmmod.config.use_shade_color_tint.tooltip": "Tint vertex colors with MToon shade color for colored shadows",
   "vrmmod.config.use_degenerate_quad_render_type": "Degenerate Quad Mode",
   "vrmmod.config.use_degenerate_quad_render_type.tooltip": "Use legacy QUADS render type (may cause flat shading with Iris shaders)",
   "vrmmod.config.reset": "Reset",

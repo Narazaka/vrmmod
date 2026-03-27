@@ -177,6 +177,9 @@ object VrmRenderer {
         // Draw opaque/mask first, then translucent
         val sortedGroups = grouped.entries.sortedBy { if (it.key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND) 1 else 0 }
 
+        val mtoonMap = if (animConfig.useShadeColorTint) {
+            model.mtoonMaterials.associateBy { it.materialIndex }
+        } else emptyMap()
         val useQuads = animConfig.useDegenerateQuadRenderType
         val useActualNormals = when (animConfig.normalMode) {
             net.narazaka.vrmmod.animation.NormalMode.ON -> true
@@ -221,7 +224,8 @@ object VrmRenderer {
                     meshToNodeIndex[meshIndex]?.let { animatedWorldMatrices.getOrNull(it) }
                 } else null
 
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix, useActualNormals)
+                val shadeColor = mtoonMap[primitive.materialIndex]?.shadeColorFactor
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix, useActualNormals, shadeColor)
             }
         }
 
@@ -471,6 +475,7 @@ object VrmRenderer {
         skipHeadJoints: Set<Int> = emptySet(),
         nodeWorldMatrix: Matrix4f? = null,
         useActualNormals: Boolean = false,
+        shadeColor: Vector3f? = null,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -615,12 +620,20 @@ object VrmRenderer {
                     vCoord = 0f
                 }
 
-                // Unlit-style: uniform white vertex color.
-                // MC's entity lighting (packedLight) still applies ambient/block light,
-                // but no per-vertex normal-based shading from our side.
-                val r = 255
-                val g = 255
-                val b = 255
+                // Vertex color: white for unlit, or tinted toward shadeColor for MToon-like shadow tint.
+                // When shadeColor is set, dark areas rendered by the shader will shift toward
+                // the shade color rather than pure black.
+                val r: Int
+                val g: Int
+                val b: Int
+                if (shadeColor != null) {
+                    // Blend white toward shadeColor (sqrt to keep it subtle)
+                    r = ((1f - (1f - shadeColor.x) * 0.5f) * 255).toInt().coerceIn(0, 255)
+                    g = ((1f - (1f - shadeColor.y) * 0.5f) * 255).toInt().coerceIn(0, 255)
+                    b = ((1f - (1f - shadeColor.z) * 0.5f) * 255).toInt().coerceIn(0, 255)
+                } else {
+                    r = 255; g = 255; b = 255
+                }
 
                 vertexConsumer
                     .addVertex(pose, px, py, pz)
