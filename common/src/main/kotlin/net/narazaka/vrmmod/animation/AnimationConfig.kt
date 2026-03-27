@@ -12,6 +12,14 @@ data class AnimationConfig(
     val headTracking: Boolean = true,
     val walkThreshold: Float = 0.01f,
     val runThreshold: Float = 0.5f,
+    /** Held item scale relative to default. */
+    val heldItemScale: Float = 0.67f,
+    /** Held item position offset (x, y, z) in item-local space after rotation. */
+    val heldItemOffset: List<Float> = listOf(0f, 0.0625f, -0.125f),
+    /** Show held items in first-person view. */
+    val heldItemFirstPerson: Boolean = true,
+    /** Show held items in third-person view. */
+    val heldItemThirdPerson: Boolean = true,
     /** Expression weights to apply when damaged. Keys are expression names, values are max weights. */
     val damageExpression: Map<String, Float> = mapOf("sad" to 1.0f),
     /** Duration of damage expression fade-out in seconds. */

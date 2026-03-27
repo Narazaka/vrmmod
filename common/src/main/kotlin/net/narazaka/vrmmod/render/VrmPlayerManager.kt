@@ -107,6 +107,7 @@ object VrmPlayerManager {
                         poseProvider = poseProvider,
                         springBoneSimulator = simulator,
                         expressionController = expressionCtrl,
+                        animationConfig = animationConfig,
                         eyeHeight = eyeHeight,
                     )
                     states[playerUUID] = state

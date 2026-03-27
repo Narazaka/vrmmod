@@ -7,7 +7,10 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.LightTexture
+import net.minecraft.client.renderer.item.ItemStackRenderState
 import net.minecraft.core.BlockPos
+import net.minecraft.world.entity.HumanoidArm
+import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.level.LightLayer
 
 /**
@@ -18,6 +21,9 @@ import net.minecraft.world.level.LightLayer
  * VRM model from the camera's perspective.
  */
 object VrmFirstPersonRenderer {
+
+    private val rightHandItemState = ItemStackRenderState()
+    private val leftHandItemState = ItemStackRenderState()
 
     fun renderFirstPerson(
         poseStack: PoseStack,
@@ -81,6 +87,17 @@ object VrmFirstPersonRenderer {
         poseStack.translate(renderX, renderY, renderZ)
 
         VrmRenderer.render(state, poseContext, poseStack, bufferSource, packedLight, isFirstPerson = true)
+
+        // Render held items using ItemModelResolver to build ItemStackRenderState
+        if (state.animationConfig.heldItemFirstPerson) {
+            val itemModelResolver = mc.itemModelResolver
+            rightHandItemState.clear()
+            leftHandItemState.clear()
+            itemModelResolver.updateForLiving(rightHandItemState, player.getItemHeldByArm(HumanoidArm.RIGHT), ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false, player)
+            itemModelResolver.updateForLiving(leftHandItemState, player.getItemHeldByArm(HumanoidArm.LEFT), ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true, player)
+            val bodyYawRad = Math.toRadians(bodyRot.toDouble()).toFloat()
+            VrmRenderer.renderHeldItems(state, rightHandItemState, leftHandItemState, poseStack, bufferSource, packedLight, bodyYawRad, state.animationConfig)
+        }
 
         poseStack.popPose()
     }

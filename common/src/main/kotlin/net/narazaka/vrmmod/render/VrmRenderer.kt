@@ -222,10 +222,16 @@ object VrmRenderer {
         bufferSource: MultiBufferSource,
         packedLight: Int,
         bodyYawRad: Float,
+        config: net.narazaka.vrmmod.animation.AnimationConfig? = null,
     ) {
+        val itemScale = config?.heldItemScale ?: 0.67f
+        val offset = config?.heldItemOffset ?: listOf(0f, 0.0625f, -0.125f)
+        val ox = offset.getOrElse(0) { 0f }
+        val oy = offset.getOrElse(1) { 0.0625f }
+        val oz = offset.getOrElse(2) { -0.125f }
         val scale = estimateScale(state)
-        renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
-        renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz)
+        renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz)
     }
 
     private fun renderSingleHandItem(
@@ -237,6 +243,10 @@ object VrmRenderer {
         packedLight: Int,
         bodyYawRad: Float,
         scale: Float,
+        itemScale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        offsetZ: Float,
     ) {
         if (handMatrix == null || itemRenderState.isEmpty) return
 
@@ -246,8 +256,7 @@ object VrmRenderer {
         // Apply hand bone world matrix
         poseStack.mulPose(handMatrix)
 
-        // Item scale: VRM models are smaller than vanilla player, so scale items down
-        val itemScale = 0.67f
+        // Item scale (configurable)
         poseStack.scale(itemScale, itemScale, itemScale)
 
         // Item orientation adjustments for VRM hand bone coordinate system
@@ -259,8 +268,8 @@ object VrmRenderer {
         poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
         // 3. X rotation: tilt blade forward 90° (natural hold angle)
         poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
-        // 4. Offset: shift grip point to hand bone position
-        poseStack.translate(0f, 0.0625f, -0.125f)
+        // 4. Offset: shift grip point to hand bone position (configurable)
+        poseStack.translate(offsetX, offsetY, offsetZ)
 
         itemRenderState.render(poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY)
         poseStack.popPose()

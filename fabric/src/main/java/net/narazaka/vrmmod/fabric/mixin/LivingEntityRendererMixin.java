@@ -46,15 +46,18 @@ public class LivingEntityRendererMixin {
 
         PoseContext poseContext = buildPoseContext(renderState);
         VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight, false);
-        VrmRenderer.INSTANCE.renderHeldItems(
-                state,
-                renderState.rightHandItem,
-                renderState.leftHandItem,
-                poseStack,
-                bufferSource,
-                packedLight,
-                (float) Math.toRadians(renderState.bodyRot)
-        );
+        if (state.getAnimationConfig().getHeldItemThirdPerson()) {
+            VrmRenderer.INSTANCE.renderHeldItems(
+                    state,
+                    renderState.rightHandItem,
+                    renderState.leftHandItem,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    (float) Math.toRadians(renderState.bodyRot),
+                    state.getAnimationConfig()
+            );
+        }
         ci.cancel();
     }
 

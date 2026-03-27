@@ -1,5 +1,6 @@
 package net.narazaka.vrmmod.render
 
+import net.narazaka.vrmmod.animation.AnimationConfig
 import net.narazaka.vrmmod.animation.ExpressionController
 import net.narazaka.vrmmod.animation.PoseProvider
 import net.narazaka.vrmmod.animation.VanillaPoseProvider
@@ -17,6 +18,7 @@ data class VrmState(
     val poseProvider: PoseProvider = VanillaPoseProvider(),
     val springBoneSimulator: SpringBoneSimulator? = null,
     val expressionController: ExpressionController = ExpressionController(),
+    val animationConfig: AnimationConfig = AnimationConfig(),
     /** VRM model's eye height in MC blocks at rest pose (scaled). */
     val eyeHeight: Float = 1.62f,
 ) {
