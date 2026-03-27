@@ -48,7 +48,7 @@
 
   "vrmmod.vroidhub.title": "VRoid Hub",
   "vrmmod.vroidhub.not_configured": "VRoid Hub is not configured.",
-  "vrmmod.vroidhub.not_configured.hint1": "Place vrmmod-vroidhub.json in config/",
+  "vrmmod.vroidhub.not_configured.hint1": "Place vrmmod-vroidhub-secrets.json in config/",
   "vrmmod.vroidhub.not_configured.hint2": "with clientId and clientSecret.",
   "vrmmod.vroidhub.loading": "Loading...",
   "vrmmod.vroidhub.login_title": "Login to VRoid Hub",
