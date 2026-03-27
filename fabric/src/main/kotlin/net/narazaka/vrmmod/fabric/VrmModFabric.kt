@@ -20,6 +20,10 @@ class VrmModFabric : ClientModInitializer {
                 consumers,
                 context.tickCounter().getGameTimeDeltaPartialTick(false),
             )
+            // Flush batches so VRM geometry is committed (matches NeoForge behavior)
+            if (consumers is net.minecraft.client.renderer.MultiBufferSource.BufferSource) {
+                consumers.endBatch()
+            }
         }
     }
 }
