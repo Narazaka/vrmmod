@@ -26,8 +26,6 @@ object VrmRenderer {
     /** Fallback scale if hips position cannot be determined. */
     private const val DEFAULT_SCALE = 0.9f
 
-    private var lastRenderTimeNano = 0L
-
     /**
      * Renders the VRM model with animation driven by [poseContext].
      *
@@ -57,12 +55,12 @@ object VrmRenderer {
 
         // Compute delta time for physics and expression animation
         val now = System.nanoTime()
-        val deltaTime = if (lastRenderTimeNano == 0L) {
+        val deltaTime = if (state.lastRenderTimeNano == 0L) {
             1f / 60f // first frame fallback
         } else {
-            ((now - lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
+            ((now - state.lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
         }
-        lastRenderTimeNano = now
+        state.lastRenderTimeNano = now
 
         // Update auto-blink and expression animations
         state.expressionController.update(deltaTime, poseContext.hurtTime)

@@ -33,4 +33,6 @@ data class VrmState(
     var rightHandMatrix: org.joml.Matrix4f? = null
     @Volatile
     var leftHandMatrix: org.joml.Matrix4f? = null
+    @Volatile
+    var lastRenderTimeNano: Long = 0L
 }
