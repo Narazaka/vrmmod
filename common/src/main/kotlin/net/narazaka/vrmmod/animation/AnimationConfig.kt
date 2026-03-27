@@ -20,6 +20,7 @@ data class AnimationConfig(
     data class StateConfig(
         val clip: String,
         val loop: Boolean = true,
+        val mirror: Boolean = false,
     )
 
     fun resolveStateConfig(stateName: String): StateConfig? {
@@ -92,7 +93,7 @@ data class AnimationConfig(
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
             // Movement
-            "move.idle" to StateConfig("Idle_Loop"),
+            "move.idle" to StateConfig("Idle_Loop", mirror = true),
             "move.walk" to StateConfig("Walk_Loop"),
             "move.walk.backward" to StateConfig("Walk_Loop"),
             "move.walk.left" to StateConfig("Walk_Loop"),
@@ -107,9 +108,9 @@ data class AnimationConfig(
             "move.ride" to StateConfig("Sitting_Idle_Loop"),
             "move.elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
-            "action.swing" to StateConfig("Punch_Jab", loop = false),
-            "action.swing.mainHand.weapon" to StateConfig("Sword_Attack", loop = false),
-            "action.swing.mainHand.item" to StateConfig("Interact", loop = false),
+            "action.swing" to StateConfig("Punch_Jab", loop = false, mirror = true),
+            "action.swing.mainHand.weapon" to StateConfig("Sword_Attack", loop = false, mirror = true),
+            "action.swing.mainHand.item" to StateConfig("Interact", loop = false, mirror = true),
             "action.swing.offHand.weapon" to StateConfig("Sword_Attack", loop = false),
             "action.swing.offHand.item" to StateConfig("Interact", loop = false),
             "action.useItem" to StateConfig("Interact", loop = false),
