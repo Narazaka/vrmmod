@@ -107,118 +107,92 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     // Settings Tab
     // ========================================================================
 
-    /** Label → tooltip key mapping for settings */
-    private data class SettingsRow(val labelKey: String, val tooltipKey: String, val y: Int)
-    private var settingsRows: List<SettingsRow> = emptyList()
-
     private fun buildSettingsWidgets() {
         val config = VrmModConfig.load(configDir)
         val animConfig = AnimationConfig.load(configDir)
-        val contentTop = 30
-        val rowHeight = 22
-        val fieldX = width / 2
-        val fieldWidth = width / 2 - 15
-        var row = 0
 
-        settingsRows = listOf(
-            SettingsRow("vrmmod.config.model_source", "vrmmod.config.model_source.tooltip", contentTop + rowHeight * row),
-            SettingsRow("vrmmod.config.model_path", "vrmmod.config.model_path.tooltip", contentTop + rowHeight * (row + 1)),
-            SettingsRow("vrmmod.config.animation_dir", "vrmmod.config.animation_dir.tooltip", contentTop + rowHeight * (row + 2)),
-            SettingsRow("vrmmod.config.use_vrma", "vrmmod.config.use_vrma.tooltip", contentTop + rowHeight * (row + 3)),
-            SettingsRow("vrmmod.config.first_person_mode", "vrmmod.config.first_person_mode.tooltip", contentTop + rowHeight * (row + 4)),
-            SettingsRow("vrmmod.config.held_item_scale", "vrmmod.config.held_item_scale.tooltip", contentTop + rowHeight * (row + 5)),
-            SettingsRow("vrmmod.config.held_item_offset", "vrmmod.config.held_item_offset.tooltip", contentTop + rowHeight * (row + 6)),
-            SettingsRow("vrmmod.config.held_item_first_person", "vrmmod.config.held_item_first_person.tooltip", contentTop + rowHeight * (row + 7)),
-            SettingsRow("vrmmod.config.held_item_third_person", "vrmmod.config.held_item_third_person.tooltip", contentTop + rowHeight * (row + 8)),
-        )
+        val list = VrmSettingsList(minecraft!!, width, height - 24 - 30, 24)
 
         modelSourceButton = CycleButton.builder<ModelSource> { source ->
             Component.translatable("vrmmod.config.model_source.${source.name.lowercase()}")
         }.withValues(*ModelSource.entries.toTypedArray())
             .withInitialValue(config.modelSource)
             .displayOnlyValue()
-            .create(fieldX, contentTop, fieldWidth, 20, Component.translatable("vrmmod.config.model_source")).also {
-                addRenderableWidget(it)
-            }
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.model_source"))
 
-        modelPathInput = EditBox(font, fieldX, contentTop + rowHeight, fieldWidth, 18, Component.translatable("vrmmod.config.model_path")).also {
+        modelPathInput = EditBox(font, 0, 0, 100, 18, Component.translatable("vrmmod.config.model_path")).also {
             it.setMaxLength(1024)
             it.value = config.localModelPath ?: ""
-            addRenderableWidget(it)
         }
 
-        animDirInput = EditBox(font, fieldX, contentTop + rowHeight * 2, fieldWidth, 18, Component.translatable("vrmmod.config.animation_dir")).also {
+        animDirInput = EditBox(font, 0, 0, 100, 18, Component.translatable("vrmmod.config.animation_dir")).also {
             it.setMaxLength(1024)
             it.value = config.animationDir ?: ""
-            addRenderableWidget(it)
         }
 
         useVrmaToggle = CycleButton.onOffBuilder(config.useVrmaAnimation)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 3, fieldWidth, 20, Component.translatable("vrmmod.config.use_vrma")).also {
-                addRenderableWidget(it)
-            }
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.use_vrma"))
 
         firstPersonButton = CycleButton.builder<FirstPersonMode> { mode ->
             Component.translatable("vrmmod.config.first_person_mode.${mode.name.lowercase()}")
         }.withValues(*FirstPersonMode.entries.toTypedArray())
             .withInitialValue(config.firstPersonMode)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 4, fieldWidth, 20, Component.translatable("vrmmod.config.first_person_mode")).also {
-                addRenderableWidget(it)
-            }
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.first_person_mode"))
+
+        // General category
+        list.addCategory(Component.translatable("vrmmod.config.category.general"))
+        list.addWidgetRow(Component.translatable("vrmmod.config.model_source"), Component.translatable("vrmmod.config.model_source.tooltip"), modelSourceButton!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.model_path"), Component.translatable("vrmmod.config.model_path.tooltip"), modelPathInput!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.animation_dir"), Component.translatable("vrmmod.config.animation_dir.tooltip"), animDirInput!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.use_vrma"), Component.translatable("vrmmod.config.use_vrma.tooltip"), useVrmaToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.first_person_mode"), Component.translatable("vrmmod.config.first_person_mode.tooltip"), firstPersonButton!!)
 
         // Held item settings
-        val offsetFieldWidth = (fieldWidth - 60) / 3
-        val heldItemRow = contentTop + rowHeight * 5
-
-        heldItemScaleInput = EditBox(font, fieldX, heldItemRow, fieldWidth - 55, 18, Component.literal("Scale")).also {
+        heldItemScaleInput = EditBox(font, 0, 0, 100, 18, Component.literal("Scale")).also {
             it.setMaxLength(10)
             it.value = animConfig.heldItemScale.toString()
-            addRenderableWidget(it)
         }
-        addRenderableWidget(
-            Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
-                heldItemScaleInput?.value = "0.67"
-            }.bounds(fieldX + fieldWidth - 50, heldItemRow, 50, 18).build()
-        )
+        val scaleResetButton = Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
+            heldItemScaleInput?.value = "0.67"
+        }.bounds(0, 0, 50, 18).build()
 
-        val offsetRow = contentTop + rowHeight * 6
         val offset = animConfig.heldItemOffset
-        heldItemOffsetXInput = EditBox(font, fieldX, offsetRow, offsetFieldWidth, 18, Component.literal("X")).also {
+        heldItemOffsetXInput = EditBox(font, 0, 0, 100, 18, Component.literal("X")).also {
             it.setMaxLength(10)
             it.value = offset.getOrElse(0) { 0f }.toString()
-            addRenderableWidget(it)
         }
-        heldItemOffsetYInput = EditBox(font, fieldX + offsetFieldWidth + 2, offsetRow, offsetFieldWidth, 18, Component.literal("Y")).also {
+        heldItemOffsetYInput = EditBox(font, 0, 0, 100, 18, Component.literal("Y")).also {
             it.setMaxLength(10)
             it.value = offset.getOrElse(1) { 0.0625f }.toString()
-            addRenderableWidget(it)
         }
-        heldItemOffsetZInput = EditBox(font, fieldX + (offsetFieldWidth + 2) * 2, offsetRow, offsetFieldWidth, 18, Component.literal("Z")).also {
+        heldItemOffsetZInput = EditBox(font, 0, 0, 100, 18, Component.literal("Z")).also {
             it.setMaxLength(10)
             it.value = offset.getOrElse(2) { -0.125f }.toString()
-            addRenderableWidget(it)
         }
-        addRenderableWidget(
-            Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
-                heldItemOffsetXInput?.value = "0.0"
-                heldItemOffsetYInput?.value = "0.0625"
-                heldItemOffsetZInput?.value = "-0.125"
-            }.bounds(fieldX + (offsetFieldWidth + 2) * 3, offsetRow, 50, 18).build()
-        )
+        val offsetResetButton = Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
+            heldItemOffsetXInput?.value = "0.0"
+            heldItemOffsetYInput?.value = "0.0625"
+            heldItemOffsetZInput?.value = "-0.125"
+        }.bounds(0, 0, 50, 18).build()
 
         heldItemFirstPersonToggle = CycleButton.onOffBuilder(animConfig.heldItemFirstPerson)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 7, fieldWidth, 20, Component.translatable("vrmmod.config.held_item_first_person")).also {
-                addRenderableWidget(it)
-            }
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.held_item_first_person"))
 
         heldItemThirdPersonToggle = CycleButton.onOffBuilder(animConfig.heldItemThirdPerson)
             .displayOnlyValue()
-            .create(fieldX, contentTop + rowHeight * 8, fieldWidth, 20, Component.translatable("vrmmod.config.held_item_third_person")).also {
-                addRenderableWidget(it)
-            }
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.held_item_third_person"))
+
+        // Display category
+        list.addCategory(Component.translatable("vrmmod.config.category.display"))
+        list.addWidgetRow(Component.translatable("vrmmod.config.held_item_scale"), Component.translatable("vrmmod.config.held_item_scale.tooltip"), heldItemScaleInput!!, scaleResetButton)
+        list.addWidgetRow(Component.translatable("vrmmod.config.held_item_offset"), Component.translatable("vrmmod.config.held_item_offset.tooltip"), heldItemOffsetXInput!!, heldItemOffsetYInput!!, heldItemOffsetZInput!!, offsetResetButton)
+        list.addWidgetRow(Component.translatable("vrmmod.config.held_item_first_person"), Component.translatable("vrmmod.config.held_item_first_person.tooltip"), heldItemFirstPersonToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.held_item_third_person"), Component.translatable("vrmmod.config.held_item_third_person.tooltip"), heldItemThirdPersonToggle!!)
+
+        addRenderableWidget(list)
 
         addRenderableWidget(
             Button.builder(Component.translatable("vrmmod.config.save")) { _ -> saveSettings() }
@@ -404,34 +378,9 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
         when (activeTab) {
             Tab.SETTINGS -> {
-                renderSettings(guiGraphics)
-                // Tooltips must render last (on top of everything)
-                renderSettingsTooltips(guiGraphics, mouseX, mouseY)
+                // List renders itself via VrmSettingsList
             }
             Tab.VROID_HUB -> renderVRoidHub(guiGraphics)
-        }
-    }
-
-    private fun renderSettings(guiGraphics: GuiGraphics) {
-        val labelX = 10
-
-        for (row in settingsRows) {
-            guiGraphics.drawString(font, Component.translatable(row.labelKey), labelX, row.y + 5, 0xFFFFFF)
-        }
-
-    }
-
-    /** Render tooltip for settings labels on mouse hover (called after super.render) */
-    private fun renderSettingsTooltips(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
-        val labelX = 10
-        val labelWidth = width / 2 - 15
-
-        for (row in settingsRows) {
-            if (mouseX in labelX..(labelX + labelWidth) && mouseY in row.y..(row.y + 18)) {
-                val tooltip = Component.translatable(row.tooltipKey)
-                guiGraphics.renderTooltip(font, tooltip, mouseX, mouseY)
-                break
-            }
         }
     }
 
