@@ -511,6 +511,8 @@ object VrmRenderer {
         // Reusable arrays for per-vertex joint/weight data
         val vertJoints = if (hasSkinning) IntArray(4) else null
         val vertWeights = if (hasSkinning) FloatArray(4) else null
+        val reusablePos = Vector3f()
+        val reusableNorm = Vector3f()
 
         // Process triangles: indices are triplets (i0, i1, i2)
         val triCount = indices.size / 3
@@ -587,8 +589,9 @@ object VrmRenderer {
                         vertWeights!![i] = if (dataIdx < primitive.weights.size) primitive.weights[dataIdx] else 0f
                     }
 
+                    reusablePos.set(px, py, pz)
                     val skinnedPos = VrmSkinningEngine.skinVertex(
-                        Vector3f(px, py, pz),
+                        reusablePos,
                         vertJoints!!,
                         vertWeights!!,
                         skinningMatrices,
@@ -598,8 +601,9 @@ object VrmRenderer {
                     pz = skinnedPos.z
 
                     if (hasNormals) {
+                        reusableNorm.set(nx, ny, nz)
                         val skinnedNormal = VrmSkinningEngine.skinNormal(
-                            Vector3f(nx, ny, nz),
+                            reusableNorm,
                             vertJoints,
                             vertWeights,
                             skinningMatrices,
@@ -611,16 +615,16 @@ object VrmRenderer {
                 } else if (nodeWorldMatrix != null) {
                     // Unskinned mesh: apply parent node's world matrix
                     // (three.js does this automatically via Object3D.matrixWorld propagation)
-                    val pos = Vector3f(px, py, pz)
-                    nodeWorldMatrix.transformPosition(pos)
-                    px = pos.x; py = pos.y; pz = pos.z
+                    reusablePos.set(px, py, pz)
+                    nodeWorldMatrix.transformPosition(reusablePos)
+                    px = reusablePos.x; py = reusablePos.y; pz = reusablePos.z
 
                     if (hasNormals) {
-                        val norm = Vector3f(nx, ny, nz)
-                        nodeWorldMatrix.transformDirection(norm)
-                        val len = norm.length()
-                        if (len > 1e-6f) norm.div(len)
-                        nx = norm.x; ny = norm.y; nz = norm.z
+                        reusableNorm.set(nx, ny, nz)
+                        nodeWorldMatrix.transformDirection(reusableNorm)
+                        val len = reusableNorm.length()
+                        if (len > 1e-6f) reusableNorm.div(len)
+                        nx = reusableNorm.x; ny = reusableNorm.y; nz = reusableNorm.z
                     }
                 }
 
