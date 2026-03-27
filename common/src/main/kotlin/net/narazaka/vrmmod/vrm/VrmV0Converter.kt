@@ -485,7 +485,7 @@ object VrmV0Converter {
         if (arr.isEmpty()) return arr
         val result = arr.copyOf()
         var i = 0
-        while (i < result.size) {
+        while (i + 2 < result.size) {
             result[i] = -result[i]           // X
             // result[i + 1] unchanged       // Y
             result[i + 2] = -result[i + 2]   // Z
