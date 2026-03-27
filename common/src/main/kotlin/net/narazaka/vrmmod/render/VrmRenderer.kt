@@ -432,13 +432,14 @@ object VrmRenderer {
         val animEyePos = Vector3f(offset)
         animHeadMatrix.transformPosition(animEyePos)
 
-        // XZ: delta from rest pose (only animation-driven offset)
-        // Y: unchanged (animated absolute position as before)
-        state.currentEyeOffset = Vector3f(
-            (animEyePos.x - restEyePos.x) * scale,
-            animEyePos.y * scale,
-            (animEyePos.z - restEyePos.z) * scale,
-        )
+        // XZ: delta from rest pose
+        // During one-shot actions (attack, etc.), freeze XZ to avoid camera jitter
+        // Y: animated absolute position (Camera.tick() applies its own lerp on eyeHeight)
+        val prev = state.currentEyeOffset
+        val isOneShot = (state.poseProvider as? net.narazaka.vrmmod.animation.AnimationPoseProvider)?.isPlayingOneShot ?: false
+        val newX = if (isOneShot) prev.x else (animEyePos.x - restEyePos.x) * scale
+        val newZ = if (isOneShot) prev.z else (animEyePos.z - restEyePos.z) * scale
+        state.currentEyeOffset = Vector3f(newX, animEyePos.y * scale, newZ)
     }
 
     private fun applyModelTransform(poseStack: PoseStack, bodyYawRad: Float, scale: Float) {

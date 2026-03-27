@@ -35,6 +35,10 @@ class AnimationPoseProvider(
     var modelHipsHeight: Float = 0f
     var enableHeadTracking: Boolean = config.headTracking
 
+    /** True when a one-shot (loop=false) action animation is currently playing. */
+    var isPlayingOneShot: Boolean = false
+        private set
+
     // Current clip state
     private var currentClipName = ""
     private var currentStateName = ""
@@ -68,6 +72,10 @@ class AnimationPoseProvider(
         lastTimeNano = now
 
         val targetClipName = selectClip(context)
+
+        // Track one-shot state for camera XZ stabilization
+        val cfg = config.resolveStateConfig(currentStateName)
+        isPlayingOneShot = cfg != null && !cfg.loop
 
         // Detect clip change or forced restart -> start cross-fade
         if (targetClipName != currentClipName || forceClipRestart) {
