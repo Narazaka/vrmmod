@@ -35,33 +35,12 @@ data class VrmExpression(
     val overrideLookAt: ExpressionOverrideType = ExpressionOverrideType.NONE,
     val overrideMouth: ExpressionOverrideType = ExpressionOverrideType.NONE,
 ) {
-    /** Effective output weight considering isBinary. */
-    val outputWeight: Float
-        get() = if (isBinary) (if (_weight > 0.5f) 1.0f else 0.0f) else _weight
+    fun outputWeight(weight: Float): Float =
+        if (isBinary) (if (weight > 0.5f) 1.0f else 0.0f) else weight
 
-    /** Override amount for blink category (0.0 = no override, 1.0 = full block). */
-    val overrideBlinkAmount: Float
-        get() = overrideAmount(overrideBlink)
-
-    /** Override amount for lookAt category. */
-    val overrideLookAtAmount: Float
-        get() = overrideAmount(overrideLookAt)
-
-    /** Override amount for mouth category. */
-    val overrideMouthAmount: Float
-        get() = overrideAmount(overrideMouth)
-
-    // Mutable weight set externally by ExpressionController
-    @Transient
-    private var _weight: Float = 0f
-
-    var weight: Float
-        get() = _weight
-        set(value) { _weight = value.coerceIn(0f, 1f) }
-
-    private fun overrideAmount(type: ExpressionOverrideType): Float = when (type) {
-        ExpressionOverrideType.BLOCK -> if (outputWeight > 0f) 1.0f else 0.0f
-        ExpressionOverrideType.BLEND -> outputWeight
+    fun overrideAmount(type: ExpressionOverrideType, weight: Float): Float = when (type) {
+        ExpressionOverrideType.BLOCK -> if (outputWeight(weight) > 0f) 1.0f else 0.0f
+        ExpressionOverrideType.BLEND -> outputWeight(weight)
         ExpressionOverrideType.NONE -> 0.0f
     }
 }

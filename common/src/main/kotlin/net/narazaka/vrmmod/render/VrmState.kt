@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation
  * Holds the parsed VRM model and its registered texture locations
  * for a single player.
  */
-data class VrmState(
+class VrmState(
     val model: VrmModel,
     val textureLocations: List<ResourceLocation>,
     val poseProvider: PoseProvider = VanillaPoseProvider(),

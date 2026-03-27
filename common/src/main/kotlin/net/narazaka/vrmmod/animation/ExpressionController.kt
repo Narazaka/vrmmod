@@ -122,54 +122,38 @@ class ExpressionController(
      * 4. Accumulate morph target weights
      */
     fun computeMorphWeights(expressions: List<VrmExpression>): Map<Pair<Int, Int>, Float> {
-        // Step 1: Set weights on VrmExpression objects
-        for (expression in expressions) {
-            expression.weight = weights[expression.name] ?: weights[expression.preset] ?: 0f
+        val exprWeights = expressions.map { expr ->
+            val w = (weights[expr.name] ?: weights[expr.preset] ?: 0f).coerceIn(0f, 1f)
+            expr to w
         }
 
-        // Step 2: Calculate weight multipliers (three-vrm: _calculateWeightMultipliers)
         var blinkMultiplier = 1.0f
         var lookAtMultiplier = 1.0f
         var mouthMultiplier = 1.0f
 
-        for (expression in expressions) {
-            blinkMultiplier -= expression.overrideBlinkAmount
-            lookAtMultiplier -= expression.overrideLookAtAmount
-            mouthMultiplier -= expression.overrideMouthAmount
+        for ((expr, w) in exprWeights) {
+            blinkMultiplier -= expr.overrideAmount(expr.overrideBlink, w)
+            lookAtMultiplier -= expr.overrideAmount(expr.overrideLookAt, w)
+            mouthMultiplier -= expr.overrideAmount(expr.overrideMouth, w)
         }
 
         blinkMultiplier = blinkMultiplier.coerceAtLeast(0f)
         lookAtMultiplier = lookAtMultiplier.coerceAtLeast(0f)
         mouthMultiplier = mouthMultiplier.coerceAtLeast(0f)
 
-        // Step 3 & 4: Apply multipliers and accumulate morph weights
         val result = mutableMapOf<Pair<Int, Int>, Float>()
 
-        for (expression in expressions) {
+        for ((expr, w) in exprWeights) {
             var multiplier = 1.0f
-            val name = expression.name
+            if (expr.name in blinkExpressionNames) multiplier *= blinkMultiplier
+            if (expr.name in lookAtExpressionNames) multiplier *= lookAtMultiplier
+            if (expr.name in mouthExpressionNames) multiplier *= mouthMultiplier
 
-            if (name in blinkExpressionNames) {
-                multiplier *= blinkMultiplier
-            }
-            if (name in lookAtExpressionNames) {
-                multiplier *= lookAtMultiplier
-            }
-            if (name in mouthExpressionNames) {
-                multiplier *= mouthMultiplier
-            }
-
-            // three-vrm: actualWeight = outputWeight * multiplier
-            var actualWeight = expression.outputWeight * multiplier
-
-            // three-vrm: if isBinary and actualWeight < 1.0, treat as 0.0
-            if (expression.isBinary && actualWeight < 1.0f) {
-                actualWeight = 0.0f
-            }
-
+            var actualWeight = expr.outputWeight(w) * multiplier
+            if (expr.isBinary && actualWeight < 1.0f) actualWeight = 0.0f
             if (actualWeight <= 0f) continue
 
-            for (bind in expression.morphTargetBinds) {
+            for (bind in expr.morphTargetBinds) {
                 if (bind.nodeIndex < 0) continue
                 val key = Pair(bind.nodeIndex, bind.morphTargetIndex)
                 result[key] = (result[key] ?: 0f) + bind.weight * actualWeight
