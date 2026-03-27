@@ -95,7 +95,7 @@ object VrmModClient {
     /**
      * Called from VRoidHubScreen after model selection to trigger download and load.
      */
-    fun loadVRoidHubModelFromScreen(uuid: java.util.UUID) {
+    fun loadVRoidHubModelFromScreen(uuid: java.util.UUID, versionId: String = "") {
         val configDir = Minecraft.getInstance().gameDirectory.resolve("config")
         val config = VrmModConfig.load(configDir)
         val modelId = config.vroidHubModelId ?: return
@@ -105,7 +105,7 @@ object VrmModClient {
         // Unload existing model first
         VrmPlayerManager.unload(uuid)
 
-        loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig, config.useVrmaAnimation)
+        loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig, config.useVrmaAnimation, versionId)
     }
 
     private fun loadVRoidHubModel(
@@ -115,6 +115,7 @@ object VrmModClient {
         animDir: File?,
         animationConfig: AnimationConfig,
         useVrmaAnimation: Boolean = true,
+        knownVersionId: String = "",
     ) {
         val vroidConfig = VRoidHubConfig.load(configDir.toPath())
         if (!vroidConfig.isAvailable) return
@@ -133,17 +134,14 @@ object VrmModClient {
                 }
             }
 
-            // Check cache — fetch latest version from API to detect updates
+            // Check cache: if knownVersionId is set (from screen selection), validate version.
+            // Otherwise (world join), use any cached version without API calls.
             val gameDir = Minecraft.getInstance().gameDirectory.toPath()
-            val versionId = try {
-                val hearts = VRoidHubApi.getHearts(token.accessToken).getOrNull() ?: emptyList()
-                val ownModels = VRoidHubApi.getAccountCharacterModels(token.accessToken).getOrNull() ?: emptyList()
-                val allModels = hearts + ownModels
-                allModels.firstOrNull { it.id == modelId }
-                    ?.latest_character_model_version?.id ?: ""
-            } catch (_: Exception) { "" }
-
-            val cached = VRoidHubModelCache.getCachedModel(gameDir, modelId, versionId)
+            val cached = if (knownVersionId.isNotEmpty()) {
+                VRoidHubModelCache.getCachedModel(gameDir, modelId, knownVersionId)
+            } else {
+                VRoidHubModelCache.getCachedModelAnyVersion(gameDir, modelId)
+            }
             if (cached != null) {
                 VrmMod.logger.info("Loading VRoid Hub model from cache: {}", cached.absolutePath)
                 return@supplyAsync cached
@@ -166,7 +164,7 @@ object VrmModClient {
                 return@supplyAsync null
             }
 
-            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, versionId, vrmBytes)
+            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, knownVersionId, vrmBytes)
             VrmMod.logger.info("VRoid Hub model cached: {}", file.absolutePath)
             file
         }.thenAccept { file ->

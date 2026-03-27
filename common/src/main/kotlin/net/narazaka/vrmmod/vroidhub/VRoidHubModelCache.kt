@@ -27,9 +27,17 @@ object VRoidHubModelCache {
     fun getCachedModel(gameDir: Path, modelId: String, versionId: String): File? {
         val metadata = loadMetadata(gameDir)
         val entry = metadata.models[modelId] ?: return null
-        if (entry.versionId != versionId) return null
+        if (versionId.isNotEmpty() && entry.versionId != versionId) return null
         val file = File(entry.filePath)
         return if (file.exists()) file else null
+    }
+
+    /**
+     * Returns the cached model file regardless of version.
+     * Used when loading at world join without making API calls.
+     */
+    fun getCachedModelAnyVersion(gameDir: Path, modelId: String): File? {
+        return getCachedModel(gameDir, modelId, "")
     }
 
     fun cacheModel(gameDir: Path, modelId: String, versionId: String, data: ByteArray): File {

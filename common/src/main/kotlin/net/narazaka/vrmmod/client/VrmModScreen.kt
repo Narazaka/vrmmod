@@ -527,7 +527,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         val config = VrmModConfig.load(configDir)
         val newConfig = config.copy(vroidHubModelId = model.id, modelSource = ModelSource.VROID_HUB)
         VrmModConfig.save(configDir, newConfig); VrmModClient.currentConfig = newConfig
-        Minecraft.getInstance().player?.let { VrmModClient.loadVRoidHubModelFromScreen(it.uuid) }
+        val versionId = model.latest_character_model_version?.id ?: ""
+        Minecraft.getInstance().player?.let { VrmModClient.loadVRoidHubModelFromScreen(it.uuid, versionId) }
     }
 
     // ========================================================================
