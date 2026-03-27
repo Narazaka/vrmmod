@@ -39,4 +39,22 @@ object MixinHelper {
             hurtTime = VrmRenderContext.HURT_TIME.get(),
         )
     }
+
+    @JvmStatic
+    fun filterHitResult(
+        hit: net.minecraft.world.phys.HitResult,
+        origin: net.minecraft.world.phys.Vec3,
+        range: Double,
+    ): net.minecraft.world.phys.HitResult {
+        val loc = hit.location
+        if (!loc.closerThan(origin, range)) {
+            val dir = net.minecraft.core.Direction.getApproximateNearest(
+                loc.x - origin.x, loc.y - origin.y, loc.z - origin.z,
+            )
+            return net.minecraft.world.phys.BlockHitResult.miss(
+                loc, dir, net.minecraft.core.BlockPos.containing(loc),
+            )
+        }
+        return hit
+    }
 }

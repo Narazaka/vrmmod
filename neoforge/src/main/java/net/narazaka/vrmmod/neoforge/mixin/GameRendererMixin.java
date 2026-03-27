@@ -11,12 +11,9 @@ import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -81,11 +78,6 @@ public class GameRendererMixin {
     }
 
     private static HitResult filterHitResult(HitResult hit, Vec3 origin, double range) {
-        Vec3 loc = hit.getLocation();
-        if (!loc.closerThan(origin, range)) {
-            Direction dir = Direction.getApproximateNearest(loc.x - origin.x, loc.y - origin.y, loc.z - origin.z);
-            return BlockHitResult.miss(loc, dir, BlockPos.containing(loc));
-        }
-        return hit;
+        return net.narazaka.vrmmod.render.MixinHelper.filterHitResult(hit, origin, range);
     }
 }
