@@ -44,12 +44,10 @@ public abstract class CameraMixin {
         double bodyYawRad = Math.toRadians(
                 mc.player.yBodyRotO + (mc.player.yBodyRot - mc.player.yBodyRotO) * partialTick
         );
-        double angle = bodyYawRad + Math.PI;
-        double cos = Math.cos(angle);
-        double sin = Math.sin(angle);
-        double mz = -eyeOffset.z;
-        double worldOffsetX = eyeOffset.x * cos - mz * sin;
-        double worldOffsetZ = eyeOffset.x * sin + mz * cos;
+        double cos = Math.cos(bodyYawRad);
+        double sin = Math.sin(bodyYawRad);
+        double worldOffsetX = eyeOffset.x * cos - eyeOffset.z * sin;
+        double worldOffsetZ = eyeOffset.x * sin + eyeOffset.z * cos;
 
         setPosition(
                 pos.x + worldOffsetX,
