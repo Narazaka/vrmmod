@@ -20,6 +20,9 @@ import org.joml.Vector3f
  */
 object VrmRenderer {
 
+    private data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: VrmPrimitive)
+    private data class RenderKey(val texture: ResourceLocation, val alphaMode: net.narazaka.vrmmod.vrm.AlphaMode)
+
     /** Target height in blocks for the rendered model. */
     private const val TARGET_HEIGHT = 1.8f
 
@@ -136,7 +139,6 @@ object VrmRenderer {
         val leftHandBone = model.humanoid.humanBones[HumanBone.LEFT_HAND]
         state.leftHandMatrix = if (leftHandBone != null) Matrix4f(animatedWorldMatrices[leftHandBone.nodeIndex]) else null
 
-        data class IndexedPrimitive(val meshIndex: Int, val skinIndex: Int, val primitive: net.narazaka.vrmmod.vrm.VrmPrimitive)
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, mesh.skinIndex, it) }
         }.filter { (meshIndex, skinIndex, primitive) ->
@@ -163,7 +165,6 @@ object VrmRenderer {
                 }
             }
         }
-        data class RenderKey(val texture: ResourceLocation, val alphaMode: net.narazaka.vrmmod.vrm.AlphaMode)
         val grouped = allPrimitives.groupBy {
             RenderKey(resolveTexture(state, it.primitive.imageIndex), it.primitive.alphaMode)
         }
