@@ -9,6 +9,7 @@
 
   "vrmmod.config.title": "VRM Mod Settings",
   "vrmmod.config.category.general": "General",
+  "vrmmod.config.category.display": "Display",
   "vrmmod.config.model_path": "VRM Model Path",
   "vrmmod.config.model_path.tooltip": "Path to the .vrm model file (absolute or relative to game directory)",
   "vrmmod.config.animation_dir": "Animation Directory",
