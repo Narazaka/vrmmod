@@ -177,10 +177,17 @@ object VrmRenderer {
         // Draw opaque/mask first, then translucent
         val sortedGroups = grouped.entries.sortedBy { if (it.key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND) 1 else 0 }
 
+        val useQuads = animConfig.useDegenerateQuadRenderType
         for ((key, indexedPrimitives) in sortedGroups) {
-            val renderType = when (key.alphaMode) {
-                net.narazaka.vrmmod.vrm.AlphaMode.BLEND -> RenderType.entityTranslucent(key.texture)
-                else -> RenderType.entityCutoutNoCull(key.texture)
+            val renderType = when {
+                key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND && useQuads ->
+                    RenderType.entityTranslucent(key.texture)
+                key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND ->
+                    net.minecraft.client.renderer.VrmRenderType.entityTranslucentTriangles(key.texture)
+                useQuads ->
+                    RenderType.entityCutoutNoCull(key.texture)
+                else ->
+                    net.minecraft.client.renderer.VrmRenderType.entityCutoutNoCullTriangles(key.texture)
             }
             val vertexConsumer = bufferSource.getBuffer(renderType)
             val isQuadMode = renderType.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS

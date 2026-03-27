@@ -48,6 +48,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var fpAllBothAsAutoToggle: CycleButton<Boolean>? = null
     private var fpForceAutoRemovalToggle: CycleButton<Boolean>? = null
     private var useActualNormalsToggle: CycleButton<Boolean>? = null
+    private var useDegenerateQuadRenderTypeToggle: CycleButton<Boolean>? = null
     private var vroidHubCacheTtlInput: EditBox? = null
 
     // --- VRoid Hub state ---
@@ -216,6 +217,10 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             .displayOnlyValue()
             .create(0, 0, 100, 20, Component.translatable("vrmmod.config.use_actual_normals"))
 
+        useDegenerateQuadRenderTypeToggle = CycleButton.onOffBuilder(animConfig.useDegenerateQuadRenderType)
+            .displayOnlyValue()
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.use_degenerate_quad_render_type"))
+
         // Display category
         list.addCategory(Component.translatable("vrmmod.config.category.display"))
         list.addWidgetRow(Component.translatable("vrmmod.config.avatar_scale"), Component.translatable("vrmmod.config.avatar_scale.tooltip"), avatarScaleInput!!, avatarScaleResetButton)
@@ -227,6 +232,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_all_both_as_auto"), Component.translatable("vrmmod.config.fp_all_both_as_auto.tooltip"), fpAllBothAsAutoToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_force_auto_removal"), Component.translatable("vrmmod.config.fp_force_auto_removal.tooltip"), fpForceAutoRemovalToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.use_actual_normals"), Component.translatable("vrmmod.config.use_actual_normals.tooltip"), useActualNormalsToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.use_degenerate_quad_render_type"), Component.translatable("vrmmod.config.use_degenerate_quad_render_type.tooltip"), useDegenerateQuadRenderTypeToggle!!)
 
         // VRoid Hub category
         if (vroidConfig.isAvailable) {
@@ -275,6 +281,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             firstPersonAllBothAsAuto = fpAllBothAsAutoToggle?.value ?: true,
             firstPersonForceAutoRemoval = fpForceAutoRemovalToggle?.value ?: false,
             useActualNormals = useActualNormalsToggle?.value ?: false,
+            useDegenerateQuadRenderType = useDegenerateQuadRenderTypeToggle?.value ?: false,
         )
         AnimationConfig.save(configDir, newAnimConfig)
 

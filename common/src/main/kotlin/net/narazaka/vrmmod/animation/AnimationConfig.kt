@@ -34,6 +34,8 @@ data class AnimationConfig(
     val firstPersonForceAutoRemoval: Boolean = false,
     /** Use actual vertex normals instead of uniform (0,1,0) for unlit look. */
     val useActualNormals: Boolean = false,
+    /** Use legacy degenerate-quad (QUADS mode) RenderType instead of TRIANGLES. */
+    val useDegenerateQuadRenderType: Boolean = false,
 ) {
     data class StateConfig(
         val clip: String,

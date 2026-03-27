@@ -39,6 +39,8 @@
   "vrmmod.config.fp_force_auto_removal.tooltip": "Ignore mesh annotations and always apply automatic head removal in first-person",
   "vrmmod.config.use_actual_normals": "Use Actual Normals",
   "vrmmod.config.use_actual_normals.tooltip": "Use actual vertex normals instead of uniform upward normal",
+  "vrmmod.config.use_degenerate_quad_render_type": "Degenerate Quad Mode",
+  "vrmmod.config.use_degenerate_quad_render_type.tooltip": "Use legacy QUADS render type (may cause flat shading with Iris shaders)",
   "vrmmod.config.reset": "Reset",
   "vrmmod.config.save": "Save",
   "vrmmod.config.model_source": "Model Source",
