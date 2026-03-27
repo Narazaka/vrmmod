@@ -102,7 +102,7 @@ object VrmPlayerManager {
                         damageExpressionDuration = animationConfig.damageExpressionDuration,
                     )
                     // Compute scale from world-space hips Y
-                    val cachedScale = run {
+                    var cachedScale = run {
                         val hipsNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HIPS]
                         if (hipsNode != null && hipsNode.nodeIndex in model.skeleton.nodes.indices) {
                             val hipsWorldPos = org.joml.Vector3f()
@@ -111,7 +111,18 @@ object VrmPlayerManager {
                         } else 0.9f
                     }
 
-                    // Compute VRM eye height in MC blocks
+                    // Match MC eye height: adjust scale so VRM eye height equals MC's 1.62
+                    if (animationConfig.matchMcEyeHeight) {
+                        val baseEyeHeight = computeEyeHeight(model, restPoseWorldMatrices, cachedScale)
+                        if (baseEyeHeight > 0f) {
+                            cachedScale *= 1.62f / baseEyeHeight
+                        }
+                    }
+
+                    // Apply user avatar scale multiplier
+                    cachedScale *= animationConfig.avatarScale
+
+                    // Compute VRM eye height in MC blocks (with final scale)
                     val eyeHeight = computeEyeHeight(model, restPoseWorldMatrices, cachedScale)
 
                     val state = VrmState(

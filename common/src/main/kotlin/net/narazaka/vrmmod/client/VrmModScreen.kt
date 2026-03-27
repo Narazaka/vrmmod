@@ -37,6 +37,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var useVrmaToggle: CycleButton<Boolean>? = null
     private var firstPersonButton: CycleButton<FirstPersonMode>? = null
     private var modelSourceButton: CycleButton<ModelSource>? = null
+    private var avatarScaleInput: EditBox? = null
+    private var matchMcEyeHeightToggle: CycleButton<Boolean>? = null
     private var heldItemScaleInput: EditBox? = null
     private var heldItemOffsetXInput: EditBox? = null
     private var heldItemOffsetYInput: EditBox? = null
@@ -150,6 +152,19 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.use_vrma"), Component.translatable("vrmmod.config.use_vrma.tooltip"), useVrmaToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.first_person_mode"), Component.translatable("vrmmod.config.first_person_mode.tooltip"), firstPersonButton!!)
 
+        // Avatar scale settings
+        avatarScaleInput = EditBox(font, 0, 0, 100, 18, Component.literal("Scale")).also {
+            it.setMaxLength(10)
+            it.value = animConfig.avatarScale.toString()
+        }
+        val avatarScaleResetButton = Button.builder(Component.translatable("vrmmod.config.reset")) { _ ->
+            avatarScaleInput?.value = "1.0"
+        }.bounds(0, 0, 50, 18).build()
+
+        matchMcEyeHeightToggle = CycleButton.onOffBuilder(animConfig.matchMcEyeHeight)
+            .displayOnlyValue()
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.match_mc_eye_height"))
+
         // Held item settings
         heldItemScaleInput = EditBox(font, 0, 0, 100, 18, Component.literal("Scale")).also {
             it.setMaxLength(10)
@@ -188,6 +203,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
         // Display category
         list.addCategory(Component.translatable("vrmmod.config.category.display"))
+        list.addWidgetRow(Component.translatable("vrmmod.config.avatar_scale"), Component.translatable("vrmmod.config.avatar_scale.tooltip"), avatarScaleInput!!, avatarScaleResetButton)
+        list.addWidgetRow(Component.translatable("vrmmod.config.match_mc_eye_height"), Component.translatable("vrmmod.config.match_mc_eye_height.tooltip"), matchMcEyeHeightToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_scale"), Component.translatable("vrmmod.config.held_item_scale.tooltip"), heldItemScaleInput!!, scaleResetButton)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_offset"), Component.translatable("vrmmod.config.held_item_offset.tooltip"), heldItemOffsetXInput!!, heldItemOffsetYInput!!, heldItemOffsetZInput!!, offsetResetButton)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_first_person"), Component.translatable("vrmmod.config.held_item_first_person.tooltip"), heldItemFirstPersonToggle!!)
@@ -227,6 +244,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         // Save held item settings to animation config
         val animConfig = AnimationConfig.load(configDir)
         val newAnimConfig = animConfig.copy(
+            avatarScale = avatarScaleInput?.value?.toFloatOrNull() ?: 1.0f,
+            matchMcEyeHeight = matchMcEyeHeightToggle?.value ?: false,
             heldItemScale = heldItemScaleInput?.value?.toFloatOrNull() ?: 0.67f,
             heldItemOffset = listOf(
                 heldItemOffsetXInput?.value?.toFloatOrNull() ?: 0f,

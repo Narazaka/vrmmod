@@ -12,6 +12,10 @@ data class AnimationConfig(
     val headTracking: Boolean = true,
     val walkThreshold: Float = 0.01f,
     val runThreshold: Float = 0.5f,
+    /** Avatar scale multiplier (1.0 = default size based on hips height). */
+    val avatarScale: Float = 1.0f,
+    /** If true, scale the avatar so its eye height matches MC's default eye height (1.62). */
+    val matchMcEyeHeight: Boolean = false,
     /** Held item scale relative to default. */
     val heldItemScale: Float = 0.67f,
     /** Held item position offset (x, y, z) in item-local space after rotation. */
