@@ -17,6 +17,20 @@ import kotlin.math.sin
  */
 class VanillaPoseProvider : PoseProvider {
 
+    companion object {
+        private val RAD_15 = Math.toRadians(15.0).toFloat()
+        private val RAD_20 = Math.toRadians(20.0).toFloat()
+        private val RAD_25 = Math.toRadians(25.0).toFloat()
+        private val RAD_30 = Math.toRadians(30.0).toFloat()
+        private val RAD_35 = Math.toRadians(35.0).toFloat()
+        private val RAD_40 = Math.toRadians(40.0).toFloat()
+        private val RAD_45 = Math.toRadians(45.0).toFloat()
+        private val RAD_50 = Math.toRadians(50.0).toFloat()
+        private val RAD_70 = Math.toRadians(70.0).toFloat()
+        private val RAD_75 = Math.toRadians(75.0).toFloat()
+        private val RAD_80 = Math.toRadians(80.0).toFloat()
+    }
+
     override fun computePose(skeleton: VrmSkeleton, context: PoseContext): BonePoseMap {
         val poses = mutableMapOf<HumanBone, BonePose>()
 
@@ -80,7 +94,7 @@ class VanillaPoseProvider : PoseProvider {
 
     private fun applyArms(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
         // VRM T-pose has arms horizontal. Rotate down ~75 degrees to a natural rest pose.
-        val restAngle = Math.toRadians(75.0).toFloat()
+        val restAngle = RAD_75
 
         // Arms swing opposite to legs; larger amplitude when sprinting
         val armAmplitude = if (ctx.isSprinting) 0.5f else 0.3f
@@ -95,7 +109,7 @@ class VanillaPoseProvider : PoseProvider {
         )
 
         // Lower arms: natural bend at elbow, more when sprinting
-        val elbowBend = Math.toRadians(if (ctx.isSprinting) 35.0 else 15.0).toFloat()
+        val elbowBend = if (ctx.isSprinting) RAD_35 else RAD_15
         poses[HumanBone.RIGHT_LOWER_ARM] = BonePose(
             rotation = Quaternionf().rotateX(elbowBend),
         )
@@ -119,7 +133,7 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf(baseRot).rotateX(-1.2f),
         )
         poses[lowerArm] = BonePose(
-            rotation = Quaternionf().rotateX(Math.toRadians(45.0).toFloat()),
+            rotation = Quaternionf().rotateX(RAD_45),
         )
     }
 
@@ -127,7 +141,7 @@ class VanillaPoseProvider : PoseProvider {
 
     private fun applySneaking(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
         // Lean spine forward
-        val leanRad = Math.toRadians(15.0).toFloat()
+        val leanRad = RAD_15
         poses[HumanBone.SPINE] = BonePose(
             rotation = Quaternionf().rotateX(leanRad),
         )
@@ -141,8 +155,8 @@ class VanillaPoseProvider : PoseProvider {
         }
 
         // Crouching posture: upper leg forward (negative X), lower leg bends at knee.
-        val upperLegForward = Math.toRadians(-20.0).toFloat()
-        val lowerLegBack = Math.toRadians(25.0).toFloat()
+        val upperLegForward = -RAD_20
+        val lowerLegBack = RAD_25
 
         val existingRightLeg = poses[HumanBone.RIGHT_UPPER_LEG]
         val existingLeftLeg = poses[HumanBone.LEFT_UPPER_LEG]
@@ -163,7 +177,7 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Swimming ----
 
     private fun applySwimming(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        val hipPitch = Math.toRadians(80.0).toFloat()
+        val hipPitch = RAD_80
         poses[HumanBone.HIPS] = BonePose(
             rotation = Quaternionf().rotateX(hipPitch),
         )
@@ -197,13 +211,13 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Elytra ----
 
     private fun applyElytra(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        val hipPitch = Math.toRadians(70.0).toFloat()
+        val hipPitch = RAD_70
         poses[HumanBone.HIPS] = BonePose(
             rotation = Quaternionf().rotateX(hipPitch),
         )
 
         // Arms spread
-        val armSpread = Math.toRadians(30.0).toFloat()
+        val armSpread = RAD_30
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
             rotation = Quaternionf().rotateZ(-armSpread),
         )
@@ -212,7 +226,7 @@ class VanillaPoseProvider : PoseProvider {
         )
 
         // Legs slightly back
-        val legBack = Math.toRadians(15.0).toFloat()
+        val legBack = RAD_15
         poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(-legBack),
         )
@@ -231,8 +245,8 @@ class VanillaPoseProvider : PoseProvider {
     // ---- Riding ----
 
     private fun applyRiding(poses: MutableMap<HumanBone, BonePose>, ctx: PoseContext) {
-        val legSpread = Math.toRadians(30.0).toFloat()
-        val legPitch = Math.toRadians(-40.0).toFloat()
+        val legSpread = RAD_30
+        val legPitch = -RAD_40
 
         poses[HumanBone.RIGHT_UPPER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(legPitch).rotateZ(-legSpread),
@@ -241,7 +255,7 @@ class VanillaPoseProvider : PoseProvider {
             rotation = Quaternionf().rotateX(legPitch).rotateZ(legSpread),
         )
 
-        val kneeBend = Math.toRadians(50.0).toFloat()
+        val kneeBend = RAD_50
         poses[HumanBone.RIGHT_LOWER_LEG] = BonePose(
             rotation = Quaternionf().rotateX(kneeBend),
         )
@@ -250,7 +264,7 @@ class VanillaPoseProvider : PoseProvider {
         )
 
         // Arms resting at sides
-        val restAngle = Math.toRadians(75.0).toFloat()
+        val restAngle = RAD_75
         poses[HumanBone.RIGHT_UPPER_ARM] = BonePose(
             rotation = Quaternionf().rotateZ(restAngle),
         )
