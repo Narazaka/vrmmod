@@ -238,20 +238,45 @@
 - GitHub Actions: `env:` で secrets を直接 Gradle に渡す（ファイル生成なし、GitHub 公式推奨の最安全方式）
 - ファイル名を `vrmmod-vroidhub.json` → `vrmmod-vroidhub-secrets.json` に改名（機密ファイルであることを明示）
 
+## Iris シェーダー互換性（2026-03-28実施）
+
+### 根本原因の特定
+- Iris の `MixinBufferBuilder.fillExtendedData()` が QUADS モードの描画で全頂点の法線をフェイス法線（面法線）で強制上書きしていた
+- TRIANGLES モードの場合は per-vertex 法線を保持する（Iris Issue #1406 の修正が TRIANGLES のみに適用）
+- バニラでは smooth normals が正しく描画されることを実機確認済み
+
+### 対応内容
+- **TRIANGLES モード RenderType**: `VrmRenderType` で `entityCutoutNoCull` / `entityTranslucent` と同一 CompositeState、Mode だけ TRIANGLES に変えたカスタム RenderType を作成
+- **Access Widener**: `RenderType.create()`（package-private）と `RenderStateShard` の protected フィールドに正規の方法でアクセス（`vrmmod.accesswidener`）
+- **NormalMode enum** (AUTO/OFF/ON): `ShaderDetector` が Iris API (`IrisApi.isShaderPackInUse()`) をリフレクションで検出し、AUTO モードではシェーダーパック有効時のみ実法線を使用
+- **退化四角形モード**: レガシー QUADS モードへのフォールバックオプション（Sodium 等で問題が出た場合用）
+- **影色ティント**: MToon の shadeColorFactor を頂点カラーに反映するオプション（効果は限定的、乗算パイプラインの制約）
+- デフォルト: TRIANGLES モード + NormalMode.AUTO（空 JSON 設定でも最適な動作）
+
+### 技術的知見
+- NeoForge は JPMS を使うため `net.minecraft.client.renderer` パッケージに mod クラスを置くとパッケージ衝突
+- Fabric は intermediary マッピングのためリフレクションでメソッド名/フィールド名指定が不可
+- Access Widener が Architectury (Fabric + NeoForge) での正規のアクセス手段
+
+### 設定項目（`vrmmod-animations.json`）
+- `normalMode`: AUTO（デフォルト）/ OFF / ON — 法線モード
+- `useShadeColorTint`: false（デフォルト）— MToon 影色ティント
+- `useDegenerateQuadRenderType`: false（デフォルト）— レガシー QUADS モード
+
 ## 残課題
 
 ### 高優先
 1. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
 
 ### 中優先
-2. **一人称カメラ XZ 揺れ問題**: アイドルモーション等でカメラが揺れる。FPSゲームの知見（ビューモデルは揺れるがカメラは固定）を取り入れた設計が必要
-3. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
-4. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
-5. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
-6. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題（首の内部が見える）
+2. **MToon カスタムシェーダー**: バニラ環境向けカスタム RenderType + フラグメントシェーダーで 2色トゥーンシェーディング（baseColor/shadeColor + toony/shift）。Iris 環境向けは shader pack として別途実装。shadeColorFactor/shadingToonyFactor/shadingShiftFactor は既にパース済み
+3. **一人称カメラ XZ 揺れ問題**: アイドルモーション等でカメラが揺れる。FPSゲームの知見（ビューモデルは揺れるがカメラは固定）を取り入れた設計が必要
+4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
+5. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
+6. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
+7. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題（首の内部が見える）
 
 ### 低優先
-7. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
 8. **特殊メッシュの描画破綻**: `Cynthia_Maya_VRM_チアリーダー.vrm` のポンポンメッシュのみがノイズ状に描画される
 9. **Vivecraft IK**: VR 一人称、3点IK
 10. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
