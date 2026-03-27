@@ -95,7 +95,8 @@ class VrmSkinningEngineTest {
             skins = listOf(VrmSkin(jointNodeIndices = listOf(0), inverseBindMatrices = listOf(Matrix4f()))),
         )
 
-        val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton)
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(skeleton)
+        val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton, worldMatrices)
         assertEquals(1, skinning.size)
 
         // Skinning matrix = world * ibm = translate(0,2,0) * identity
@@ -115,7 +116,8 @@ class VrmSkinningEngineTest {
             skins = listOf(VrmSkin(jointNodeIndices = listOf(0), inverseBindMatrices = listOf(Matrix4f().translate(0f, -2f, 0f)))),
         )
 
-        val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton)
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(skeleton)
+        val skinning = VrmSkinningEngine.computeSkinningMatrices(skeleton, worldMatrices)
         val pos = Vector3f()
         skinning[0].getTranslation(pos)
         assertVec3Near(Vector3f(0f, 0f, 0f), pos)

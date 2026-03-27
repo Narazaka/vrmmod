@@ -79,31 +79,12 @@ object VrmSkinningEngine {
     }
 
     /**
-     * Computes skinning matrices for a specific skin.
+     * Computes skinning matrices using pre-computed world matrices.
      *
      * `skinningMatrix[j] = worldMatrix[ skin.jointNodeIndices[j] ] * skin.inverseBindMatrices[j]`
      *
      * @param skinIndex index into [VrmSkeleton.skins]. If out of range, returns empty list.
      * @return one [Matrix4f] per joint (same order as the skin's jointNodeIndices)
-     */
-    fun computeSkinningMatrices(
-        skeleton: VrmSkeleton,
-        overrides: Map<Int, Matrix4f> = emptyMap(),
-        skinIndex: Int = 0,
-    ): List<Matrix4f> {
-        val skin = skeleton.skins.getOrNull(skinIndex) ?: return emptyList()
-        val worldMatrices = computeWorldMatrices(skeleton, overrides)
-        val joints = skin.jointNodeIndices
-        val ibms = skin.inverseBindMatrices
-
-        return List(joints.size) { j ->
-            val nodeIdx = joints[j]
-            Matrix4f(worldMatrices[nodeIdx]).mul(ibms[j])
-        }
-    }
-
-    /**
-     * Computes skinning matrices using pre-computed world matrices.
      */
     fun computeSkinningMatrices(
         skeleton: VrmSkeleton,
