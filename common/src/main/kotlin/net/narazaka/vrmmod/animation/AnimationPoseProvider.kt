@@ -178,7 +178,7 @@ class AnimationPoseProvider(
         val pitchRad = Math.toRadians(context.headPitch.toDouble()).toFloat()
         if (yawRad == 0f && pitchRad == 0f) return poses
 
-        val lookAtRot = Quaternionf().rotateY(yawRad).rotateX(pitchRad)
+        val lookAtRot = Quaternionf().rotateY(-yawRad).rotateX(pitchRad)
 
         val existingHead = poses[HumanBone.HEAD]
         val baseRot = existingHead?.rotation ?: Quaternionf()

@@ -434,8 +434,6 @@ object VrmRenderer {
 
     private fun applyModelTransform(poseStack: PoseStack, bodyYawRad: Float, scale: Float) {
         poseStack.mulPose(org.joml.Quaternionf().rotateY(-bodyYawRad))
-        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
-        poseStack.scale(1f, 1f, -1f)
         poseStack.scale(scale, scale, scale)
     }
 
