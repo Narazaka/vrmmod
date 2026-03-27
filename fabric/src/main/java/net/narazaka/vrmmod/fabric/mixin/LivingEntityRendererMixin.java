@@ -61,6 +61,20 @@ public class LivingEntityRendererMixin {
         ci.cancel();
     }
 
+    @Inject(method = "render(Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At("RETURN"))
+    private void vrmmod$clearContext(
+            LivingEntityRenderState livingRenderState,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            CallbackInfo ci
+    ) {
+        if (livingRenderState instanceof PlayerRenderState) {
+            VrmRenderContext.CURRENT_PLAYER_UUID.remove();
+        }
+    }
+
     private static PoseContext buildPoseContext(PlayerRenderState renderState) {
         return new PoseContext(
                 /* partialTick */       0f,
