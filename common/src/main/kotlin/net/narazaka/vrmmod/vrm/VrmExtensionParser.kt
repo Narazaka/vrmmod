@@ -239,9 +239,6 @@ object VrmExtensionParser {
     }
 
     /**
-     * Parses a Vector3f from either a JSON array [x,y,z] or a JSON object {x,y,z}.
-     */
-    /**
      * Parses lookAt.offsetFromHeadBone from VRMC_vrm.
      */
     fun parseLookAtOffset(json: JsonObject?): org.joml.Vector3f {
@@ -275,6 +272,9 @@ object VrmExtensionParser {
         return result
     }
 
+    /**
+     * Parses a Vector3f from either a JSON array [x,y,z] or a JSON object {x,y,z}.
+     */
     private fun parseVector3f(element: JsonElement?): org.joml.Vector3f {
         if (element == null) return org.joml.Vector3f()
         if (element.isJsonArray) {
