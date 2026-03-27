@@ -55,12 +55,13 @@ object VrmRenderer {
 
         // Compute delta time for physics and expression animation
         val now = System.nanoTime()
-        val deltaTime = if (state.lastRenderTimeNano == 0L) {
-            1f / 60f // first frame fallback
+        val rawDelta = if (state.lastRenderTimeNano == 0L) {
+            1f / 60f
         } else {
-            ((now - state.lastRenderTimeNano) / 1_000_000_000f).coerceIn(0.001f, 0.1f)
+            (now - state.lastRenderTimeNano) / 1_000_000_000f
         }
         state.lastRenderTimeNano = now
+        val deltaTime = if (rawDelta > 0.1f) 0f else rawDelta.coerceAtLeast(0.001f)
 
         // Update auto-blink and expression animations
         state.expressionController.update(deltaTime, poseContext.hurtTime)
