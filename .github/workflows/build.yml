@@ -21,6 +21,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - run: ./gradlew build
+        env:
+          VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
+          VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
 
       - uses: actions/upload-artifact@v4
         with:
