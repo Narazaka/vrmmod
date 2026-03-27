@@ -8,12 +8,6 @@ object VrmModNetwork {
     fun register() {
         VrmMod.logger.info("Registering VRM mod network packets")
 
-        // Register S2C payload type (client needs to know how to decode)
-        NetworkManager.registerS2CPayloadType(
-            PlayerModelPayload.TYPE,
-            PlayerModelPayload.CODEC,
-        )
-
         // Register C2S receiver (server handles ModelAnnounce)
         NetworkManager.registerReceiver(
             NetworkManager.c2s(),
