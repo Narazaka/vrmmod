@@ -93,7 +93,7 @@ data class AnimationConfig(
 
         fun defaultStates(): Map<String, StateConfig> = mapOf(
             // Movement
-            "move.idle" to StateConfig("Idle_Loop", mirror = true),
+            "move.idle" to StateConfig("Idle_Loop"),
             "move.walk" to StateConfig("Walk_Loop"),
             "move.walk.backward" to StateConfig("Walk_Loop"),
             "move.walk.left" to StateConfig("Walk_Loop"),
@@ -109,9 +109,9 @@ data class AnimationConfig(
             "move.elytra" to StateConfig("Swim_Fwd_Loop"),
             // Actions
             "action.swing" to StateConfig("Punch_Jab", loop = false),
-            "action.swing.mainHand.weapon" to StateConfig("Sword_Attack", loop = false, mirror = true),
+            "action.swing.mainHand.weapon" to StateConfig("Sword_Attack", loop = false),
             "action.swing.mainHand.item" to StateConfig("Interact", loop = false),
-            "action.swing.offHand.weapon" to StateConfig("Sword_Attack", loop = false),
+            "action.swing.offHand.weapon" to StateConfig("Sword_Attack", loop = false, mirror = true),
             "action.swing.offHand.item" to StateConfig("Interact", loop = false, mirror = true),
             "action.useItem" to StateConfig("Interact", loop = false),
             "action.useItem.mainHand" to StateConfig("Interact", loop = false),
