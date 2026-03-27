@@ -64,13 +64,8 @@ class AnimationPoseProvider(
 
     override fun computePose(skeleton: VrmSkeleton, context: PoseContext): BonePoseMap {
         val now = System.nanoTime()
-        val rawDelta = if (lastTimeNano == 0L) {
-            1f / 60f
-        } else {
-            (now - lastTimeNano) / 1_000_000_000f
-        }
+        val deltaTime = net.narazaka.vrmmod.render.DeltaTimeUtil.compute(lastTimeNano, now)
         lastTimeNano = now
-        val deltaTime = if (rawDelta > 0.1f) 0f else rawDelta.coerceAtLeast(0.001f)
 
         val targetClipName = selectClip(context)
 
