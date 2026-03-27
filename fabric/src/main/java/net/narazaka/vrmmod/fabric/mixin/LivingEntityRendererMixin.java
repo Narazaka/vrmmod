@@ -58,6 +58,7 @@ public class LivingEntityRendererMixin {
                     state.getAnimationConfig()
             );
         }
+        VrmRenderContext.CURRENT_PLAYER_UUID.remove();
         ci.cancel();
     }
 
