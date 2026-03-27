@@ -47,6 +47,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var heldItemThirdPersonToggle: CycleButton<Boolean>? = null
     private var fpAllBothAsAutoToggle: CycleButton<Boolean>? = null
     private var fpForceAutoRemovalToggle: CycleButton<Boolean>? = null
+    private var useActualNormalsToggle: CycleButton<Boolean>? = null
     private var vroidHubCacheTtlInput: EditBox? = null
 
     // --- VRoid Hub state ---
@@ -211,6 +212,10 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             .displayOnlyValue()
             .create(0, 0, 100, 20, Component.translatable("vrmmod.config.fp_force_auto_removal"))
 
+        useActualNormalsToggle = CycleButton.onOffBuilder(animConfig.useActualNormals)
+            .displayOnlyValue()
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.use_actual_normals"))
+
         // Display category
         list.addCategory(Component.translatable("vrmmod.config.category.display"))
         list.addWidgetRow(Component.translatable("vrmmod.config.avatar_scale"), Component.translatable("vrmmod.config.avatar_scale.tooltip"), avatarScaleInput!!, avatarScaleResetButton)
@@ -221,6 +226,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_third_person"), Component.translatable("vrmmod.config.held_item_third_person.tooltip"), heldItemThirdPersonToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_all_both_as_auto"), Component.translatable("vrmmod.config.fp_all_both_as_auto.tooltip"), fpAllBothAsAutoToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_force_auto_removal"), Component.translatable("vrmmod.config.fp_force_auto_removal.tooltip"), fpForceAutoRemovalToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.use_actual_normals"), Component.translatable("vrmmod.config.use_actual_normals.tooltip"), useActualNormalsToggle!!)
 
         // VRoid Hub category
         if (vroidConfig.isAvailable) {
@@ -268,6 +274,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             heldItemThirdPerson = heldItemThirdPersonToggle?.value ?: true,
             firstPersonAllBothAsAuto = fpAllBothAsAutoToggle?.value ?: true,
             firstPersonForceAutoRemoval = fpForceAutoRemovalToggle?.value ?: false,
+            useActualNormals = useActualNormalsToggle?.value ?: false,
         )
         AnimationConfig.save(configDir, newAnimConfig)
 

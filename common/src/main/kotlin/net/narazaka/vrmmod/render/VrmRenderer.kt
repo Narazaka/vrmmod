@@ -209,7 +209,7 @@ object VrmRenderer {
                     meshToNodeIndex[meshIndex]?.let { animatedWorldMatrices.getOrNull(it) }
                 } else null
 
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix)
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix, animConfig.useActualNormals)
             }
         }
 
@@ -458,6 +458,7 @@ object VrmRenderer {
         morphWeights: Map<Int, Float> = emptyMap(),
         skipHeadJoints: Set<Int> = emptySet(),
         nodeWorldMatrix: Matrix4f? = null,
+        useActualNormals: Boolean = false,
     ) {
         val positions = primitive.positions
         val normals = primitive.normals
@@ -616,7 +617,7 @@ object VrmRenderer {
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(packedLight)
                     // TODO: When Iris MToon shader is implemented, use actual normals (nx, ny, nz) instead
-                    .setNormal(pose, 0f, 1f, 0f) // uniform upward normal for unlit look
+                    .setNormal(pose, if (useActualNormals) nx else 0f, if (useActualNormals) ny else 1f, if (useActualNormals) nz else 0f)
             }
         }
     }

@@ -32,6 +32,8 @@ data class AnimationConfig(
     val firstPersonAllBothAsAuto: Boolean = true,
     /** Ignore meshAnnotations entirely and always use auto head removal in first-person. */
     val firstPersonForceAutoRemoval: Boolean = false,
+    /** Use actual vertex normals instead of uniform (0,1,0) for unlit look. */
+    val useActualNormals: Boolean = false,
 ) {
     data class StateConfig(
         val clip: String,

@@ -37,6 +37,8 @@
   "vrmmod.config.fp_all_both_as_auto.tooltip": "Treat models with all meshes set to 'Both' as 'Auto' for first-person head removal",
   "vrmmod.config.fp_force_auto_removal": "Force Head Removal",
   "vrmmod.config.fp_force_auto_removal.tooltip": "Ignore mesh annotations and always apply automatic head removal in first-person",
+  "vrmmod.config.use_actual_normals": "Use Actual Normals",
+  "vrmmod.config.use_actual_normals.tooltip": "Use actual vertex normals instead of uniform upward normal",
   "vrmmod.config.reset": "Reset",
   "vrmmod.config.save": "Save",
   "vrmmod.config.model_source": "Model Source",
