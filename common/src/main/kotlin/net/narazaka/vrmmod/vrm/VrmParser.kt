@@ -318,7 +318,8 @@ object VrmParser {
         // If the accessor has a bufferView, read the base data first
         val bufferViewIndex = accessor.bufferView
         if (bufferViewIndex != null) {
-            val baseData = readBufferViewFloats(bufferViewIndex, gltf, binaryData, count * numComponents)
+            val accessorByteOffset = accessor.byteOffset ?: accessor.defaultByteOffset() ?: 0
+            val baseData = readBufferViewFloats(bufferViewIndex, gltf, binaryData, count * numComponents, accessorByteOffset)
             baseData.copyInto(result)
         }
 
@@ -375,10 +376,11 @@ object VrmParser {
         gltf: GlTF,
         binaryData: ByteBuffer,
         count: Int,
+        accessorByteOffset: Int = 0,
     ): FloatArray {
         val bufferViews = gltf.bufferViews ?: return floatArrayOf()
         val bv = bufferViews.getOrNull(bufferViewIndex) ?: return floatArrayOf()
-        val offset = bv.byteOffset ?: bv.defaultByteOffset() ?: 0
+        val offset = (bv.byteOffset ?: bv.defaultByteOffset() ?: 0) + accessorByteOffset
         val buf = binaryData.duplicate().order(ByteOrder.LITTLE_ENDIAN)
         buf.position(offset)
         val result = FloatArray(count)
