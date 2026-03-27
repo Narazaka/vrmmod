@@ -48,7 +48,7 @@ object VrmPlayerManager {
 
         val future = CompletableFuture.supplyAsync {
             VrmMod.logger.info("Parsing VRM file for player {}: {}", playerUUID, file.name)
-            val model = VrmParser.parse(file.inputStream())
+            val model = file.inputStream().use { VrmParser.parse(it) }
 
             // Load animation clips from directory or bundled resources
             val clips = if (!useVrmaAnimation) {
@@ -225,12 +225,13 @@ object VrmPlayerManager {
                 val stream = VrmPlayerManager::class.java.getResourceAsStream(resourcePath)
                 if (stream != null) {
                     VrmMod.logger.info("Loading bundled animation: {}", filename)
-                    val parsed = VrmaParser.parse(stream)
-                    for (clip in parsed) {
-                        clips[clip.name] = clip
-                        VrmMod.logger.info("  Loaded clip '{}' (duration={}s, {} bones)", clip.name, clip.duration, clip.tracks.size)
+                    stream.use {
+                        val parsed = VrmaParser.parse(it)
+                        for (clip in parsed) {
+                            clips[clip.name] = clip
+                            VrmMod.logger.info("  Loaded clip '{}' (duration={}s, {} bones)", clip.name, clip.duration, clip.tracks.size)
+                        }
                     }
-                    stream.close()
                 } else {
                     VrmMod.logger.warn("Bundled animation not found: {}", resourcePath)
                 }
