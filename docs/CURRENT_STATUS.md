@@ -74,6 +74,13 @@
 - headTracking: `rotateY(yawRad)` → `rotateY(-yawRad)` に修正
 - CameraMixin: XZ offset の座標変換も修正済み（旧 `bodyYaw+PI` + Z反転 → 単純な `bodyYaw` 回転）
 
+### アバタースケール・MC目線マッチ
+- `avatarScale: Float = 1.0`: 任意のスケール倍率。モデルロード時に `cachedScale` に掛けられる
+- `matchMcEyeHeight: Boolean = false`: VRM の目の高さが MC デフォルト（1.62ブロック）に一致するようスケール自動補正
+- 計算順序: baseScale（hipsY基準）→ matchMcEyeHeight 補正（`1.62 / computeEyeHeight(baseScale)`）→ avatarScale 倍率 → 最終 eyeHeight 再計算
+- VRM_MC_CAMERA モードでの「カメラ位置と身体の大きさの不整合」を緩和する目的
+- `cachedScale` はモデルロード時に1回計算して `VrmState` に保存（コードレビューで `estimateScale` 毎フレーム呼び出しを廃止）
+
 ### 利き手対応
 - `PoseContext.isLeftHanded`: `player.mainArm == HumanoidArm.LEFT` から取得
 - mirror フラグと XOR: `shouldMirror = currentMirror != context.isLeftHanded`
@@ -121,6 +128,7 @@
 - 三角形単位HEAD除去: 3頂点全てがHEADの子孫ジョイントに主にウェイトされている三角形をスキップ
 - `collectHeadJointIndices`: HEAD ボーンの子孫ジョイントインデックスを収集（キャッシュ）
 - 一人称アイテム描画: `VrmFirstPersonRenderer` で `ItemModelResolver.updateForLiving()` を使い手持ちアイテム描画
+- 一人称 PoseContext: `mainHandItemTags`/`offHandItemTags`/`isOffHandSwing`/`isOffHandUse` をエンティティから直接取得（三人称は Mixin 経由の ThreadLocal だが、一人称は `collectVisibleEntities` でスキップされるため独自構築が必要）
 
 ### VRM_VRM_CAMERA モード
 - rest-pose の HEAD ワールド行列 × lookAt.offsetFromHeadBone で eyeHeight 計算（モデルロード時1回）
@@ -132,10 +140,10 @@
 
 ### コンフィグ
 - `vrmmod.json`: localModelPath, animationDir, useVrmaAnimation, firstPersonMode, modelSource, vroidHubModelId
-- `vrmmod-animations.json`: states(階層型), transitions(階層フォールバック+ワイルドカード), weaponTags, headTracking, walkThreshold, runThreshold, damageExpression, damageExpressionDuration, heldItemScale, heldItemOffset, heldItemFirstPerson, heldItemThirdPerson
+- `vrmmod-animations.json`: states(階層型), transitions(階層フォールバック+ワイルドカード), weaponTags, headTracking, walkThreshold, runThreshold, avatarScale, matchMcEyeHeight, damageExpression, damageExpressionDuration, heldItemScale, heldItemOffset, heldItemFirstPerson, heldItemThirdPerson
 - 独自 GUI（`VrmModScreen` + `VrmSettingsList`）: スクロール可能なカテゴリ分け設定画面
-- カテゴリ: 一般（モデルソース、パス、アニメーション、一人称モード）、表示（アイテムスケール/位置/表示トグル）
-- リセットボタン: アイテムスケール/位置をデフォルト値に戻す
+- カテゴリ: 一般（モデルソース、パス、アニメーション、一人称モード）、表示（アバタースケール/MC目線合わせ/アイテムスケール/位置/表示トグル）
+- リセットボタン: アバタースケール/アイテムスケール/位置をデフォルト値に戻す
 - Mod Menu 統合（Fabric）、IConfigScreenFactory（NeoForge）
 - ライブリロード: 設定保存時にモデル即再読み込み
 - キーバインド: デフォルト未割当て
