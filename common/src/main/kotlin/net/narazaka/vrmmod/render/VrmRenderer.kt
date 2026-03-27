@@ -224,8 +224,10 @@ object VrmRenderer {
         bodyYawRad: Float,
     ) {
         val scale = estimateScale(state)
-        renderSingleHandItem(state.rightHandMatrix, rightHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
-        renderSingleHandItem(state.leftHandMatrix, leftHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        // MC rightHandItem = main hand item, rendered on VRM left hand (mirrored animation convention)
+        // MC leftHandItem = off hand item, rendered on VRM right hand
+        renderSingleHandItem(state.leftHandMatrix, rightHandItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale)
+        renderSingleHandItem(state.rightHandMatrix, leftHandItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale)
     }
 
     private fun renderSingleHandItem(
