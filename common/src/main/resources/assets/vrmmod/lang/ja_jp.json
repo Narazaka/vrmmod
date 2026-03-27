@@ -40,7 +40,7 @@
   "vrmmod.config.normal_mode": "法線モード",
   "vrmmod.config.normal_mode.tooltip": "実際の頂点法線を使用するタイミング（Auto: シェーダー適用時にON）",
   "vrmmod.config.normal_mode.auto": "自動",
-  "vrmmod.config.normal_mode.off": "フラット",
+  "vrmmod.config.normal_mode.off": "Unlit",
   "vrmmod.config.normal_mode.on": "モデル法線",
   "vrmmod.config.use_degenerate_quad_render_type": "退化四角形モード",
   "vrmmod.config.use_degenerate_quad_render_type.tooltip": "レガシーのQUADS RenderTypeを使用する（Irisシェーダーでフラットシェーディングになる場合がある）",
