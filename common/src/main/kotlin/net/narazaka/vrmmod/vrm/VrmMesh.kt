@@ -46,6 +46,7 @@ data class VrmPrimitive(
             vertexCount == other.vertexCount &&
             materialIndex == other.materialIndex &&
             imageIndex == other.imageIndex &&
+            alphaMode == other.alphaMode &&
             morphTargets == other.morphTargets
     }
 
@@ -54,6 +55,7 @@ data class VrmPrimitive(
         result = 31 * result + normals.contentHashCode()
         result = 31 * result + indices.contentHashCode()
         result = 31 * result + vertexCount
+        result = 31 * result + alphaMode.hashCode()
         return result
     }
 }
