@@ -246,6 +246,10 @@ object VrmRenderer {
         // Apply hand bone world matrix
         poseStack.mulPose(handMatrix)
 
+        // Item scale: VRM models are smaller than vanilla player, so scale items down
+        val itemScale = 0.67f
+        poseStack.scale(itemScale, itemScale, itemScale)
+
         // Item orientation adjustments for VRM hand bone coordinate system
         // VRM hand bone: fingers along ±X, palm faces -Y in T-pose
         // MC items: handle at origin, blade/tip extends +Y
