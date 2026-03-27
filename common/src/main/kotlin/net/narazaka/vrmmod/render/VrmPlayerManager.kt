@@ -168,7 +168,7 @@ object VrmPlayerManager {
         for (vrmaFile in vrmaFiles) {
             try {
                 VrmMod.logger.info("Loading animation file: {}", vrmaFile.name)
-                val parsed = VrmaParser.parse(vrmaFile.inputStream())
+                val parsed = vrmaFile.inputStream().use { VrmaParser.parse(it) }
                 for (clip in parsed) {
                     clips[clip.name] = clip
                     VrmMod.logger.info("  Loaded clip '{}' (duration={}s, {} bones)", clip.name, clip.duration, clip.tracks.size)
