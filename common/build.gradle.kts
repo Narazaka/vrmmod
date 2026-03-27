@@ -26,7 +26,9 @@ tasks.test {
 val generateVRoidHubSecrets by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/sources/vroidhub/net/narazaka/vrmmod/vroidhub")
     val jsonFile = rootProject.file("vrmmod-vroidhub-secrets.json")
-    if (jsonFile.exists()) inputs.file(jsonFile)
+    inputs.file(jsonFile).optional()
+    inputs.property("envClientId", System.getenv("VROIDHUB_CLIENT_ID") ?: "")
+    inputs.property("envClientSecret", System.getenv("VROIDHUB_CLIENT_SECRET") ?: "")
     outputs.dir(outputDir)
 
     doLast {
