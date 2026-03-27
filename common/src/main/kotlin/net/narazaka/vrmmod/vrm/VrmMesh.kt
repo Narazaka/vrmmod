@@ -11,15 +11,15 @@ data class VrmMesh(
 )
 
 /**
- * A single draw-call unit within a mesh.
- */
-/**
  * glTF alphaMode for the material.
  */
 enum class AlphaMode {
     OPAQUE, MASK, BLEND
 }
 
+/**
+ * A single draw-call unit within a mesh.
+ */
 data class VrmPrimitive(
     val positions: FloatArray,
     val normals: FloatArray = floatArrayOf(),
@@ -55,6 +55,8 @@ data class VrmPrimitive(
         result = 31 * result + normals.contentHashCode()
         result = 31 * result + indices.contentHashCode()
         result = 31 * result + vertexCount
+        result = 31 * result + materialIndex
+        result = 31 * result + imageIndex
         result = 31 * result + alphaMode.hashCode()
         return result
     }
