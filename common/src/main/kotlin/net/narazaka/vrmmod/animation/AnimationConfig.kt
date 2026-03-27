@@ -32,8 +32,8 @@ data class AnimationConfig(
     val firstPersonAllBothAsAuto: Boolean = true,
     /** Ignore meshAnnotations entirely and always use auto head removal in first-person. */
     val firstPersonForceAutoRemoval: Boolean = false,
-    /** Use actual vertex normals instead of uniform (0,1,0) for unlit look. */
-    val useActualNormals: Boolean = false,
+    /** When to use actual vertex normals instead of uniform (0,1,0). */
+    val normalMode: NormalMode = NormalMode.AUTO,
     /** Use legacy degenerate-quad (QUADS mode) RenderType instead of TRIANGLES. */
     val useDegenerateQuadRenderType: Boolean = false,
 ) {

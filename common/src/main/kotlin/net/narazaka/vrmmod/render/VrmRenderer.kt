@@ -178,6 +178,11 @@ object VrmRenderer {
         val sortedGroups = grouped.entries.sortedBy { if (it.key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND) 1 else 0 }
 
         val useQuads = animConfig.useDegenerateQuadRenderType
+        val useActualNormals = when (animConfig.normalMode) {
+            net.narazaka.vrmmod.animation.NormalMode.ON -> true
+            net.narazaka.vrmmod.animation.NormalMode.OFF -> false
+            net.narazaka.vrmmod.animation.NormalMode.AUTO -> ShaderDetector.isShaderPackActive()
+        }
         for ((key, indexedPrimitives) in sortedGroups) {
             val renderType = when {
                 key.alphaMode == net.narazaka.vrmmod.vrm.AlphaMode.BLEND && useQuads ->
@@ -216,7 +221,7 @@ object VrmRenderer {
                     meshToNodeIndex[meshIndex]?.let { animatedWorldMatrices.getOrNull(it) }
                 } else null
 
-                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix, animConfig.useActualNormals)
+                drawPrimitive(primitive, vertexConsumer, pose, packedLight, meshSkinningMatrices, isQuadMode, primitiveMorphWeights, headJoints, nodeWorldMatrix, useActualNormals)
             }
         }
 

@@ -47,7 +47,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var heldItemThirdPersonToggle: CycleButton<Boolean>? = null
     private var fpAllBothAsAutoToggle: CycleButton<Boolean>? = null
     private var fpForceAutoRemovalToggle: CycleButton<Boolean>? = null
-    private var useActualNormalsToggle: CycleButton<Boolean>? = null
+    private var normalModeButton: CycleButton<net.narazaka.vrmmod.animation.NormalMode>? = null
     private var useDegenerateQuadRenderTypeToggle: CycleButton<Boolean>? = null
     private var vroidHubCacheTtlInput: EditBox? = null
 
@@ -213,9 +213,12 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             .displayOnlyValue()
             .create(0, 0, 100, 20, Component.translatable("vrmmod.config.fp_force_auto_removal"))
 
-        useActualNormalsToggle = CycleButton.onOffBuilder(animConfig.useActualNormals)
+        normalModeButton = CycleButton.builder<net.narazaka.vrmmod.animation.NormalMode> { mode ->
+            Component.translatable("vrmmod.config.normal_mode.${mode.name.lowercase()}")
+        }.withValues(*net.narazaka.vrmmod.animation.NormalMode.entries.toTypedArray())
+            .withInitialValue(animConfig.normalMode)
             .displayOnlyValue()
-            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.use_actual_normals"))
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.normal_mode"))
 
         useDegenerateQuadRenderTypeToggle = CycleButton.onOffBuilder(animConfig.useDegenerateQuadRenderType)
             .displayOnlyValue()
@@ -231,7 +234,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_third_person"), Component.translatable("vrmmod.config.held_item_third_person.tooltip"), heldItemThirdPersonToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_all_both_as_auto"), Component.translatable("vrmmod.config.fp_all_both_as_auto.tooltip"), fpAllBothAsAutoToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.fp_force_auto_removal"), Component.translatable("vrmmod.config.fp_force_auto_removal.tooltip"), fpForceAutoRemovalToggle!!)
-        list.addWidgetRow(Component.translatable("vrmmod.config.use_actual_normals"), Component.translatable("vrmmod.config.use_actual_normals.tooltip"), useActualNormalsToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.normal_mode"), Component.translatable("vrmmod.config.normal_mode.tooltip"), normalModeButton!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.use_degenerate_quad_render_type"), Component.translatable("vrmmod.config.use_degenerate_quad_render_type.tooltip"), useDegenerateQuadRenderTypeToggle!!)
 
         // VRoid Hub category
@@ -280,7 +283,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             heldItemThirdPerson = heldItemThirdPersonToggle?.value ?: true,
             firstPersonAllBothAsAuto = fpAllBothAsAutoToggle?.value ?: true,
             firstPersonForceAutoRemoval = fpForceAutoRemovalToggle?.value ?: false,
-            useActualNormals = useActualNormalsToggle?.value ?: false,
+            normalMode = normalModeButton?.value ?: net.narazaka.vrmmod.animation.NormalMode.AUTO,
             useDegenerateQuadRenderType = useDegenerateQuadRenderTypeToggle?.value ?: false,
         )
         AnimationConfig.save(configDir, newAnimConfig)
