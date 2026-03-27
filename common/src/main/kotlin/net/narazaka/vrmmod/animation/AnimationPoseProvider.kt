@@ -50,6 +50,7 @@ class AnimationPoseProvider(
     private var wasSwinging = false
     private var prevAttackTime = 0f
     private var forceClipRestart = false
+    private var currentMirror = false
 
     // Cross-fade state
     private var prevPose: BonePoseMap = emptyMap()
@@ -76,6 +77,9 @@ class AnimationPoseProvider(
             val currentClip = clips[currentClipName]
             if (currentClip != null) {
                 prevPose = currentClip.sample(currentTime)
+                if (currentMirror) {
+                    prevPose = mirrorPoses(prevPose)
+                }
                 scaleHipsTranslation(prevPose, currentClip)?.let { prevPose = it }
             }
             currentClipName = targetClipName
@@ -90,6 +94,9 @@ class AnimationPoseProvider(
         // Sample current clip
         val clip = clips[currentClipName] ?: return emptyMap()
         var poses = clip.sample(currentTime)
+        if (currentMirror) {
+            poses = mirrorPoses(poses)
+        }
         poses = scaleHipsTranslation(poses, clip) ?: poses
 
         // Cross-fade blending
@@ -278,10 +285,11 @@ class AnimationPoseProvider(
     private fun resolveState(stateName: String): String? {
         var key = stateName
         while (true) {
-            val clipName = config.states[key]?.clip
-            if (clipName != null && clipName.isNotBlank() && clips.containsKey(clipName)) {
+            val stateConfig = config.states[key]
+            if (stateConfig != null && stateConfig.clip.isNotBlank() && clips.containsKey(stateConfig.clip)) {
                 currentStateName = key
-                return clipName
+                currentMirror = stateConfig.mirror
+                return stateConfig.clip
             }
             val dot = key.lastIndexOf('.')
             if (dot < 0) break
