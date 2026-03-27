@@ -228,6 +228,16 @@
 - drawPrimitive の Vector3f 再利用
 - HEAD子孫検出を下方向DFSに改善
 
+## VRoid Hub OAuth credentials ビルド時注入（2026-03-27実施）
+
+- Gradle タスク `generateVRoidHubSecrets`（`common/build.gradle.kts`）が OAuth clientId/clientSecret をビルド時に注入
+- 優先順: 環境変数 `VROIDHUB_CLIENT_ID`/`VROIDHUB_CLIENT_SECRET` > ルートの `vrmmod-vroidhub-secrets.json` > 空（VRoid Hub 機能無効）
+- XOR+Base64 で難読化して `build/generated/.../VRoidHubSecrets.kt` を生成（gitignore 対象）
+- XOR キーは `SecureRandom` でビルドごとにランダム生成、private 変数名・メソッド名もランダム化
+- `VRoidHubConfig.load()` はランタイム `config/vrmmod-vroidhub-secrets.json` → ビルド時注入デフォルト → 空の順でフォールバック
+- GitHub Actions: `env:` で secrets を直接 Gradle に渡す（ファイル生成なし、GitHub 公式推奨の最安全方式）
+- ファイル名を `vrmmod-vroidhub.json` → `vrmmod-vroidhub-secrets.json` に改名（機密ファイルであることを明示）
+
 ## 残課題
 
 ### 高優先
@@ -246,7 +256,7 @@
 9. **Vivecraft IK**: VR 一人称、3点IK
 10. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
 11. **README / ドキュメント**: 使い方、設定ファイルの説明
-12. **CI/CD / リリースビルド**: GitHub Actions、Modrinth/CurseForge パッケージング
+12. **CI/CD / リリースビルド**: Modrinth/CurseForge パッケージング（GitHub Actions ビルド + VRoid Hub secrets 注入は実装済み）
 
 ## 設計書・計画書
 
