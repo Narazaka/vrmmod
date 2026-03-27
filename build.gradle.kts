@@ -52,5 +52,11 @@ subprojects {
 
 allprojects {
     group = rootProject.property("maven_group").toString()
-    version = rootProject.property("mod_version").toString()
+    version = "${rootProject.property("mod_version")}+mc${rootProject.property("minecraft_version")}"
+}
+
+subprojects {
+    base {
+        archivesName.set("${rootProject.property("archives_base_name")}-${project.name}")
+    }
 }
