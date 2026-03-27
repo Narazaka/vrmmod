@@ -447,18 +447,15 @@ object VrmRenderer {
 
     private fun estimateScale(state: VrmState): Float {
         val model = state.model
-        val hipsNode = model.humanoid.humanBones[HumanBone.HIPS]
-        if (hipsNode != null) {
-            val nodeIndex = hipsNode.nodeIndex
-            val nodes = model.skeleton.nodes
-            if (nodeIndex in nodes.indices) {
-                val hipsY = nodes[nodeIndex].translation.y
-                if (hipsY > 0f) {
-                    return TARGET_HEIGHT / (hipsY * 2f)
-                }
-            }
-        }
-        return DEFAULT_SCALE
+        val hipsNode = model.humanoid.humanBones[HumanBone.HIPS] ?: return DEFAULT_SCALE
+        val nodeIndex = hipsNode.nodeIndex
+        if (nodeIndex !in model.skeleton.nodes.indices) return DEFAULT_SCALE
+
+        val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
+        val hipsWorldPos = Vector3f()
+        worldMatrices[nodeIndex].getTranslation(hipsWorldPos)
+        val hipsY = hipsWorldPos.y
+        return if (hipsY > 0f) TARGET_HEIGHT / (hipsY * 2f) else DEFAULT_SCALE
     }
 
     /**

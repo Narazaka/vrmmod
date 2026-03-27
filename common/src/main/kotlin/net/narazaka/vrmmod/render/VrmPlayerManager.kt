@@ -167,20 +167,20 @@ object VrmPlayerManager {
      */
     private fun computeEyeHeight(model: net.narazaka.vrmmod.vrm.VrmModel): Float {
         val headBoneNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HEAD]
-            ?: return 1.62f // MC default eye height
+            ?: return 1.62f
 
         val worldMatrices = VrmSkinningEngine.computeWorldMatrices(model.skeleton)
         val headWorldMatrix = worldMatrices[headBoneNode.nodeIndex]
 
-        // Apply offsetFromHeadBone to HEAD's world matrix (per three-vrm)
         val offset = model.lookAtOffsetFromHeadBone
         val eyePos = org.joml.Vector3f(offset)
         headWorldMatrix.transformPosition(eyePos)
 
-        // Estimate scale (same as VrmRenderer.estimateScale)
         val hipsNode = model.humanoid.humanBones[net.narazaka.vrmmod.vrm.HumanBone.HIPS]
         val scale = if (hipsNode != null) {
-            val hipsY = model.skeleton.nodes[hipsNode.nodeIndex].translation.y
+            val hipsWorldPos = org.joml.Vector3f()
+            worldMatrices[hipsNode.nodeIndex].getTranslation(hipsWorldPos)
+            val hipsY = hipsWorldPos.y
             if (hipsY > 0f) 1.8f / (hipsY * 2f) else 0.9f
         } else 0.9f
 
