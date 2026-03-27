@@ -620,17 +620,14 @@ object VrmRenderer {
                     vCoord = 0f
                 }
 
-                // Vertex color: white for unlit, or tinted toward shadeColor for MToon-like shadow tint.
-                // When shadeColor is set, dark areas rendered by the shader will shift toward
-                // the shade color rather than pure black.
+                // Vertex color: white for unlit, or shadeColor directly for MToon tint.
                 val r: Int
                 val g: Int
                 val b: Int
                 if (shadeColor != null) {
-                    // Blend white toward shadeColor (sqrt to keep it subtle)
-                    r = ((1f - (1f - shadeColor.x) * 0.5f) * 255).toInt().coerceIn(0, 255)
-                    g = ((1f - (1f - shadeColor.y) * 0.5f) * 255).toInt().coerceIn(0, 255)
-                    b = ((1f - (1f - shadeColor.z) * 0.5f) * 255).toInt().coerceIn(0, 255)
+                    r = (shadeColor.x * 255).toInt().coerceIn(0, 255)
+                    g = (shadeColor.y * 255).toInt().coerceIn(0, 255)
+                    b = (shadeColor.z * 255).toInt().coerceIn(0, 255)
                 } else {
                     r = 255; g = 255; b = 255
                 }
