@@ -28,6 +28,10 @@ data class AnimationConfig(
     val damageExpression: Map<String, Float> = mapOf("sad" to 1.0f),
     /** Duration of damage expression fade-out in seconds. */
     val damageExpressionDuration: Float = 0.5f,
+    /** Treat all-Both meshAnnotations as auto (applies head removal to models that set all meshes to Both). */
+    val firstPersonAllBothAsAuto: Boolean = true,
+    /** Ignore meshAnnotations entirely and always use auto head removal in first-person. */
+    val firstPersonForceAutoRemoval: Boolean = false,
 ) {
     data class StateConfig(
         val clip: String,

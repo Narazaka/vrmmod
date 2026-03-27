@@ -131,14 +131,27 @@ object VrmRenderer {
         val leftHandBone = model.humanoid.humanBones[HumanBone.LEFT_HAND]
         state.leftHandMatrix = if (leftHandBone != null) Matrix4f(animatedWorldMatrices[leftHandBone.nodeIndex]) else null
 
+        // Resolve effective firstPerson annotations considering config overrides
+        val animConfig = state.animationConfig
+        val effectiveAnnotations: Map<Int, net.narazaka.vrmmod.vrm.FirstPersonType> = if (animConfig.firstPersonForceAutoRemoval) {
+            // Force all meshes to AUTO
+            emptyMap()
+        } else if (animConfig.firstPersonAllBothAsAuto && model.firstPersonAnnotations.isNotEmpty() &&
+            model.firstPersonAnnotations.values.all { it == net.narazaka.vrmmod.vrm.FirstPersonType.BOTH }) {
+            // All annotations are Both → treat as if no annotations (all AUTO)
+            emptyMap()
+        } else {
+            model.firstPersonAnnotations
+        }
+
         val allPrimitives = model.meshes.flatMapIndexed { meshIndex, mesh ->
             mesh.primitives.map { IndexedPrimitive(meshIndex, mesh.skinIndex, it) }
         }.filter { (meshIndex, skinIndex, primitive) ->
             if (!isFirstPerson) {
-                val annotation = model.firstPersonAnnotations[meshIndex]
+                val annotation = effectiveAnnotations[meshIndex]
                 annotation != net.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY
             } else {
-                val annotation = model.firstPersonAnnotations[meshIndex]
+                val annotation = effectiveAnnotations[meshIndex]
                 when (annotation) {
                     net.narazaka.vrmmod.vrm.FirstPersonType.BOTH -> true
                     net.narazaka.vrmmod.vrm.FirstPersonType.FIRST_PERSON_ONLY -> true
@@ -181,7 +194,7 @@ object VrmRenderer {
                 }
                 // For first-person auto mode, pass head joint indices so drawPrimitive can skip head triangles
                 val headJoints = if (isFirstPerson) {
-                    val annotation = model.firstPersonAnnotations[meshIndex]
+                    val annotation = effectiveAnnotations[meshIndex]
                     if (annotation == null || annotation == net.narazaka.vrmmod.vrm.FirstPersonType.AUTO) {
                         collectHeadJointIndices(state, meshSkinIndex.coerceAtLeast(0))
                     } else emptySet()

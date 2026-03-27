@@ -45,6 +45,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
     private var heldItemOffsetZInput: EditBox? = null
     private var heldItemFirstPersonToggle: CycleButton<Boolean>? = null
     private var heldItemThirdPersonToggle: CycleButton<Boolean>? = null
+    private var fpAllBothAsAutoToggle: CycleButton<Boolean>? = null
+    private var fpForceAutoRemovalToggle: CycleButton<Boolean>? = null
     private var vroidHubCacheTtlInput: EditBox? = null
 
     // --- VRoid Hub state ---
@@ -201,6 +203,14 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             .displayOnlyValue()
             .create(0, 0, 100, 20, Component.translatable("vrmmod.config.held_item_third_person"))
 
+        fpAllBothAsAutoToggle = CycleButton.onOffBuilder(animConfig.firstPersonAllBothAsAuto)
+            .displayOnlyValue()
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.fp_all_both_as_auto"))
+
+        fpForceAutoRemovalToggle = CycleButton.onOffBuilder(animConfig.firstPersonForceAutoRemoval)
+            .displayOnlyValue()
+            .create(0, 0, 100, 20, Component.translatable("vrmmod.config.fp_force_auto_removal"))
+
         // Display category
         list.addCategory(Component.translatable("vrmmod.config.category.display"))
         list.addWidgetRow(Component.translatable("vrmmod.config.avatar_scale"), Component.translatable("vrmmod.config.avatar_scale.tooltip"), avatarScaleInput!!, avatarScaleResetButton)
@@ -209,6 +219,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_offset"), Component.translatable("vrmmod.config.held_item_offset.tooltip"), heldItemOffsetXInput!!, heldItemOffsetYInput!!, heldItemOffsetZInput!!, offsetResetButton)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_first_person"), Component.translatable("vrmmod.config.held_item_first_person.tooltip"), heldItemFirstPersonToggle!!)
         list.addWidgetRow(Component.translatable("vrmmod.config.held_item_third_person"), Component.translatable("vrmmod.config.held_item_third_person.tooltip"), heldItemThirdPersonToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.fp_all_both_as_auto"), Component.translatable("vrmmod.config.fp_all_both_as_auto.tooltip"), fpAllBothAsAutoToggle!!)
+        list.addWidgetRow(Component.translatable("vrmmod.config.fp_force_auto_removal"), Component.translatable("vrmmod.config.fp_force_auto_removal.tooltip"), fpForceAutoRemovalToggle!!)
 
         // VRoid Hub category
         if (vroidConfig.isAvailable) {
@@ -254,6 +266,8 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
             ),
             heldItemFirstPerson = heldItemFirstPersonToggle?.value ?: true,
             heldItemThirdPerson = heldItemThirdPersonToggle?.value ?: true,
+            firstPersonAllBothAsAuto = fpAllBothAsAutoToggle?.value ?: true,
+            firstPersonForceAutoRemoval = fpForceAutoRemovalToggle?.value ?: false,
         )
         AnimationConfig.save(configDir, newAnimConfig)
 
