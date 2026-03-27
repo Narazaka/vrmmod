@@ -33,15 +33,8 @@ object VrmSkinningEngine {
             worldMatrices.add(Matrix4f())
         }
 
-        // Build parent lookup (index -> parent index, -1 for root)
-        val parentOf = IntArray(nodes.size) { -1 }
-        for (i in nodes.indices) {
-            for (child in nodes[i].childIndices) {
-                if (child in nodes.indices) {
-                    parentOf[child] = i
-                }
-            }
-        }
+        // Use cached parent lookup from skeleton
+        val parentOf = skeleton.parentOf
 
         // Topological traversal (BFS from roots)
         val visited = BooleanArray(nodes.size)

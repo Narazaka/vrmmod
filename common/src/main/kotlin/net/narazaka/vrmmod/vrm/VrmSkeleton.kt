@@ -24,6 +24,17 @@ data class VrmSkeleton(
     // Backward-compatible accessors for the primary skin (index 0)
     val jointNodeIndices: List<Int> get() = skins.firstOrNull()?.jointNodeIndices ?: emptyList()
     val inverseBindMatrices: List<Matrix4f> get() = skins.firstOrNull()?.inverseBindMatrices ?: emptyList()
+
+    /** Parent index for each node (-1 for roots). Cached on first access. */
+    val parentOf: IntArray by lazy {
+        val arr = IntArray(nodes.size) { -1 }
+        for (i in nodes.indices) {
+            for (child in nodes[i].childIndices) {
+                if (child in nodes.indices) arr[child] = i
+            }
+        }
+        arr
+    }
 }
 
 /**
