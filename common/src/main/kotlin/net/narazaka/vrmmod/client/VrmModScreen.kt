@@ -240,7 +240,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
                 if (file != null && file.exists()) {
                     val animDir = if (config.useVrmaAnimation) config.animationDir?.let { File(it) } else null
                     val animationConfig = AnimationConfig.load(configDir)
-                    VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+                    VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig, config.useVrmaAnimation)
                 }
             }
             ModelSource.VROID_HUB -> {

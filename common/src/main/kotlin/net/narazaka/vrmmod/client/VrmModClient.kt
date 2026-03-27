@@ -71,7 +71,7 @@ object VrmModClient {
                     val file = config.resolveModelFile()
                     if (file != null && file.exists()) {
                         VrmMod.logger.info("Loading local VRM model: {}", file.absolutePath)
-                        VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig)
+                        VrmPlayerManager.loadLocal(player.uuid, file, animDir, animationConfig, config.useVrmaAnimation)
                     } else if (file != null) {
                         VrmMod.logger.warn("Configured VRM model file not found: {}", file.absolutePath)
                     }
@@ -79,7 +79,7 @@ object VrmModClient {
                 ModelSource.VROID_HUB -> {
                     val modelId = config.vroidHubModelId
                     if (modelId != null) {
-                        loadVRoidHubModel(player.uuid, modelId, configDir, animDir, animationConfig)
+                        loadVRoidHubModel(player.uuid, modelId, configDir, animDir, animationConfig, config.useVrmaAnimation)
                     }
                 }
             }
@@ -105,7 +105,7 @@ object VrmModClient {
         // Unload existing model first
         VrmPlayerManager.unload(uuid)
 
-        loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig)
+        loadVRoidHubModel(uuid, modelId, configDir, animDir, animationConfig, config.useVrmaAnimation)
     }
 
     private fun loadVRoidHubModel(
@@ -114,6 +114,7 @@ object VrmModClient {
         configDir: File,
         animDir: File?,
         animationConfig: AnimationConfig,
+        useVrmaAnimation: Boolean = true,
     ) {
         val vroidConfig = VRoidHubConfig.load(configDir.toPath())
         if (!vroidConfig.isAvailable) return
@@ -165,7 +166,7 @@ object VrmModClient {
             if (file != null) {
                 VrmMod.logger.info("VRoid Hub model ready, loading: {}", file.absolutePath)
                 Minecraft.getInstance().execute {
-                    VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig)
+                    VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig, useVrmaAnimation)
                 }
             } else {
                 VrmMod.logger.error("VRoid Hub model download returned null")

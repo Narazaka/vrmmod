@@ -40,7 +40,7 @@ object VrmPlayerManager {
      * @param playerUUID the UUID of the player
      * @param file the VRM file to load
      */
-    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig()) {
+    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true) {
         // Skip if already loaded or currently loading
         if (states.containsKey(playerUUID) || loading.containsKey(playerUUID)) {
             return
@@ -51,7 +51,9 @@ object VrmPlayerManager {
             val model = VrmParser.parse(file.inputStream())
 
             // Load animation clips from directory or bundled resources
-            val clips = if (animationDir != null && animationDir.isDirectory) {
+            val clips = if (!useVrmaAnimation) {
+                emptyMap()
+            } else if (animationDir != null && animationDir.isDirectory) {
                 loadAnimationClips(animationDir)
             } else {
                 loadBundledAnimationClips()
