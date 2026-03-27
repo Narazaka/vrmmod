@@ -133,10 +133,17 @@ object VrmModClient {
                 }
             }
 
-            // Check cache
+            // Check cache — fetch latest version from API to detect updates
             val gameDir = Minecraft.getInstance().gameDirectory.toPath()
-            // Try to get version from hearts list (we don't have it stored, so just use modelId as version for now)
-            val cached = VRoidHubModelCache.getCachedModel(gameDir, modelId, "")
+            val versionId = try {
+                val hearts = VRoidHubApi.getHearts(token.accessToken).getOrNull() ?: emptyList()
+                val ownModels = VRoidHubApi.getAccountCharacterModels(token.accessToken).getOrNull() ?: emptyList()
+                val allModels = hearts + ownModels
+                allModels.firstOrNull { it.id == modelId }
+                    ?.latest_character_model_version?.id ?: ""
+            } catch (_: Exception) { "" }
+
+            val cached = VRoidHubModelCache.getCachedModel(gameDir, modelId, versionId)
             if (cached != null) {
                 VrmMod.logger.info("Loading VRoid Hub model from cache: {}", cached.absolutePath)
                 return@supplyAsync cached
@@ -159,7 +166,7 @@ object VrmModClient {
                 return@supplyAsync null
             }
 
-            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, "", vrmBytes)
+            val file = VRoidHubModelCache.cacheModel(gameDir, modelId, versionId, vrmBytes)
             VrmMod.logger.info("VRoid Hub model cached: {}", file.absolutePath)
             file
         }.thenAccept { file ->

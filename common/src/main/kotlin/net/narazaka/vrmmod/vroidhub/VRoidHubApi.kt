@@ -106,7 +106,7 @@ object VRoidHubApi {
                 .GET()
                 .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-            if (response.statusCode() == 200) {
+            if (response.statusCode() in 200..299) {
                 Result.success(response.body())
             } else {
                 Result.failure(RuntimeException("API error: ${response.statusCode()} ${response.body()}"))
@@ -126,7 +126,7 @@ object VRoidHubApi {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build()
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-            if (response.statusCode() == 200) {
+            if (response.statusCode() in 200..299) {
                 Result.success(response.body())
             } else {
                 Result.failure(RuntimeException("API error: ${response.statusCode()} ${response.body()}"))
