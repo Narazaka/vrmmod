@@ -36,13 +36,18 @@ object VrmTextureManager {
             val key = "$playerUUID/$idx"
             registeredTextures.getOrPut(key) {
                 val nativeImage = NativeImage.read(ByteArrayInputStream(vrmTexture.imageData))
-                val dynamicTexture = DynamicTexture(nativeImage)
-                val location = ResourceLocation.fromNamespaceAndPath(
-                    VrmMod.MOD_ID,
-                    "vrm_tex/$playerUUID/$idx",
-                )
-                textureManager.register(location, dynamicTexture)
-                location
+                try {
+                    val dynamicTexture = DynamicTexture(nativeImage)
+                    val location = ResourceLocation.fromNamespaceAndPath(
+                        VrmMod.MOD_ID,
+                        "vrm_tex/$playerUUID/$idx",
+                    )
+                    textureManager.register(location, dynamicTexture)
+                    location
+                } catch (e: Exception) {
+                    nativeImage.close()
+                    throw e
+                }
             }
         }
     }
