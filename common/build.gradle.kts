@@ -1,4 +1,5 @@
 import java.util.Base64
+import java.security.SecureRandom
 
 architectury {
     common(rootProject.property("enabled_platforms").toString().split(","))
@@ -46,7 +47,10 @@ val generateVRoidHubSecrets by tasks.registering {
             }
         }
 
-        val xorKey = "vrmmod-obfuscation-key"
+        // ビルドごとにランダムなXORキーを生成
+        val random = SecureRandom()
+        val xorKeyBytes = ByteArray(32).also { random.nextBytes(it) }
+        val xorKey = Base64.getEncoder().encodeToString(xorKeyBytes)
 
         fun xorEncode(input: String, key: String): String {
             if (input.isEmpty()) return ""
@@ -60,6 +64,27 @@ val generateVRoidHubSecrets by tasks.registering {
         val encodedId = xorEncode(clientId, xorKey)
         val encodedSecret = xorEncode(clientSecret, xorKey)
 
+        // XORキーを3分割（分割位置もランダム）
+        val splitA = random.nextInt(xorKey.length / 3) + 1
+        val splitB = splitA + random.nextInt(xorKey.length / 3) + 1
+        val keyPart1 = xorKey.substring(0, splitA)
+        val keyPart2 = xorKey.substring(splitA, splitB)
+        val keyPart3 = xorKey.substring(splitB)
+
+        // private 変数名・メソッド名をランダム化
+        fun randomName(): String {
+            val chars = "abcdefghijklmnopqrstuvwxyz"
+            val prefix = chars[random.nextInt(chars.length)]
+            val hex = ByteArray(4).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+            return "$prefix$hex"
+        }
+        val nameId = randomName()
+        val nameSecret = randomName()
+        val nameK1 = randomName()
+        val nameK2 = randomName()
+        val nameK3 = randomName()
+        val nameDecode = randomName()
+
         val dir = outputDir.get().asFile
         dir.mkdirs()
         dir.resolve("VRoidHubSecrets.kt").writeText(
@@ -69,23 +94,23 @@ val generateVRoidHubSecrets by tasks.registering {
             |import java.util.Base64
             |
             |object VRoidHubSecrets {
-            |    private const val E_ID = "$encodedId"
-            |    private const val E_SECRET = "$encodedSecret"
-            |    private val k1 = "vrmmod-"
-            |    private val k2 = "obfuscation-"
-            |    private val k3 = "key"
+            |    private const val $nameId = "$encodedId"
+            |    private const val $nameSecret = "$encodedSecret"
+            |    private val $nameK1 = "$keyPart1"
+            |    private val $nameK2 = "$keyPart2"
+            |    private val $nameK3 = "$keyPart3"
             |
-            |    private fun decode(encoded: String): String {
+            |    private fun $nameDecode(encoded: String): String {
             |        if (encoded.isEmpty()) return ""
-            |        val key = (k1 + k2 + k3).toByteArray(Charsets.UTF_8)
+            |        val key = ($nameK1 + $nameK2 + $nameK3).toByteArray(Charsets.UTF_8)
             |        val decoded = Base64.getDecoder().decode(encoded).mapIndexed { i, b ->
             |            (b.toInt() xor key[i % key.size].toInt()).toByte()
             |        }.toByteArray()
             |        return String(decoded, Charsets.UTF_8)
             |    }
             |
-            |    val defaultClientId: String get() = decode(E_ID)
-            |    val defaultClientSecret: String get() = decode(E_SECRET)
+            |    val defaultClientId: String get() = $nameDecode($nameId)
+            |    val defaultClientSecret: String get() = $nameDecode($nameSecret)
             |
             |    fun defaultConfig(): VRoidHubConfig = VRoidHubConfig(
             |        clientId = defaultClientId,
