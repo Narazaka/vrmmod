@@ -119,7 +119,9 @@
 ### VRM_VRM_CAMERA モード
 - rest-pose の HEAD ワールド行列 × lookAt.offsetFromHeadBone で eyeHeight 計算（モデルロード時1回）
 - 毎フレーム: アニメーション後の HEAD XZ offset（body lean追従）+ rest-pose Y（jitter回避）
-- CameraMixin: XZ offset を回転して MC ワールド空間に変換（※旧Z-flip座標系の名残あり — 要修正）
+- CameraMixin: XZ offset を bodyYaw 回転で MC ワールド空間に変換（Z-flip名残は修正済み）
+- one-shot アニメーション再生中はカメラ XZ オフセットを固定（Jab 等による前後揺れ防止）
+- GameRendererMixin: VRM_VRM_CAMERA モード時にレイキャスト起点を Camera.getPosition() に差し替え（エイム一致）
 - MC のしゃがみ等のカメラ Y 変動はそのまま保持
 
 ### コンフィグ
@@ -168,25 +170,49 @@
 
 ### Mixin 配置
 - `PlayerRendererMixin`: extractRenderState フック（UUID + entityPos + onGround + hurtTime + mainHandItemTags + offHandItemTags キャプチャ）
-- `LivingEntityRendererMixin`: render フック（VRM描画 + アイテム描画 + バニラキャンセル）
+- `LivingEntityRendererMixin`: render HEAD フック（VRM描画 + アイテム描画 + バニラキャンセル）+ RETURN フック（ThreadLocal UUID クリア）
 - `HandRendererMixin`: renderHandsWithItems キャンセル（VANILLA モード以外）
 - `CameraMixin`: VRM_VRM_CAMERA モードのカメラ Y/XZ 調整
+- `GameRendererMixin`: VRM_VRM_CAMERA モード時のレイキャスト起点をカメラ位置に差し替え
+- `MixinHelper`（common）: buildPoseContext を共通化（Fabric/NeoForge の Mixin から呼び出し）
 - Mixin は Java で記述（Kotlin バイトコードとの互換性問題）
 - `refmap` を vrmmod.mixins.json に明示
 - 継承メソッド（LivingEntityRenderer.render）はコンパイル時に AP 警告が出るがランタイムで正常動作
 - VrmRenderContext はMixinパッケージ外に配置（Mixinパッケージ内のクラスは直接参照不可）
+- render RETURN で ThreadLocal をクリアし stale UUID を防止
+
+## コードレビュー修正（2026-03-27実施）
+
+計18件の指摘を修正:
+- `lastRenderTimeNano` をプレイヤーごとに分離（マルチプレイ時のSprignBone/Expression速度バグ修正）
+- VRoid Hub キャッシュバージョン管理修正（API version ID 使用）+ POST 2xx対応
+- `computeWorldMatrices` 重複呼び出し最適化（render() 内で1回に統合）
+- `estimateScale` をワールド空間 Hips Y で計算（ローカル Y → ワールド Y）
+- VrmV0Converter: 親指ボーンリネーム漏れ修正（Proximal→Metacarpal）
+- VrmParser: 未使用 firstPerson パース例外のサイレント処理
+- pause/resume 時の deltaTime 異常値を破棄
+- VanillaPoseProvider の headTracking yaw 符号修正（Z-flip 除去対応）
+- VrmExpression/VrmState を immutable 化（data class → regular class）
+- VrmPrimitive: alphaMode を equals/hashCode に含める
+- NativeImage リーク防止（DynamicTexture 登録失敗時に close）
+- ThreadLocal UUID クリア（render RETURN で stale 状態防止）
+- buildPoseContext を common の MixinHelper に共通化
+- AnimationConfig: save 失敗時にログ出力
+- IndexedPrimitive/RenderKey を render() 外に移動
+- drawPrimitive の Vector3f 再利用
+- HEAD子孫検出を下方向DFSに改善
 
 ## 残課題
 
 ### 高優先
-1. **CameraMixin Z-flip名残修正**: eyeOffset の座標変換式が旧座標系（`bodyYawRad + PI` + Z反転）のまま
-2. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
+1. **コード整理**: デバッグ用テスト（MorphTargetDebugTest, VrmaAnalysisTest, MtoonAnalysisTest, VrmV0DiagnosticTest, JglTFSkinApiTest, VrmV0CoordinateTest）の整理、不要import除去
 
 ### 中優先
+2. **一人称カメラ XZ 揺れ問題**: アイドルモーション等でカメラが揺れる。FPSゲームの知見（ビューモデルは揺れるがカメラは固定）を取り入れた設計が必要
 3. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
 4. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
 5. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
-6. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題
+6. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題（首の内部が見える）
 
 ### 低優先
 7. **Iris カスタムシェーダー**: フルMToon再現。法線を (0,1,0) から実際の値に戻す（TODOコメントあり）
