@@ -78,23 +78,28 @@ object MultiplayModelHandler {
                 return@supplyAsync cached
             }
 
-            // Download using multiplay license
-            if (licenseId != null) {
-                val downloadUrl = VRoidHubApi.getDownloadUrl(accessToken, licenseId).getOrElse { e ->
-                    VrmMod.logger.warn("Multiplay license download failed for model {}: {}", modelId, e.message)
+            // Try multiplay license first, then fall back to own license (public models only)
+            val downloadLicenseId = if (licenseId != null) {
+                licenseId
+            } else {
+                VrmMod.logger.info("No multiplay license for model {}, trying own license (public models only)", modelId)
+                VRoidHubApi.postDownloadLicense(accessToken, modelId).getOrElse { e ->
+                    VrmMod.logger.warn("Own license also failed for model {}: {}", modelId, e.message)
                     return@supplyAsync null
-                }
-                val vrmBytes = VRoidHubApi.downloadVrm(downloadUrl).getOrElse { e ->
-                    VrmMod.logger.error("Failed to download VRM for model {}", modelId, e)
-                    return@supplyAsync null
-                }
-                multiplayModelCache[modelId] = vrmBytes
-                VrmMod.logger.info("Multiplayer VRM downloaded and memory-cached: {} ({} bytes)", modelId, vrmBytes.size)
-                return@supplyAsync vrmBytes
+                }.id
             }
 
-            VrmMod.logger.warn("No multiplay license available for model {}", modelId)
-            null
+            val downloadUrl = VRoidHubApi.getDownloadUrl(accessToken, downloadLicenseId).getOrElse { e ->
+                VrmMod.logger.warn("Download URL failed for model {}: {}", modelId, e.message)
+                return@supplyAsync null
+            }
+            val vrmBytes = VRoidHubApi.downloadVrm(downloadUrl).getOrElse { e ->
+                VrmMod.logger.error("Failed to download VRM for model {}", modelId, e)
+                return@supplyAsync null
+            }
+            multiplayModelCache[modelId] = vrmBytes
+            VrmMod.logger.info("Multiplayer VRM downloaded and memory-cached: {} ({} bytes)", modelId, vrmBytes.size)
+            vrmBytes
         }.thenAccept { vrmBytes ->
             downloadingPlayers.remove(payload.playerUUID)
             if (vrmBytes != null) {
