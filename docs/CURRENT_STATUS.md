@@ -354,6 +354,8 @@
 ## 開発環境メモ
 - `minecraft-dev-mcp` MCP サーバー: MC 1.21.4 mojmap でインデックス済み（`search_indexed` で高速検索可能）
 - `analyze_mixin` でMixin の妥当性検証が可能
+- マルチプレイテスト: `./gradlew :fabric:runClient --args="--username Player2"` で別名クライアント起動。LANに公開で同一PC上テスト可能
+- git worktree: `.worktrees/` ディレクトリ（gitignore済み）。作業時はpwdをworktreeに移動してフルパスを避ける
 
 ## リファレンス実装
 - three-vrm (pixiv) をリファレンスとして使用する方針
