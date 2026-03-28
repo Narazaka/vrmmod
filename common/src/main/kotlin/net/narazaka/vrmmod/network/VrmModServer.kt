@@ -17,6 +17,7 @@ object VrmModServer {
 
     fun handleModelAnnounce(player: ServerPlayer, payload: ModelAnnouncePayload) {
         val uuid = player.uuid
+        val isFirstAnnounce = !playerModels.containsKey(uuid)
 
         if (payload.vroidHubModelId == null) {
             playerModels.remove(uuid)
@@ -27,7 +28,7 @@ object VrmModServer {
             VrmMod.logger.info("Player {} announced VRM model: {}", player.gameProfile.name, payload.vroidHubModelId)
         }
 
-        // Broadcast to all other players
+        // Broadcast this player's model to all other players
         val broadcastPayload = PlayerModelPayload(
             playerUUID = uuid,
             vroidHubModelId = payload.vroidHubModelId,
@@ -40,16 +41,18 @@ object VrmModServer {
             }
         }
 
-        // Send existing players' models to the newly connected player
-        for ((existingUuid, info) in playerModels) {
-            if (existingUuid != uuid) {
-                val existingPayload = PlayerModelPayload(
-                    playerUUID = existingUuid,
-                    vroidHubModelId = info.vroidHubModelId,
-                    multiplayLicenseId = info.multiplayLicenseId,
-                    scale = info.scale,
-                )
-                NetworkManager.sendToPlayer(player, existingPayload)
+        // On first announce only: send existing players' models to the newly connected player
+        if (isFirstAnnounce) {
+            for ((existingUuid, info) in playerModels) {
+                if (existingUuid != uuid) {
+                    val existingPayload = PlayerModelPayload(
+                        playerUUID = existingUuid,
+                        vroidHubModelId = info.vroidHubModelId,
+                        multiplayLicenseId = info.multiplayLicenseId,
+                        scale = info.scale,
+                    )
+                    NetworkManager.sendToPlayer(player, existingPayload)
+                }
             }
         }
     }
