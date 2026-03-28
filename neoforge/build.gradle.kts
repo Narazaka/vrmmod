@@ -2,6 +2,10 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+
 architectury {
     platformSetupLoomIde()
     neoForge()

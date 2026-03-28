@@ -2,6 +2,10 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+
 architectury {
     platformSetupLoomIde()
     fabric()
@@ -38,6 +42,9 @@ tasks.processResources {
     inputs.property("version", project.version)
     filesMatching("fabric.mod.json") {
         expand("version" to project.version)
+    }
+    from(project(":common").file("src/main/resources")) {
+        include("vrmmod.accesswidener")
     }
 }
 

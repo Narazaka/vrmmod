@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "net.narazaka.vrmmod.fabric.mixin",
-  "refmap": "fabric-fabric-refmap.json",
+  "refmap": "vrmmod-fabric-fabric-refmap.json",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "PlayerRendererMixin",
