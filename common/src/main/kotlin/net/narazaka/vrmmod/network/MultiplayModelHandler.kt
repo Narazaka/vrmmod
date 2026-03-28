@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 object MultiplayModelHandler {
     private var loginNotificationShown = false
     private val downloadingPlayers = ConcurrentHashMap.newKeySet<UUID>()
+    private val loadedModelIds = ConcurrentHashMap<UUID, String>()
 
     fun handlePlayerModel(payload: PlayerModelPayload) {
         val mc = Minecraft.getInstance()
@@ -24,13 +25,26 @@ object MultiplayModelHandler {
             // Player cleared model or disconnected
             VrmPlayerManager.unload(payload.playerUUID)
             downloadingPlayers.remove(payload.playerUUID)
+            loadedModelIds.remove(payload.playerUUID)
             return
         }
 
-        // Check if already loaded with same model
+        // Skip if already loaded with the same model
+        val currentModelId = loadedModelIds[payload.playerUUID]
+        if (currentModelId == payload.vroidHubModelId && VrmPlayerManager.get(payload.playerUUID) != null) {
+            // Same model, just update scale if needed
+            val state = VrmPlayerManager.get(payload.playerUUID)
+            if (state != null && state.cachedScale != payload.scale) {
+                state.cachedScale = payload.scale
+            }
+            return
+        }
+
+        // Different model - unload existing
         val existingState = VrmPlayerManager.get(payload.playerUUID)
         if (existingState != null) {
             VrmPlayerManager.unload(payload.playerUUID)
+            loadedModelIds.remove(payload.playerUUID)
         }
 
         // Check VRoid Hub login status
@@ -106,6 +120,7 @@ object MultiplayModelHandler {
                             scale, state.cachedScale, payload.playerUUID,
                         )
                         state.cachedScale = scale
+                        loadedModelIds[payload.playerUUID] = modelId
                     }
                 }
             } else {
@@ -132,5 +147,6 @@ object MultiplayModelHandler {
     fun reset() {
         loginNotificationShown = false
         downloadingPlayers.clear()
+        loadedModelIds.clear()
     }
 }
