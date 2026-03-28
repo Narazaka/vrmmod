@@ -1,6 +1,7 @@
 package net.narazaka.vrmmod.network
 
 import net.narazaka.vrmmod.VrmMod
+import net.narazaka.vrmmod.animation.NormalMode
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -10,6 +11,7 @@ data class ModelAnnouncePayload(
     val vroidHubModelId: String?,
     val multiplayLicenseId: String?,
     val scale: Float,
+    val normalMode: NormalMode = NormalMode.AUTO,
 ) : CustomPacketPayload {
     override fun type(): CustomPacketPayload.Type<ModelAnnouncePayload> = TYPE
 
@@ -25,7 +27,8 @@ data class ModelAnnouncePayload(
                     val hasLicenseId = buf.readBoolean()
                     val multiplayLicenseId = if (hasLicenseId) buf.readUtf() else null
                     val scale = buf.readFloat()
-                    return ModelAnnouncePayload(vroidHubModelId, multiplayLicenseId, scale)
+                    val normalMode = NormalMode.entries[buf.readByte().toInt().coerceIn(0, NormalMode.entries.size - 1)]
+                    return ModelAnnouncePayload(vroidHubModelId, multiplayLicenseId, scale, normalMode)
                 }
 
                 override fun encode(buf: RegistryFriendlyByteBuf, payload: ModelAnnouncePayload) {
@@ -34,6 +37,7 @@ data class ModelAnnouncePayload(
                     buf.writeBoolean(payload.multiplayLicenseId != null)
                     payload.multiplayLicenseId?.let { buf.writeUtf(it) }
                     buf.writeFloat(payload.scale)
+                    buf.writeByte(payload.normalMode.ordinal)
                 }
             }
     }

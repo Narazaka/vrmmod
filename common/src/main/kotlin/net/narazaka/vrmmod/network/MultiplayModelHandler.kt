@@ -53,6 +53,7 @@ object MultiplayModelHandler {
         val licenseId = payload.multiplayLicenseId
         val modelId = payload.vroidHubModelId
         val scale = payload.scale
+        val normalMode = payload.normalMode
 
         CompletableFuture.supplyAsync {
             // Refresh token if expired
@@ -97,7 +98,7 @@ object MultiplayModelHandler {
             downloadingPlayers.remove(payload.playerUUID)
             if (file != null) {
                 mc.execute {
-                    val animationConfig = AnimationConfig.load(configDir)
+                    val animationConfig = AnimationConfig.load(configDir).copy(normalMode = normalMode)
                     VrmPlayerManager.loadLocal(
                         payload.playerUUID, file, null, animationConfig, true,
                     ) { state ->

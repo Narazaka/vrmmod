@@ -177,7 +177,7 @@ object VrmModClient {
                 VrmMod.logger.info("VRoid Hub model ready, loading: {}", file.absolutePath)
                 Minecraft.getInstance().execute {
                     VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig, useVrmaAnimation) { state ->
-                        announceModel(uuid, modelId, state.cachedScale)
+                        announceModel(uuid, modelId, state.cachedScale, animationConfig.normalMode)
                     }
                 }
             } else {
@@ -192,7 +192,7 @@ object VrmModClient {
     /**
      * Sends the current player's VRM model info to the server for multiplayer sync.
      */
-    private fun announceModel(uuid: UUID, modelId: String?, scale: Float) {
+    private fun announceModel(uuid: UUID, modelId: String?, scale: Float, normalMode: net.narazaka.vrmmod.animation.NormalMode = net.narazaka.vrmmod.animation.NormalMode.AUTO) {
         if (modelId == null) {
             try {
                 dev.architectury.networking.NetworkManager.sendToServer(
@@ -222,6 +222,7 @@ object VrmModClient {
                         vroidHubModelId = modelId,
                         multiplayLicenseId = license?.id,
                         scale = scale,
+                        normalMode = normalMode,
                     )
                 )
                 VrmMod.logger.info("Announced VRM model to server: {} (license: {})", modelId, license?.id != null)

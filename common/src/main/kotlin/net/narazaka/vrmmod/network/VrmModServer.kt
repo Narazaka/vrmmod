@@ -1,6 +1,7 @@
 package net.narazaka.vrmmod.network
 
 import net.narazaka.vrmmod.VrmMod
+import net.narazaka.vrmmod.animation.NormalMode
 import dev.architectury.networking.NetworkManager
 import net.minecraft.server.level.ServerPlayer
 import java.util.UUID
@@ -11,6 +12,7 @@ object VrmModServer {
         val vroidHubModelId: String,
         val multiplayLicenseId: String?,
         val scale: Float,
+        val normalMode: NormalMode,
     )
 
     private val playerModels = ConcurrentHashMap<UUID, PlayerModelInfo>()
@@ -23,7 +25,7 @@ object VrmModServer {
             playerModels.remove(uuid)
             VrmMod.logger.info("Player {} cleared VRM model", player.gameProfile.name)
         } else {
-            val info = PlayerModelInfo(payload.vroidHubModelId, payload.multiplayLicenseId, payload.scale)
+            val info = PlayerModelInfo(payload.vroidHubModelId, payload.multiplayLicenseId, payload.scale, payload.normalMode)
             playerModels[uuid] = info
             VrmMod.logger.info("Player {} announced VRM model: {}", player.gameProfile.name, payload.vroidHubModelId)
         }
@@ -34,6 +36,7 @@ object VrmModServer {
             vroidHubModelId = payload.vroidHubModelId,
             multiplayLicenseId = payload.multiplayLicenseId,
             scale = payload.scale,
+            normalMode = payload.normalMode,
         )
         for (otherPlayer in player.server.playerList.players) {
             if (otherPlayer.uuid != uuid) {
@@ -50,6 +53,7 @@ object VrmModServer {
                         vroidHubModelId = info.vroidHubModelId,
                         multiplayLicenseId = info.multiplayLicenseId,
                         scale = info.scale,
+                        normalMode = info.normalMode,
                     )
                     NetworkManager.sendToPlayer(player, existingPayload)
                 }
