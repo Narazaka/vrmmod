@@ -40,7 +40,7 @@ object VrmPlayerManager {
      * @param playerUUID the UUID of the player
      * @param file the VRM file to load
      */
-    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true) {
+    fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true, onLoaded: ((VrmState) -> Unit)? = null) {
         // Skip if already loaded or currently loading
         if (states.containsKey(playerUUID) || loading.containsKey(playerUUID)) {
             return
@@ -143,6 +143,7 @@ object VrmPlayerManager {
                         model.meta.name,
                         textureLocations.size,
                     )
+                    onLoaded?.invoke(state)
                 } catch (e: Exception) {
                     VrmMod.logger.error("Failed to register VRM textures for player {}", playerUUID, e)
                 } finally {

@@ -176,10 +176,7 @@ object VrmModClient {
             if (file != null) {
                 VrmMod.logger.info("VRoid Hub model ready, loading: {}", file.absolutePath)
                 Minecraft.getInstance().execute {
-                    VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig, useVrmaAnimation)
-                    // Announce model to server for multiplayer sync
-                    val state = VrmPlayerManager.get(uuid)
-                    if (state != null) {
+                    VrmPlayerManager.loadLocal(uuid, file, animDir, animationConfig, useVrmaAnimation) { state ->
                         announceModel(uuid, modelId, state.cachedScale)
                     }
                 }

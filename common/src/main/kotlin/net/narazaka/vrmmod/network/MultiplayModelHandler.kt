@@ -100,10 +100,7 @@ object MultiplayModelHandler {
                     val animationConfig = AnimationConfig.load(configDir)
                     VrmPlayerManager.loadLocal(
                         payload.playerUUID, file, null, animationConfig, true,
-                    )
-                    // Override cachedScale with the value from the model owner
-                    val state = VrmPlayerManager.get(payload.playerUUID)
-                    if (state != null) {
+                    ) { state ->
                         VrmMod.logger.info(
                             "Applying multiplay scale {} (local was {}) for player {}",
                             scale, state.cachedScale, payload.playerUUID,
