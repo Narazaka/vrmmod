@@ -71,7 +71,7 @@ object VRoidHubLicenseDisplay {
             isOk = when (meta.commercialUsage) { "corporation" -> true; null -> null; else -> false },
         ))
 
-        // 個人の商用利用
+        // 個人商用
         items.add(LicenseItem(
             label = Component.translatable("vrmmod.vroidhub.license.personal_commercial"),
             value = when (meta.commercialUsage) {
@@ -80,6 +80,27 @@ object VRoidHubLicenseDisplay {
                 else -> notSet()
             },
             isOk = when (meta.commercialUsage) { "corporation", "personalProfit" -> true; null -> null; else -> false },
+        ))
+
+        // - ギフティング
+        items.add(LicenseItem(
+            label = Component.translatable("vrmmod.vroidhub.license.gifting"),
+            value = when (meta.commercialUsage) {
+                "corporation", "personalProfit" -> ok()
+                "personalNonProfit" -> ng()
+                else -> notSet()
+            },
+            isOk = when (meta.commercialUsage) { "corporation", "personalProfit" -> true; null -> null; else -> false },
+        ))
+
+        // - 同人
+        items.add(LicenseItem(
+            label = Component.translatable("vrmmod.vroidhub.license.doujin"),
+            value = when (meta.commercialUsage) {
+                "corporation", "personalProfit", "personalNonProfit" -> ok()
+                else -> notSet()
+            },
+            isOk = when (meta.commercialUsage) { "corporation", "personalProfit", "personalNonProfit" -> true; null -> null; else -> false },
         ))
 
         // 再配布
@@ -141,16 +162,37 @@ object VRoidHubLicenseDisplay {
         items.add(allowDisallowItem("vrmmod.vroidhub.license.corporate_use",
             license.corporate_commercial_use))
 
-        // 個人の商用利用
+        // 個人商用
         items.add(LicenseItem(
             label = Component.translatable("vrmmod.vroidhub.license.personal_commercial"),
             value = when (license.personal_commercial_use) {
                 "profit" -> ok()
-                "nonprofit" -> Component.translatable("vrmmod.vroidhub.license.nonprofit_only")
+                "nonprofit", "disallow" -> ng()
+                else -> notSet()
+            },
+            isOk = when (license.personal_commercial_use) { "profit" -> true; "disallow", "nonprofit" -> false; else -> null },
+        ))
+
+        // - ギフティング
+        items.add(LicenseItem(
+            label = Component.translatable("vrmmod.vroidhub.license.gifting"),
+            value = when (license.personal_commercial_use) {
+                "profit" -> ok()
+                "nonprofit", "disallow" -> ng()
+                else -> notSet()
+            },
+            isOk = when (license.personal_commercial_use) { "profit" -> true; "nonprofit", "disallow" -> false; else -> null },
+        ))
+
+        // - 同人
+        items.add(LicenseItem(
+            label = Component.translatable("vrmmod.vroidhub.license.doujin"),
+            value = when (license.personal_commercial_use) {
+                "profit", "nonprofit" -> ok()
                 "disallow" -> ng()
                 else -> notSet()
             },
-            isOk = when (license.personal_commercial_use) { "profit" -> true; "disallow" -> false; else -> null },
+            isOk = when (license.personal_commercial_use) { "profit", "nonprofit" -> true; "disallow" -> false; else -> null },
         ))
 
         // 再配布
