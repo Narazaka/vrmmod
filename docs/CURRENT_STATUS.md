@@ -269,6 +269,36 @@
 - `useShadeColorTint`: false（デフォルト）— MToon 影色ティント
 - `useDegenerateQuadRenderType`: false（デフォルト）— レガシー QUADS モード
 
+## マルチプレイ VRoid Hub モデル同期（2026-03-28実施）
+
+### 概要
+- サーバー経由で各プレイヤーの VRoid Hub モデルIDとスケール値・法線モードを共有
+- 受信側が VRoid Hub API でモデルをダウンロードし表示
+- mod未導入サーバーではグレースフルデグラデーション（従来通り自分のVRMのみ）
+
+### パケット設計
+- `ModelAnnouncePayload` (C2S): `vroidHubModelId`, `multiplayLicenseId`, `scale`, `normalMode`
+- `PlayerModelPayload` (S2C): `playerUUID`, `vroidHubModelId`, `multiplayLicenseId`, `scale`, `normalMode`
+- Architectury NetworkManager の `CustomPacketPayload` + `StreamCodec` で実装
+
+### サーバー側 (`VrmModServer`)
+- `ConcurrentHashMap<UUID, PlayerModelInfo>` でメモリ管理（永続化なし）
+- 初回アナウンス時のみ既存プレイヤーの一括送信、モデル変更時は変更者の情報のみブロードキャスト
+- プレイヤー切断時にマップ削除 + null ブロードキャスト（`PlayerEvent.PLAYER_QUIT`）
+
+### クライアント側
+- **送信 (`VrmModClient.announceModel`)**: モデルロード完了後に `onLoaded` コールバックで呼び出し。`postDownloadLicenseMultiplay` でマルチプレイ用ライセンス取得を試み、失敗しても `license: null` で送信
+- **受信 (`MultiplayModelHandler`)**: `PlayerModelPayload` 受信 → VRoid Hub ダウンロード → `VrmPlayerManager.loadFromBytes` でロード → `cachedScale` オーバーライド
+- **ダウンロード方式**: マルチプレイ用ライセンス → 失敗時は自分の認証で通常ライセンス（publicモデルのみ）にフォールバック
+- **メモリキャッシュ**: ダウンロード済み VRM は `ConcurrentHashMap<String, ByteArray>` でメモリ上にのみ保持。ディスクには書かない（ダウンロード許可されていないモデルの永続化を防止）。セッション終了時にクリア
+- **未ログイン通知**: VRoid Hub 未ログイン時は初回のみチャットに通知
+- `VrmPlayerManager.loadFromBytes()`: `ByteArray` から直接パースするメソッド。`loadLocal` と内部実装 (`loadInternal`) を共有
+
+### 技術的知見
+- Architectury `NetworkManager.registerReceiver(s2c(), ...)` は内部で `registerS2CPayloadType` も行うため、事前の `registerS2CPayloadType` は不要（重複登録で `IllegalArgumentException`）
+- `VrmPlayerManager.loadLocal()` は非同期（`CompletableFuture` + render thread execute）。呼び出し直後に `get()` しても null。`onLoaded` コールバックパラメータを追加して解決
+- LANサーバーでは統合サーバーとクライアントが同一プロセスのため、パケットフォーマット変更時は両側のビルドを揃える必要あり
+
 ## 残課題
 
 ### 高優先
@@ -287,17 +317,16 @@
 
 ### 中優先
 3. **一人称カメラ XZ 揺れ問題**: アイドルモーション等でカメラが揺れる。FPSゲームの知見（ビューモデルは揺れるがカメラは固定）を取り入れた設計が必要
-4. **マルチプレイ同期**: サーバーmod併用時のカスタムパケット（Architectury のネットワーキングAPI使用）
-5. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
-6. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
-7. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題（首の内部が見える）
+4. **LookAt（視線追従）**: VRM 1.0 spec の lookAt 実装
+5. **名札位置調整**: VRMモデルの頭の高さに合わせたオフセット
+6. **一人称カメラ位置改善**: 下を向くと身体内部が見える問題（首の内部が見える）
 
 ### 低優先
-8. **特殊メッシュの描画破綻**: `Cynthia_Maya_VRM_チアリーダー.vrm` のポンポンメッシュのみがノイズ状に描画される
-9. **Vivecraft IK**: VR 一人称、3点IK
-10. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
-11. **README / ドキュメント**: 使い方、設定ファイルの説明
-12. **CI/CD / リリースビルド**: Modrinth/CurseForge パッケージング（GitHub Actions ビルド + VRoid Hub secrets 注入は実装済み）
+7. **特殊メッシュの描画破綻**: `Cynthia_Maya_VRM_チアリーダー.vrm` のポンポンメッシュのみがノイズ状に描画される
+8. **Vivecraft IK**: VR 一人称、3点IK
+9. **パフォーマンス最適化**: GPU スキニング、多人数時のFPS
+10. **README / ドキュメント**: 使い方、設定ファイルの説明
+11. **CI/CD / リリースビルド**: Modrinth/CurseForge パッケージング（GitHub Actions ビルド + VRoid Hub secrets 注入は実装済み）
 
 ## 設計書・計画書
 
@@ -309,6 +338,7 @@
 - `2026-03-27-held-item-rendering-design.md` — アイテム手持ち描画
 - `2026-03-27-animation-mirror-design.md` — アニメーション左右反転
 - `2026-03-27-settings-scroll-categories-design.md` — 設定画面スクロール・カテゴリ
+- `2026-03-27-multiplayer-vroidhub-sync-design.md` — マルチプレイ VRoid Hub モデル同期
 
 ### 計画書 (`docs/superpowers/plans/`)
 - `2026-03-24-vrm-mod-mvp.md` — MVP計画
@@ -319,6 +349,7 @@
 - `2026-03-27-animation-mirror.md` — mirror 実装
 - `2026-03-27-settings-scroll-categories.md` — 設定画面改善
 - `2026-03-27-code-review-fixes.md` — コードレビュー修正
+- `2026-03-27-multiplayer-vroidhub-sync.md` — マルチプレイ VRoid Hub 同期
 
 ## 開発環境メモ
 - `minecraft-dev-mcp` MCP サーバー: MC 1.21.4 mojmap でインデックス済み（`search_indexed` で高速検索可能）
