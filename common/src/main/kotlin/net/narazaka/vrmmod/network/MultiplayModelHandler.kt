@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap
 object MultiplayModelHandler {
     private var loginNotificationShown = false
     private val downloadingPlayers = ConcurrentHashMap.newKeySet<UUID>()
+    /** In-memory cache of VRM bytes downloaded via multiplay license (not persisted to disk). */
+    private val multiplayModelCache = ConcurrentHashMap<String, ByteArray>()
 
     fun handlePlayerModel(payload: PlayerModelPayload) {
         val mc = Minecraft.getInstance()
@@ -69,11 +71,10 @@ object MultiplayModelHandler {
             }
             val accessToken = token!!.accessToken
 
-            // Check cache first
-            val gameDir = mc.gameDirectory.toPath()
-            val cached = VRoidHubModelCache.getCachedModelAnyVersion(gameDir, modelId)
+            // Check in-memory cache first
+            val cached = multiplayModelCache[modelId]
             if (cached != null) {
-                VrmMod.logger.info("Loading multiplayer VRM from cache for model {}", modelId)
+                VrmMod.logger.info("Loading multiplayer VRM from memory cache for model {}", modelId)
                 return@supplyAsync cached
             }
 
@@ -87,20 +88,20 @@ object MultiplayModelHandler {
                     VrmMod.logger.error("Failed to download VRM for model {}", modelId, e)
                     return@supplyAsync null
                 }
-                val file = VRoidHubModelCache.cacheModel(gameDir, modelId, "", vrmBytes)
-                VrmMod.logger.info("Multiplayer VRM cached: {}", file.absolutePath)
-                return@supplyAsync file
+                multiplayModelCache[modelId] = vrmBytes
+                VrmMod.logger.info("Multiplayer VRM downloaded and memory-cached: {} ({} bytes)", modelId, vrmBytes.size)
+                return@supplyAsync vrmBytes
             }
 
             VrmMod.logger.warn("No multiplay license available for model {}", modelId)
             null
-        }.thenAccept { file ->
+        }.thenAccept { vrmBytes ->
             downloadingPlayers.remove(payload.playerUUID)
-            if (file != null) {
+            if (vrmBytes != null) {
                 mc.execute {
                     val animationConfig = AnimationConfig.load(configDir).copy(normalMode = normalMode)
-                    VrmPlayerManager.loadLocal(
-                        payload.playerUUID, file, null, animationConfig, true,
+                    VrmPlayerManager.loadFromBytes(
+                        payload.playerUUID, vrmBytes, "multiplay:$modelId", null, animationConfig, true,
                     ) { state ->
                         VrmMod.logger.info(
                             "Applying multiplay scale {} (local was {}) for player {}",
@@ -133,5 +134,6 @@ object MultiplayModelHandler {
     fun reset() {
         loginNotificationShown = false
         downloadingPlayers.clear()
+        multiplayModelCache.clear()
     }
 }

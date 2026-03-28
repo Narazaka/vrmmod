@@ -9,6 +9,7 @@ import net.narazaka.vrmmod.physics.SpringBoneSimulator
 import net.narazaka.vrmmod.vrm.VrmParser
 import net.minecraft.client.Minecraft
 import java.io.File
+import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -40,15 +41,23 @@ object VrmPlayerManager {
      * @param playerUUID the UUID of the player
      * @param file the VRM file to load
      */
+    fun loadFromBytes(playerUUID: UUID, vrmBytes: ByteArray, label: String, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true, onLoaded: ((VrmState) -> Unit)? = null) {
+        loadInternal(playerUUID, label, { java.io.ByteArrayInputStream(vrmBytes) }, animationDir, animationConfig, useVrmaAnimation, onLoaded)
+    }
+
     fun loadLocal(playerUUID: UUID, file: File, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true, onLoaded: ((VrmState) -> Unit)? = null) {
+        loadInternal(playerUUID, file.name, { file.inputStream() }, animationDir, animationConfig, useVrmaAnimation, onLoaded)
+    }
+
+    private fun loadInternal(playerUUID: UUID, label: String, inputStreamProvider: () -> InputStream, animationDir: File? = null, animationConfig: AnimationConfig = AnimationConfig(), useVrmaAnimation: Boolean = true, onLoaded: ((VrmState) -> Unit)? = null) {
         // Skip if already loaded or currently loading
         if (states.containsKey(playerUUID) || loading.containsKey(playerUUID)) {
             return
         }
 
         val future = CompletableFuture.supplyAsync {
-            VrmMod.logger.info("Parsing VRM file for player {}: {}", playerUUID, file.name)
-            val model = file.inputStream().use { VrmParser.parse(it) }
+            VrmMod.logger.info("Parsing VRM file for player {}: {}", playerUUID, label)
+            val model = inputStreamProvider().use { VrmParser.parse(it) }
 
             // Load animation clips from directory or bundled resources
             val clips = if (!useVrmaAnimation) {
