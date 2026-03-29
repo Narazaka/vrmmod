@@ -132,6 +132,12 @@ tasks.remapJar {
     archiveClassifier.set(null as String?)
 }
 
+// Don't generate sources JAR — this mod doesn't publish a Maven artifact
+afterEvaluate {
+    tasks.findByName("sourcesJar")?.enabled = false
+    tasks.findByName("remapSourcesJar")?.enabled = false
+}
+
 // ---- VRoid Hub Secrets Generation ----
 
 val generateVRoidHubSecrets by tasks.registering {
