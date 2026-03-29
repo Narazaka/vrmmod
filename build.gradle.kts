@@ -25,6 +25,11 @@ modSettings {
     // Separate run directories per loader to avoid conflicts between Fabric and NeoForge
     runDirectory = rootProject.layout.projectDirectory.dir("run/$loader")
 
+    // Custom variable replacements for mod metadata templates
+    variableReplacements.set(mapOf(
+        "architecturyVersion" to mod.prop("architectury_api_version").substringBefore(".") + ".0.0",
+    ))
+
     clientOptions {
         fov = 90
         guiScale = 3
