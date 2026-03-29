@@ -66,6 +66,15 @@ if (mod.isNeoforge || mod.isForge) {
     }
 }
 
+// Forge needs explicit mixin config registration for dev environment
+if (mod.isForge) {
+    loom {
+        forge {
+            mixinConfigs("vrmmod.mixins.json")
+        }
+    }
+}
+
 // ---- Dependencies ----
 
 repositories {
