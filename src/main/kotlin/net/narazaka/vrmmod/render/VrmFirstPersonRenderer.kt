@@ -111,18 +111,20 @@ object VrmFirstPersonRenderer {
 
         VrmRenderer.render(state, poseContext, poseStack, bufferSource, packedLight, isFirstPerson = true)
 
-        //? if HAS_ITEM_RENDER_STATE {
-        // Render held items using ItemModelResolver to build ItemStackRenderState
+        // Render held items in first person
         if (state.animationConfig.heldItemFirstPerson) {
+            val bodyYawRad = Math.toRadians(bodyRot.toDouble()).toFloat()
+            //? if HAS_ITEM_RENDER_STATE {
             val itemModelResolver = mc.itemModelResolver
             rightHandItemState.clear()
             leftHandItemState.clear()
             itemModelResolver.updateForLiving(rightHandItemState, player.getItemHeldByArm(HumanoidArm.RIGHT), ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, false, player)
             itemModelResolver.updateForLiving(leftHandItemState, player.getItemHeldByArm(HumanoidArm.LEFT), ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true, player)
-            val bodyYawRad = Math.toRadians(bodyRot.toDouble()).toFloat()
             VrmRenderer.renderHeldItems(state, rightHandItemState, leftHandItemState, poseStack, bufferSource, packedLight, bodyYawRad, state.animationConfig)
+            //?} else {
+            /*VrmRenderer.renderHeldItems(state, player, poseStack, bufferSource, packedLight, bodyYawRad, state.animationConfig)*/
+            //?}
         }
-        //?}
 
         poseStack.popPose()
     }

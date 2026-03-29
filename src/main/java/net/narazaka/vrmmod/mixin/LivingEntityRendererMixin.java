@@ -101,7 +101,17 @@ public class LivingEntityRendererMixin {
 
         PoseContext poseContext = MixinHelper.buildPoseContextFromEntity(player, entityYaw, partialTick);
         VrmRenderer.INSTANCE.render(state, poseContext, poseStack, bufferSource, packedLight, false);
-        // Held item rendering not yet implemented for pre-1.21.2
+        if (state.getAnimationConfig().getHeldItemThirdPerson()) {
+            VrmRenderer.INSTANCE.renderHeldItems(
+                    state,
+                    player,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    (float) Math.toRadians(poseContext.getBodyYaw()),
+                    state.getAnimationConfig()
+            );
+        }
         VrmRenderContext.CURRENT_PLAYER_UUID.remove();
         ci.cancel();
     }

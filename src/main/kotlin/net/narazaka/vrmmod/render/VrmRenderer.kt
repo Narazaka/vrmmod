@@ -234,7 +234,7 @@ object VrmRenderer {
 
     //? if HAS_ITEM_RENDER_STATE {
     /**
-     * Renders held items at VRM hand bone positions.
+     * Renders held items at VRM hand bone positions (1.21.2+ with ItemStackRenderState).
      */
     fun renderHeldItems(
         state: VrmState,
@@ -271,31 +271,90 @@ object VrmRenderer {
         offsetZ: Float,
     ) {
         if (handMatrix == null || itemRenderState.isEmpty) return
-
-        poseStack.pushPose()
-        applyModelTransform(poseStack, bodyYawRad, scale)
-
-        // Apply hand bone world matrix
-        poseStack.mulPose(handMatrix)
-
-        // Item scale (configurable)
-        poseStack.scale(itemScale, itemScale, itemScale)
-
-        // Item orientation adjustments for VRM hand bone coordinate system
-        poseStack.mulPose(org.joml.Quaternionf().rotateZ((if (isLeft) Math.PI / 2 else -Math.PI / 2).toFloat()))
-        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
-        poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
-        poseStack.translate(offsetX, offsetY, offsetZ)
-
+        applyHandItemTransform(poseStack, handMatrix, isLeft, bodyYawRad, scale, itemScale, offsetX, offsetY, offsetZ)
         itemRenderState.render(poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY)
         poseStack.popPose()
     }
     //?} else {
     /*
-    // TODO: Implement held item rendering for pre-1.21.2 using ItemStack + ItemRenderer.renderStatic()
-    // For now, held items are not rendered on older versions.
+    /**
+     * Renders held items at VRM hand bone positions (pre-1.21.2 with ItemStack).
+     */
+    fun renderHeldItems(
+        state: VrmState,
+        player: net.minecraft.client.player.AbstractClientPlayer,
+        poseStack: PoseStack,
+        bufferSource: MultiBufferSource,
+        packedLight: Int,
+        bodyYawRad: Float,
+        config: net.narazaka.vrmmod.animation.AnimationConfig? = null,
+    ) {
+        val itemScale = config?.heldItemScale ?: 0.67f
+        val offset = config?.heldItemOffset ?: listOf(0f, 0.0625f, -0.125f)
+        val ox = offset.getOrElse(0) { 0f }
+        val oy = offset.getOrElse(1) { 0.0625f }
+        val oz = offset.getOrElse(2) { -0.125f }
+        val scale = state.cachedScale
+        val mc = net.minecraft.client.Minecraft.getInstance()
+        val rightItem = player.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)
+        val leftItem = player.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND)
+        renderSingleHandItem(state.rightHandMatrix, rightItem, false, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz, mc, player)
+        renderSingleHandItem(state.leftHandMatrix, leftItem, true, poseStack, bufferSource, packedLight, bodyYawRad, scale, itemScale, ox, oy, oz, mc, player)
+    }
+
+    private fun renderSingleHandItem(
+        handMatrix: Matrix4f?,
+        itemStack: net.minecraft.world.item.ItemStack,
+        isLeft: Boolean,
+        poseStack: PoseStack,
+        bufferSource: MultiBufferSource,
+        packedLight: Int,
+        bodyYawRad: Float,
+        scale: Float,
+        itemScale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        offsetZ: Float,
+        mc: net.minecraft.client.Minecraft,
+        player: net.minecraft.client.player.AbstractClientPlayer,
+    ) {
+        if (handMatrix == null || itemStack.isEmpty) return
+        val displayContext = if (isLeft)
+            net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_LEFT_HAND
+        else
+            net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_RIGHT_HAND
+        applyHandItemTransform(poseStack, handMatrix, isLeft, bodyYawRad, scale, itemScale, offsetX, offsetY, offsetZ)
+        mc.itemRenderer.renderStatic(
+            player, itemStack, displayContext, isLeft,
+            poseStack, bufferSource, player.level(), packedLight, OverlayTexture.NO_OVERLAY, player.id
+        )
+        poseStack.popPose()
+    }
     */
     //?}
+
+    /** Common transform for hand item rendering (shared across MC versions). */
+    private fun applyHandItemTransform(
+        poseStack: PoseStack,
+        handMatrix: Matrix4f,
+        isLeft: Boolean,
+        bodyYawRad: Float,
+        scale: Float,
+        itemScale: Float,
+        offsetX: Float,
+        offsetY: Float,
+        offsetZ: Float,
+    ) {
+        poseStack.pushPose()
+        applyModelTransform(poseStack, bodyYawRad, scale)
+        poseStack.mulPose(handMatrix)
+        poseStack.scale(itemScale, itemScale, itemScale)
+        // Item orientation adjustments for VRM hand bone coordinate system
+        poseStack.mulPose(org.joml.Quaternionf().rotateZ((if (isLeft) Math.PI / 2 else -Math.PI / 2).toFloat()))
+        poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
+        poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
+        poseStack.translate(offsetX, offsetY, offsetZ)
+    }
 
     /**
      * Converts a [BonePoseMap] into per-node-index local transform overrides.
