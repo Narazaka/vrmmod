@@ -16,7 +16,9 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: |
+            17
+            21
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -59,3 +61,51 @@ jobs:
           | while read -r tag; do
               gh release delete "$tag" --yes --cleanup-tag
             done
+
+  publish:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Set version from tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "MOD_VERSION=$VERSION" >> "$GITHUB_ENV"
+          sed -i "s/mod.version=.*/mod.version=$VERSION/" gradle.properties
+
+      - name: Build all variants
+        run: ./gradlew chiseledBuild -x test
+        env:
+          VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
+          VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
+
+      - name: Collect JARs
+        run: |
+          mkdir -p build/release-jars
+          find versions/*/build/libs/ -name "*.jar" ! -name "*-dev-shadow*" -exec cp {} build/release-jars/ \;
+
+      - name: Publish to Modrinth + CurseForge
+        run: ./gradlew chiseledPublishMods
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_ID: ${{ secrets.MODRINTH_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          CURSEFORGE_ID: ${{ secrets.CURSEFORGE_ID }}
+          VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
+          VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ env.MOD_VERSION }}
+          files: build/release-jars/*.jar

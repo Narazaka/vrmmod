@@ -277,3 +277,30 @@ tasks.test {
     // Pass project root as system property so tests can resolve testdata paths
     systemProperty("project.root", rootProject.projectDir.absolutePath)
 }
+
+// ---- Publishing (Modrinth + CurseForge) ----
+
+publishMods {
+    modrinth {
+        if (mod.isFabric) {
+            requires("fabric-api")
+            requires("fabric-language-kotlin")
+        }
+        if (mod.isNeoforge || mod.isForge) {
+            requires("kotlin-for-forge")
+        }
+        requires("architectury-api")
+    }
+    curseforge {
+        clientRequired = true
+        serverRequired = false
+        if (mod.isFabric) {
+            requires("fabric-api")
+            requires("fabric-language-kotlin")
+        }
+        if (mod.isNeoforge || mod.isForge) {
+            requires("kotlin-for-forge")
+        }
+        requires("architectury-api")
+    }
+}
