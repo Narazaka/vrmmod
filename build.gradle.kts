@@ -48,9 +48,26 @@ val shadowBundle: Configuration by configurations.creating
 dependencies {
     modApi("dev.architectury:architectury-${loader}:${mod.prop("architectury_api_version")}")
 
-    // JglTF for glTF/VRM parsing - must be bundled
-    implementation("de.javagl:jgltf-model:2.0.4")
+    // JglTF for glTF/VRM parsing - bundled via shadow JAR in production.
+    // NeoForge dev needs Jackson excluded (NeoForge provides it, including it causes module conflicts).
+    val jgltfDep = if (mod.isNeoforge) {
+        implementation("de.javagl:jgltf-model:2.0.4") {
+            exclude(group = "com.fasterxml.jackson.core")
+            exclude(group = "com.fasterxml.jackson")
+        }
+    } else {
+        implementation("de.javagl:jgltf-model:2.0.4")
+    }
     shadowBundle("de.javagl:jgltf-model:2.0.4")
+    // NeoForge dev: JglTF must be on forgeRuntimeLibrary so the module classloader can find it.
+    // forgeRuntimeLibrary is a NeoForge/Loom configuration that adds libraries to the mod's module layer.
+    // In production, shadow JAR handles bundling. Fabric dev uses flat classpath so implementation() suffices.
+    if (mod.isNeoforge) {
+        "forgeRuntimeLibrary"("de.javagl:jgltf-model:2.0.4") {
+            exclude(group = "com.fasterxml.jackson.core")
+            exclude(group = "com.fasterxml.jackson")
+        }
+    }
 
     if (mod.isFabric) {
         modImplementation("net.fabricmc:fabric-language-kotlin:${mod.prop("fabric_language_kotlin_version")}")
