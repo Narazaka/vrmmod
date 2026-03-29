@@ -505,7 +505,11 @@ object VrmRenderer {
     private fun resolveTexture(state: VrmState, imageIndex: Int): ResourceLocation {
         val locations = state.textureLocations
         if (locations.isEmpty()) {
+            //? if HAS_RESOURCE_LOCATION_FACTORY {
             return ResourceLocation.withDefaultNamespace("textures/misc/unknown_pack.png")
+            //?} else {
+            /*return ResourceLocation("textures/misc/unknown_pack.png")*/
+            //?}
         }
         return if (imageIndex in locations.indices) {
             locations[imageIndex]
@@ -692,14 +696,24 @@ object VrmRenderer {
                     r = 255; g = 255; b = 255
                 }
 
+                //? if HAS_NEW_VERTEX_API {
                 vertexConsumer
                     .addVertex(pose, px, py, pz)
                     .setColor(r, g, b, 255)
                     .setUv(u, vCoord)
                     .setOverlay(OverlayTexture.NO_OVERLAY)
                     .setLight(packedLight)
-                    // TODO: When Iris MToon shader is implemented, use actual normals (nx, ny, nz) instead
                     .setNormal(pose, if (useActualNormals) nx else 0f, if (useActualNormals) ny else 1f, if (useActualNormals) nz else 0f)
+                //?} else {
+                /*vertexConsumer
+                    .vertex(pose.pose(), px, py, pz)
+                    .color(r, g, b, 255)
+                    .uv(u, vCoord)
+                    .overlayCoords(OverlayTexture.NO_OVERLAY)
+                    .uv2(packedLight)
+                    .normal(pose.normal(), if (useActualNormals) nx else 0f, if (useActualNormals) ny else 1f, if (useActualNormals) nz else 0f)
+                    .endVertex()*/
+                //?}
             }
         }
     }

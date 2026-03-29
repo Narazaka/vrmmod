@@ -17,7 +17,11 @@ data class ModelAnnouncePayload(
 
     companion object {
         val TYPE = CustomPacketPayload.Type<ModelAnnouncePayload>(
+            //? if HAS_RESOURCE_LOCATION_FACTORY {
             ResourceLocation.fromNamespaceAndPath(VrmMod.MOD_ID, "model_announce")
+            //?} else {
+            /*ResourceLocation(VrmMod.MOD_ID, "model_announce")*/
+            //?}
         )
         val CODEC: StreamCodec<RegistryFriendlyByteBuf, ModelAnnouncePayload> =
             object : StreamCodec<RegistryFriendlyByteBuf, ModelAnnouncePayload> {

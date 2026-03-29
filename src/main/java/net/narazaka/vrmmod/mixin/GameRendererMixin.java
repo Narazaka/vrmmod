@@ -49,8 +49,13 @@ public class GameRendererMixin {
         Vec3 origin = mainCamera.getPosition();
         Vec3 direction = entity.getViewVector(partialTick);
 
+        //? if HAS_INTERACTION_RANGE {
         double blockRange = minecraft.player.blockInteractionRange();
         double entityRange = minecraft.player.entityInteractionRange();
+        //?} else {
+        /*double blockRange = minecraft.gameMode.getPickRange();
+        double entityRange = blockRange;*/
+        //?}
         double maxRange = Math.max(blockRange, entityRange);
         double maxRangeSq = Mth.square(maxRange);
 

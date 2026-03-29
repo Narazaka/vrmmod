@@ -19,7 +19,11 @@ class VrmModFabric : ClientModInitializer {
             VrmFirstPersonRenderer.renderFirstPerson(
                 poseStack,
                 consumers,
+                //? if HAS_TICK_COUNTER {
                 context.tickCounter().getGameTimeDeltaPartialTick(false),
+                //?} else {
+                /*context.tickDelta(),*/
+                //?}
             )
             // Flush batches so VRM geometry is committed (matches NeoForge behavior)
             if (consumers is net.minecraft.client.renderer.MultiBufferSource.BufferSource) {

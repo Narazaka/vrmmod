@@ -105,7 +105,11 @@ object MixinHelper {
             )*/
             //?}
             return net.minecraft.world.phys.BlockHitResult.miss(
+                //? if HAS_BLOCKPOS_CONTAINING {
                 loc, dir, net.minecraft.core.BlockPos.containing(loc),
+                //?} else {
+                /*loc, dir, net.minecraft.core.BlockPos(net.minecraft.util.Mth.floor(loc.x), net.minecraft.util.Mth.floor(loc.y), net.minecraft.util.Mth.floor(loc.z)),*/
+                //?}
             )
         }
         return hit

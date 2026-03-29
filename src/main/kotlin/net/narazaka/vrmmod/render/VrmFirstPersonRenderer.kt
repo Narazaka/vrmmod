@@ -95,7 +95,11 @@ object VrmFirstPersonRenderer {
         )
 
         // Compute light at player position
+        //? if HAS_BLOCKPOS_CONTAINING {
         val blockPos = BlockPos.containing(player.x, player.eyeY, player.z)
+        //?} else {
+        /*val blockPos = BlockPos(net.minecraft.util.Mth.floor(player.x), net.minecraft.util.Mth.floor(player.eyeY), net.minecraft.util.Mth.floor(player.z))*/
+        //?}
         val blockLight = player.level().getBrightness(LightLayer.BLOCK, blockPos)
         val skyLight = player.level().getBrightness(LightLayer.SKY, blockPos)
         val packedLight = LightTexture.pack(blockLight, skyLight)

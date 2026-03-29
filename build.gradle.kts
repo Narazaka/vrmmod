@@ -18,6 +18,10 @@ stonecutter {
     constants["HAS_CUSTOM_PAYLOAD"] = eval(mcVersion, ">=1.20.5")
     constants["HAS_APPROXIMATE_NEAREST"] = eval(mcVersion, ">=1.21.4")
     constants["HAS_ITEM_RENDER_STATE"] = eval(mcVersion, ">=1.21.2")
+    constants["HAS_NEW_VERTEX_API"] = eval(mcVersion, ">=1.21")
+    constants["HAS_RESOURCE_LOCATION_FACTORY"] = eval(mcVersion, ">=1.21")
+    constants["HAS_TICK_COUNTER"] = eval(mcVersion, ">=1.21")
+    constants["HAS_BLOCKPOS_CONTAINING"] = eval(mcVersion, ">=1.20.2")
 }
 
 // Stonecraft handles: architectury loom, java version, minecraft deps, mappings, etc.
@@ -52,7 +56,7 @@ afterEvaluate {
 
 // NeoForge's module classloader needs loom.mods to know which source sets belong to the mod.
 // Without this, Mixin fails with ClassNotFoundException for the mod's own Kotlin classes in dev.
-if (mod.isNeoforge) {
+if (mod.isNeoforge || mod.isForge) {
     loom {
         mods {
             register(mod.id) {
@@ -91,7 +95,7 @@ dependencies {
     // forgeRuntimeLibrary is a NeoForge/Loom configuration that adds libraries to the mod's module layer.
     // In production, shadow JAR handles bundling. Fabric dev uses flat classpath so implementation() suffices.
     // Note: Jackson is NOT excluded here — NeoForge 1.21.1 doesn't provide all Jackson classes JglTF needs.
-    if (mod.isNeoforge) {
+    if (mod.isNeoforge || mod.isForge) {
         "forgeRuntimeLibrary"("de.javagl:jgltf-model:2.0.4")
     }
 
@@ -103,6 +107,9 @@ dependencies {
         implementation("thedarkcolour:kotlinforforge-neoforge:${mod.prop("kotlin_for_forge_version")}") {
             exclude(group = "net.neoforged.fancymodloader", module = "loader")
         }
+    }
+    if (mod.isForge) {
+        implementation("thedarkcolour:kotlinforforge:${mod.prop("kotlin_for_forge_version")}")
     }
 
     // JOML for tests
@@ -136,6 +143,13 @@ tasks.remapJar {
 afterEvaluate {
     tasks.findByName("sourcesJar")?.enabled = false
     tasks.findByName("remapSourcesJar")?.enabled = false
+}
+
+tasks.processResources {
+    filesMatching("vrmmod.mixins.json") {
+        val javaVersion = if (stonecutter.eval(stonecutter.current.version, ">=1.20.6")) "JAVA_21" else "JAVA_17"
+        filter { it.replace("JAVA_21", javaVersion) }
+    }
 }
 
 // ---- VRoid Hub Secrets Generation ----

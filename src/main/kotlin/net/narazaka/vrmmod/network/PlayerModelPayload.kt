@@ -19,7 +19,11 @@ data class PlayerModelPayload(
 
     companion object {
         val TYPE = CustomPacketPayload.Type<PlayerModelPayload>(
+            //? if HAS_RESOURCE_LOCATION_FACTORY {
             ResourceLocation.fromNamespaceAndPath(VrmMod.MOD_ID, "player_model")
+            //?} else {
+            /*ResourceLocation(VrmMod.MOD_ID, "player_model")*/
+            //?}
         )
         val CODEC: StreamCodec<RegistryFriendlyByteBuf, PlayerModelPayload> =
             object : StreamCodec<RegistryFriendlyByteBuf, PlayerModelPayload> {
