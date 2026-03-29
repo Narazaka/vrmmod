@@ -150,10 +150,13 @@
 - デフォルトステート/weaponTags のマージ: 新ステート追加時に既存設定を壊さない
 
 ### ビルド・プラットフォーム
+- **Stonecutter 0.8.3 + Stonecraft 1.9.x** でマルチバージョン対応（フラットレイアウト）
+- Architectury Loom 1.13.467、Gradle 9.3.1
 - Architectury API (15.0.3) で Fabric / NeoForge 両対応
 - Kotlin + Java (Mixin のみ)、Java 21
-- MC 1.21.4
+- MC 1.21.4（マルチバージョン対応進行中）
 - JglTF を shadow JAR にバンドル（Jackson は NeoForge 向けに除外）
+- 移行の詳細な知見: [docs/STONECUTTER_MIGRATION.md](STONECUTTER_MIGRATION.md)
 
 ## MC 1.21.4 固有の技術的知見
 

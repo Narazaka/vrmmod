@@ -1,0 +1,35 @@
+modLoader = "kotlinforforge"
+loaderVersion = "[5,)"
+license = "MIT"
+issueTrackerURL = ""
+
+[[mixins]]
+config = "vrmmod.mixins.json"
+
+[[mods]]
+modId = "${id}"
+version = "${version}"
+displayName = "${name}"
+description = "${description}"
+authors = "Narazaka"
+
+[[dependencies.vrmmod]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neoforgeVersion},)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.vrmmod]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${minecraftVersion},)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.vrmmod]]
+modId = "architectury"
+type = "required"
+versionRange = "[${architecturyVersion},)"
+ordering = "NONE"
+side = "CLIENT"
