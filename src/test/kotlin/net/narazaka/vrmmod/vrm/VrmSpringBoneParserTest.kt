@@ -8,7 +8,7 @@ class VrmSpringBoneParserTest {
 
     @Test
     fun `dump VRMC_springBone extension structure`() {
-        val vrmFile = File("../testdata/test-avatar.vrm")
+        val vrmFile = File(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
         assertTrue(vrmFile.exists(), "Test VRM file should exist at ${vrmFile.absolutePath}")
 
         // Read raw glTF to inspect the extension structure
@@ -30,7 +30,7 @@ class VrmSpringBoneParserTest {
 
     @Test
     fun `parseSpringBone extracts spring bone data from test VRM`() {
-        val vrmFile = File("../testdata/test-avatar.vrm")
+        val vrmFile = File(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
         assertTrue(vrmFile.exists(), "Test VRM file should exist at ${vrmFile.absolutePath}")
 
         val model = VrmParser.parse(vrmFile.inputStream())

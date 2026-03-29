@@ -180,7 +180,7 @@ class VrmExtensionParserTest {
 
     @Nested
     inner class IntegrationWithActualVrm {
-        private val vrmPath: Path = Path.of("../testdata/test-avatar.vrm")
+        private val vrmPath: Path = Path.of(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
 
         @Test
         fun `parses VRMC_vrm extension from actual VRM file`() {

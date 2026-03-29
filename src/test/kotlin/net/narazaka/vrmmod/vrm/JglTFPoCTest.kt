@@ -16,7 +16,7 @@ class JglTFPoCTest {
     private lateinit var model: GltfModel
     private lateinit var asset: GltfAssetV2
 
-    private val vrmPath: Path = Path.of("../testdata/test-avatar.vrm")
+    private val vrmPath: Path = Path.of(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
 
     @BeforeAll
     fun setUp() {

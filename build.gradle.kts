@@ -238,4 +238,6 @@ tasks.named("compileKotlin") {
 
 tasks.test {
     useJUnitPlatform()
+    // Pass project root as system property so tests can resolve testdata paths
+    systemProperty("project.root", rootProject.projectDir.absolutePath)
 }

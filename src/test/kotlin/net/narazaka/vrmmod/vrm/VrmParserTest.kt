@@ -11,7 +11,7 @@ class VrmParserTest {
 
     private lateinit var vrmModel: VrmModel
 
-    private val vrmPath: Path = Path.of("../testdata/test-avatar.vrm")
+    private val vrmPath: Path = Path.of(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
 
     @BeforeAll
     fun setUp() {

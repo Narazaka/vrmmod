@@ -10,7 +10,7 @@ import java.nio.file.Path
 
 class MtoonAnalysisTest {
 
-    private val vrmPath = Path.of("../testdata/test-avatar.vrm")
+    private val vrmPath = Path.of(System.getProperty("project.root", "."), "testdata/test-avatar.vrm")
     private val gson = Gson()
     private val prettyGson = GsonBuilder().setPrettyPrinting().create()
 
