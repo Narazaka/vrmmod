@@ -8,8 +8,13 @@ plugins {
     kotlin("jvm") version "2.1.0"
 }
 
+val loader = mod.loader // "fabric", "neoforge", or "forge"
+
 // Stonecraft handles: architectury loom, java version, minecraft deps, mappings, etc.
 modSettings {
+    // Separate run directories per loader to avoid conflicts between Fabric and NeoForge
+    runDirectory = rootProject.layout.projectDirectory.dir("run/$loader")
+
     clientOptions {
         fov = 90
         guiScale = 3
@@ -17,7 +22,17 @@ modSettings {
     }
 }
 
-val loader = mod.loader // "fabric", "neoforge", or "forge"
+// NeoForge's module classloader needs loom.mods to know which source sets belong to the mod.
+// Without this, Mixin fails with ClassNotFoundException for the mod's own Kotlin classes in dev.
+if (mod.isNeoforge) {
+    loom {
+        mods {
+            register(mod.id) {
+                sourceSet(sourceSets.getByName("main"))
+            }
+        }
+    }
+}
 
 // ---- Dependencies ----
 
