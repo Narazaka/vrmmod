@@ -100,12 +100,20 @@ jobs:
           VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
           VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
 
-      - name: Set Modrinth environment (client+server optional)
+      - name: Set Modrinth environment for published versions
         run: |
-          curl -s -X PATCH "https://api.modrinth.com/v2/project/$MODRINTH_ID" \
-            -H "Authorization: $MODRINTH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"client_side":"required","server_side":"optional"}'
+          # Get all version IDs for this project
+          VERSION_IDS=$(curl -s "https://api.modrinth.com/v2/project/$MODRINTH_ID/version" \
+            -H "Authorization: $MODRINTH_TOKEN" | \
+            python3 -c "import sys,json; [print(v['id']) for v in json.load(sys.stdin)]")
+          # PATCH each version with client_side=required, server_side=optional
+          for VID in $VERSION_IDS; do
+            echo "Setting environment for version $VID"
+            curl -s -X PATCH "https://api.modrinth.com/v2/version/$VID" \
+              -H "Authorization: $MODRINTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"client_side":"required","server_side":"optional"}'
+          done
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MODRINTH_ID: ${{ vars.MODRINTH_ID }}
