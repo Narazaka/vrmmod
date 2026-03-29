@@ -121,6 +121,9 @@ dependencies {
 // ---- Shadow JAR (bundle JglTF) ----
 
 tasks.shadowJar {
+    // Forge generates pack.mcmeta into resources — shadow must wait for it
+    dependsOn(tasks.named("processResources"))
+    tasks.findByName("generatePackMCMetaJson")?.let { dependsOn(it) }
     configurations = listOf(shadowBundle)
     archiveClassifier.set("dev-shadow")
     // Exclude transitive deps already provided by MC/loader
