@@ -69,9 +69,15 @@ public class GameRendererMixin {
         // Entity raycast
         Vec3 entityEnd = origin.add(direction.x * maxRange, direction.y * maxRange, direction.z * maxRange);
         AABB searchBox = entity.getBoundingBox().expandTowards(direction.scale(maxRange)).inflate(1.0, 1.0, 1.0);
+        //? if HAS_APPROXIMATE_NEAREST {
         EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
                 entity, origin, entityEnd, searchBox, EntitySelector.CAN_BE_PICKED, maxRangeSq
         );
+        //?} else {
+        /*EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
+                entity, origin, entityEnd, searchBox, e -> !e.isSpectator() && e.isPickable(), maxRangeSq
+        );*/
+        //?}
 
         HitResult result;
         if (entityHit != null && entityHit.getLocation().distanceToSqr(origin) < blockDistSq) {

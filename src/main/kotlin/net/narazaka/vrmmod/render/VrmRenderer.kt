@@ -232,6 +232,7 @@ object VrmRenderer {
         poseStack.popPose()
     }
 
+    //? if HAS_ITEM_RENDER_STATE {
     /**
      * Renders held items at VRM hand bone positions.
      */
@@ -281,20 +282,20 @@ object VrmRenderer {
         poseStack.scale(itemScale, itemScale, itemScale)
 
         // Item orientation adjustments for VRM hand bone coordinate system
-        // VRM hand bone: fingers along ±X, palm faces -Y in T-pose
-        // MC items: handle at origin, blade/tip extends +Y
-        // 1. Z rotation: align blade (+Y) with finger direction (±X)
         poseStack.mulPose(org.joml.Quaternionf().rotateZ((if (isLeft) Math.PI / 2 else -Math.PI / 2).toFloat()))
-        // 2. Y rotation: flip blade face to correct side
         poseStack.mulPose(org.joml.Quaternionf().rotateY(Math.PI.toFloat()))
-        // 3. X rotation: tilt blade forward 90° (natural hold angle)
         poseStack.mulPose(org.joml.Quaternionf().rotateX((-Math.PI / 2).toFloat()))
-        // 4. Offset: shift grip point to hand bone position (configurable)
         poseStack.translate(offsetX, offsetY, offsetZ)
 
         itemRenderState.render(poseStack, bufferSource, packedLight, OverlayTexture.NO_OVERLAY)
         poseStack.popPose()
     }
+    //?} else {
+    /*
+    // TODO: Implement held item rendering for pre-1.21.2 using ItemStack + ItemRenderer.renderStatic()
+    // For now, held items are not rendered on older versions.
+    */
+    //?}
 
     /**
      * Converts a [BonePoseMap] into per-node-index local transform overrides.
