@@ -154,7 +154,7 @@
 - Architectury Loom 1.13.467、Gradle 9.3.1
 - Architectury API (15.0.3) で Fabric / NeoForge 両対応
 - Kotlin + Java (Mixin のみ)、Java 21
-- MC 1.21.4 / 1.21.1（Fabric + NeoForge 各2バージョン = 4バリアント）
+- MC 1.21.4 / 1.21.1（Fabric + NeoForge）、1.20.1（Fabric + Forge）= 6バリアント
 - JglTF を shadow JAR にバンドル（Jackson は NeoForge 向けに除外）
 - 移行の詳細な知見: [docs/STONECUTTER_MIGRATION.md](STONECUTTER_MIGRATION.md)
 

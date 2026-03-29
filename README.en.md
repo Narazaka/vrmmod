@@ -4,8 +4,9 @@ A Minecraft mod that replaces the player model with a VRM avatar. Supports both 
 
 ## Supported Platforms
 
-- **Fabric** (Minecraft 1.21.4 / 1.21.1)
+- **Fabric** (Minecraft 1.21.4 / 1.21.1 / 1.20.1)
 - **NeoForge** (Minecraft 1.21.4 / 1.21.1)
+- **Forge** (Minecraft 1.20.1)
 
 ## Dependencies
 
@@ -16,7 +17,7 @@ A Minecraft mod that replaces the player model with a VRM avatar. Supports both 
 - [Architectury API](https://modrinth.com/mod/architectury-api)
 - [Mod Menu](https://modrinth.com/mod/modmenu) (optional, for settings screen access)
 
-### NeoForge
+### NeoForge / Forge
 
 - [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge)
 - [Architectury API](https://modrinth.com/mod/architectury-api)

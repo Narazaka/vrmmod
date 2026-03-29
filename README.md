@@ -4,8 +4,9 @@ Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD 
 
 ## 対応
 
-- **Fabric** (Minecraft 1.21.4 / 1.21.1)
+- **Fabric** (Minecraft 1.21.4 / 1.21.1 / 1.20.1)
 - **NeoForge** (Minecraft 1.21.4 / 1.21.1)
+- **Forge** (Minecraft 1.20.1)
 
 ## 依存 MOD
 
@@ -16,7 +17,7 @@ Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD 
 - [Architectury API](https://modrinth.com/mod/architectury-api)
 - [Mod Menu](https://modrinth.com/mod/modmenu)（任意。設定画面へのアクセス用）
 
-### NeoForge
+### NeoForge / Forge
 
 - [Kotlin for Forge](https://modrinth.com/mod/kotlin-for-forge)
 - [Architectury API](https://modrinth.com/mod/architectury-api)
