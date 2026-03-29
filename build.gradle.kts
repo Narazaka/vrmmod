@@ -22,6 +22,19 @@ modSettings {
     }
 }
 
+// Override Stonecraft's hardcoded --username=developer.
+// Also add a "client2" run config for multiplayer testing with a different username.
+afterEvaluate {
+    val loom = extensions.getByType<net.fabricmc.loom.api.LoomGradleExtensionAPI>()
+    loom.runConfigs.matching { it.environment == "client" }.configureEach {
+        programArgs.removeIf { it.startsWith("--username") }
+    }
+    loom.runConfigs.create("client2") {
+        client()
+        programArgs("--username=Player2")
+    }
+}
+
 // NeoForge's module classloader needs loom.mods to know which source sets belong to the mod.
 // Without this, Mixin fails with ClassNotFoundException for the mod's own Kotlin classes in dev.
 if (mod.isNeoforge) {

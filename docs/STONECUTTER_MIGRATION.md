@@ -174,6 +174,24 @@ modSettings {
 
 結果: `run/fabric/`, `run/neoforge/`
 
+## Stonecraft の `--username=developer` 問題
+
+Stonecraft は `Loom.kt` で全クライアント runConfig に `programArgs("--username=developer")` をハードコードしている。これにより認証済みアカウント名が使えず、マルチプレイテストでも全員 `developer` になる。
+
+**解決:** `afterEvaluate` で上書き + マルチテスト用 client2 を追加:
+```kotlin
+afterEvaluate {
+    val loom = extensions.getByType<net.fabricmc.loom.api.LoomGradleExtensionAPI>()
+    loom.runConfigs.matching { it.environment == "client" }.configureEach {
+        programArgs.removeIf { it.startsWith("--username") }
+    }
+    loom.runConfigs.create("client2") {
+        client()
+        programArgs("--username=Player2")
+    }
+}
+```
+
 ## ビルドコマンド
 
 ```bash
@@ -187,6 +205,9 @@ modSettings {
 # 開発実行
 ./gradlew "1.21.4-fabric:runClient"
 ./gradlew "1.21.4-neoforge:runClient"
+
+# マルチプレイテスト用（Player2として起動）
+./gradlew "1.21.4-fabric:runClient2"
 
 # テスト
 ./gradlew "1.21.4-fabric:test"
