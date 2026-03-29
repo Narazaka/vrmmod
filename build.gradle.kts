@@ -10,6 +10,16 @@ plugins {
 
 val loader = mod.loader // "fabric", "neoforge", or "forge"
 
+// Stonecutter version constants for conditional compilation
+stonecutter {
+    val mcVersion = stonecutter.current.version
+    constants["HAS_RENDER_STATE"] = eval(mcVersion, ">=1.21.2")
+    constants["HAS_INTERACTION_RANGE"] = eval(mcVersion, ">=1.20.5")
+    constants["HAS_CUSTOM_PAYLOAD"] = eval(mcVersion, ">=1.20.5")
+    constants["HAS_APPROXIMATE_NEAREST"] = eval(mcVersion, ">=1.21.4")
+    constants["HAS_ITEM_RENDER_STATE"] = eval(mcVersion, ">=1.21.2")
+}
+
 // Stonecraft handles: architectury loom, java version, minecraft deps, mappings, etc.
 modSettings {
     // Separate run directories per loader to avoid conflicts between Fabric and NeoForge
