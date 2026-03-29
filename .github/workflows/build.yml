@@ -77,12 +77,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Set version from tag
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "MOD_VERSION=$VERSION" >> "$GITHUB_ENV"
-          sed -i "s/mod.version=.*/mod.version=$VERSION/" gradle.properties
-
       - name: Build all variants
         run: ./gradlew chiseledBuild -x test
         env:
@@ -107,5 +101,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ env.MOD_VERSION }}
+          name: ${{ github.ref_name }}
           files: build/release-jars/*.jar

@@ -278,6 +278,40 @@ tasks.test {
     systemProperty("project.root", rootProject.projectDir.absolutePath)
 }
 
+// ---- Release task ----
+
+// Usage: ./gradlew release -Pversion=0.2.0
+// - Updates mod.version in gradle.properties
+// - Commits, tags (v0.2.0), and pushes to origin
+tasks.register("release") {
+    group = "publishing"
+    description = "Set mod version, commit, tag, and push"
+    doLast {
+        val newVersion = project.findProperty("version")?.toString()
+            ?: throw GradleException("Usage: ./gradlew release -Pversion=X.Y.Z")
+        if (!newVersion.matches(Regex("""\d+\.\d+\.\d+.*"""))) {
+            throw GradleException("Invalid version format: $newVersion (expected X.Y.Z)")
+        }
+
+        val propsFile = rootProject.file("gradle.properties")
+        val content = propsFile.readText()
+        val updated = content.replace(Regex("""mod\.version=.*"""), "mod.version=$newVersion")
+        propsFile.writeText(updated)
+
+        val rootDir = rootProject.projectDir
+        fun git(vararg args: String) {
+            val proc = ProcessBuilder("git", *args).directory(rootDir).inheritIO().start()
+            if (proc.waitFor() != 0) throw GradleException("git ${args.toList()} failed")
+        }
+        git("add", "gradle.properties")
+        git("commit", "-m", "release: v$newVersion")
+        git("tag", "v$newVersion")
+        git("push", "origin", "master", "v$newVersion")
+
+        logger.lifecycle("Released v$newVersion — CI will publish to Modrinth/CurseForge")
+    }
+}
+
 // ---- Publishing (Modrinth + CurseForge) ----
 
 publishMods {
