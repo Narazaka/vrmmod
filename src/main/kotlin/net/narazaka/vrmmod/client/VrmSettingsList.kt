@@ -29,6 +29,9 @@ class VrmSettingsList(
 //?}
 
     override fun getRowWidth(): Int = width - 30
+    //? if !HAS_CUSTOM_PAYLOAD {
+    /*override fun getScrollbarPosition(): Int = width - 6*/
+    //?}
 
     fun addCategory(label: Component) {
         addEntry(CategoryEntry(label))
