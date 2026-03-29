@@ -1,0 +1,12 @@
+{
+  "package": "net.narazaka.vrmmod.mixin",
+  "minVersion": "0.8",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "PlayerRendererMixin",
+    "LivingEntityRendererMixin",
+    "HandRendererMixin",
+    "CameraMixin",
+    "GameRendererMixin"
+  ]
+}
