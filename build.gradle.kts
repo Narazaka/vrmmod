@@ -90,11 +90,9 @@ dependencies {
     // NeoForge dev: JglTF must be on forgeRuntimeLibrary so the module classloader can find it.
     // forgeRuntimeLibrary is a NeoForge/Loom configuration that adds libraries to the mod's module layer.
     // In production, shadow JAR handles bundling. Fabric dev uses flat classpath so implementation() suffices.
+    // Note: Jackson is NOT excluded here — NeoForge 1.21.1 doesn't provide all Jackson classes JglTF needs.
     if (mod.isNeoforge) {
-        "forgeRuntimeLibrary"("de.javagl:jgltf-model:2.0.4") {
-            exclude(group = "com.fasterxml.jackson.core")
-            exclude(group = "com.fasterxml.jackson")
-        }
+        "forgeRuntimeLibrary"("de.javagl:jgltf-model:2.0.4")
     }
 
     if (mod.isFabric) {
