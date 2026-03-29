@@ -91,7 +91,7 @@ jobs:
       - name: Publish to Modrinth + CurseForge
         run: ./gradlew chiseledPublishMods
         env:
-          DO_PUBLISH: true
+          DO_PUBLISH: false
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           MODRINTH_ID: ${{ secrets.MODRINTH_ID }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
