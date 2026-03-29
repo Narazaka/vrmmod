@@ -1,5 +1,5 @@
 //? if neoforge {
-package net.narazaka.vrmmod.platform
+/*package net.narazaka.vrmmod.platform
 
 import net.narazaka.vrmmod.VrmMod
 import net.narazaka.vrmmod.client.VrmModScreen
@@ -38,4 +38,4 @@ class VrmModNeoForge(container: ModContainer) {
         }
     }
 }
-//?}
+*///?}

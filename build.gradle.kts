@@ -4,7 +4,7 @@ import java.security.SecureRandom
 
 plugins {
     id("gg.meza.stonecraft")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.10"
     kotlin("jvm") version "2.1.0"
 }
 
@@ -50,6 +50,7 @@ dependencies {
     // JOML for tests
     testImplementation("org.joml:joml:1.10.8")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // ---- Shadow JAR (bundle JglTF) ----

@@ -26,7 +26,7 @@ stonecutter {
 
     shared {
         fun mc(version: String, vararg loaders: String) {
-            for (loader in loaders) vers("$version-$loader", version)
+            for (loader in loaders) version("$version-$loader", version)
         }
 
         mc("1.21.4", "fabric", "neoforge")
