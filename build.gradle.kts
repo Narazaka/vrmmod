@@ -22,8 +22,8 @@ stonecutter {
 
 // Stonecraft handles: architectury loom, java version, minecraft deps, mappings, etc.
 modSettings {
-    // Separate run directories per loader to avoid conflicts between Fabric and NeoForge
-    runDirectory = rootProject.layout.projectDirectory.dir("run/$loader")
+    // Separate run directories per version+loader to avoid config/world conflicts
+    runDirectory = rootProject.layout.projectDirectory.dir("run/${stonecutter.current.version}-$loader")
 
     // Custom variable replacements for mod metadata templates
     variableReplacements.set(mapOf(
