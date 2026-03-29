@@ -4,8 +4,8 @@ Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD 
 
 ## 対応
 
-- **Fabric** (Minecraft 1.21.4)
-- **NeoForge** (Minecraft 1.21.4)
+- **Fabric** (Minecraft 1.21.4 / 1.21.1)
+- **NeoForge** (Minecraft 1.21.4 / 1.21.1)
 
 ## 依存 MOD
 
@@ -23,7 +23,9 @@ Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD 
 
 ## インストール
 
-[Releases](https://github.com/Narazaka/vrmmod/releases) から `fabric-0.1.0.jar` または `neoforge-0.1.0.jar` をダウンロードし、依存 MOD と一緒にmodsフォルダに配置する。
+[Releases](https://github.com/Narazaka/vrmmod/releases) から対応するバージョンの JAR をダウンロードし、依存 MOD と一緒に mods フォルダに配置する。
+
+JAR ファイル名の形式: `vrmmod-{loader}-{version}+mc{mc_version}.jar`（例: `vrmmod-fabric-0.1.0+mc1.21.4.jar`）
 
 ## VRoid Hub 連携
 
