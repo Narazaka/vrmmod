@@ -25,7 +25,8 @@ A Minecraft mod that replaces the player model with a VRM avatar. Supports both 
 
 Download the JAR for your Minecraft version from [Releases](https://github.com/Narazaka/vrmmod/releases) and place it in your mods folder along with the required dependencies.
 
-JAR filename format: `vrmmod-{loader}-{version}+mc{mc_version}.jar` (e.g., `vrmmod-fabric-0.1.0+mc1.21.4.jar`)
+- e.g., `vrmmod-fabric-0.1.0+mc1.21.4.jar`, `vrmmod-neoforge-0.1.0+mc1.21.1.jar`
+- Files with `-dev-shadow` or `-sources` at the end of the name (e.g., `vrmmod-fabric-0.1.0+mc1.21.4-dev-shadow.jar`) are for development only. Download the one without these suffixes
 
 ## VRoid Hub Integration
 

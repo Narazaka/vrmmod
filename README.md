@@ -25,7 +25,8 @@ Minecraft のプレイヤーモデルを VRM アバターに置き換える MOD 
 
 [Releases](https://github.com/Narazaka/vrmmod/releases) から対応するバージョンの JAR をダウンロードし、依存 MOD と一緒に mods フォルダに配置する。
 
-JAR ファイル名の形式: `vrmmod-{loader}-{version}+mc{mc_version}.jar`（例: `vrmmod-fabric-0.1.0+mc1.21.4.jar`）
+- 例: `vrmmod-fabric-0.1.0+mc1.21.4.jar`、`vrmmod-neoforge-0.1.0+mc1.21.1.jar`
+- `vrmmod-fabric-0.1.0+mc1.21.4-dev-shadow.jar` のようにファイル名の末尾に `-dev-shadow` や `-sources` が付いているものは開発用です。付いていないものをダウンロードしてください
 
 ## VRoid Hub 連携
 
