@@ -43,7 +43,9 @@ object VrmModServer {
                 //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(otherPlayer, broadcastPayload)
                 //?} else {
-                /*NetworkManager.sendToPlayer(otherPlayer, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, broadcastPayload) }*/
+                /*val broadcastBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                PlayerModelPayload.encode(broadcastBuf, broadcastPayload)
+                NetworkManager.sendToPlayer(otherPlayer, PlayerModelPayload.PACKET_ID, broadcastBuf)*/
                 //?}
             }
         }
@@ -62,7 +64,9 @@ object VrmModServer {
                     //? if HAS_CUSTOM_PAYLOAD {
                     NetworkManager.sendToPlayer(player, existingPayload)
                     //?} else {
-                    /*NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, existingPayload) }*/
+                    /*val existingBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                    PlayerModelPayload.encode(existingBuf, existingPayload)
+                    NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID, existingBuf)*/
                     //?}
                 }
             }
@@ -83,7 +87,9 @@ object VrmModServer {
                 //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(player, clearPayload)
                 //?} else {
-                /*NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, clearPayload) }*/
+                /*val clearBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                PlayerModelPayload.encode(clearBuf, clearPayload)
+                NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID, clearBuf)*/
                 //?}
             }
         }

@@ -201,9 +201,11 @@ object VrmModClient {
                 )
                 //?} else {
                 /*val clearPayload = net.narazaka.vrmmod.network.ModelAnnouncePayload(null, null, 1.0f)
+                val clearBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(clearBuf, clearPayload)
                 dev.architectury.networking.NetworkManager.sendToServer(
-                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID
-                ) { buf -> net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(buf, clearPayload) }*/
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID, clearBuf
+                )*/
                 //?}
             } catch (e: Exception) {
                 VrmMod.logger.debug("Could not send model clear (server may not have mod): {}", e.message)
@@ -240,9 +242,11 @@ object VrmModClient {
                     scale = scale,
                     normalMode = normalMode,
                 )
+                val announceBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(announceBuf, announcePayload)
                 dev.architectury.networking.NetworkManager.sendToServer(
-                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID
-                ) { buf -> net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(buf, announcePayload) }*/
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID, announceBuf
+                )*/
                 //?}
                 VrmMod.logger.info("Announced VRM model to server: {} (license: {})", modelId, license?.id != null)
             } catch (e: Exception) {

@@ -347,7 +347,12 @@ object VrmRenderer {
     ) {
         poseStack.pushPose()
         applyModelTransform(poseStack, bodyYawRad, scale)
+        //? if HAS_NEW_VERTEX_API {
         poseStack.mulPose(handMatrix)
+        //?} else {
+        /*poseStack.last().pose().mul(handMatrix)
+        poseStack.last().normal().mul(org.joml.Matrix3f(handMatrix))*/
+        //?}
         poseStack.scale(itemScale, itemScale, itemScale)
         // Item orientation adjustments for VRM hand bone coordinate system
         poseStack.mulPose(org.joml.Quaternionf().rotateZ((if (isLeft) Math.PI / 2 else -Math.PI / 2).toFloat()))
