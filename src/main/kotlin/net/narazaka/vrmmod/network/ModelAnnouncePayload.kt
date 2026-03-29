@@ -2,11 +2,16 @@ package net.narazaka.vrmmod.network
 
 import net.narazaka.vrmmod.VrmMod
 import net.narazaka.vrmmod.animation.NormalMode
+//? if HAS_CUSTOM_PAYLOAD {
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+//?} else {
+/*import net.minecraft.network.FriendlyByteBuf*/
+//?}
 import net.minecraft.resources.ResourceLocation
 
+//? if HAS_CUSTOM_PAYLOAD {
 data class ModelAnnouncePayload(
     val vroidHubModelId: String?,
     val multiplayLicenseId: String?,
@@ -17,7 +22,11 @@ data class ModelAnnouncePayload(
 
     companion object {
         val TYPE = CustomPacketPayload.Type<ModelAnnouncePayload>(
+            //? if HAS_RESOURCE_LOCATION_FACTORY {
             ResourceLocation.fromNamespaceAndPath(VrmMod.MOD_ID, "model_announce")
+            //?} else {
+            /*ResourceLocation(VrmMod.MOD_ID, "model_announce")*/
+            //?}
         )
         val CODEC: StreamCodec<RegistryFriendlyByteBuf, ModelAnnouncePayload> =
             object : StreamCodec<RegistryFriendlyByteBuf, ModelAnnouncePayload> {
@@ -42,3 +51,34 @@ data class ModelAnnouncePayload(
             }
     }
 }
+//?} else {
+/*data class ModelAnnouncePayload(
+    val vroidHubModelId: String?,
+    val multiplayLicenseId: String?,
+    val scale: Float,
+    val normalMode: NormalMode = NormalMode.AUTO,
+) {
+    companion object {
+        val PACKET_ID = ResourceLocation(VrmMod.MOD_ID, "model_announce")
+
+        fun decode(buf: FriendlyByteBuf): ModelAnnouncePayload {
+            val hasModelId = buf.readBoolean()
+            val vroidHubModelId = if (hasModelId) buf.readUtf() else null
+            val hasLicenseId = buf.readBoolean()
+            val multiplayLicenseId = if (hasLicenseId) buf.readUtf() else null
+            val scale = buf.readFloat()
+            val normalMode = NormalMode.entries[buf.readByte().toInt().coerceIn(0, NormalMode.entries.size - 1)]
+            return ModelAnnouncePayload(vroidHubModelId, multiplayLicenseId, scale, normalMode)
+        }
+
+        fun encode(buf: FriendlyByteBuf, payload: ModelAnnouncePayload) {
+            buf.writeBoolean(payload.vroidHubModelId != null)
+            payload.vroidHubModelId?.let { buf.writeUtf(it) }
+            buf.writeBoolean(payload.multiplayLicenseId != null)
+            payload.multiplayLicenseId?.let { buf.writeUtf(it) }
+            buf.writeFloat(payload.scale)
+            buf.writeByte(payload.normalMode.ordinal)
+        }
+    }
+}*/
+//?}

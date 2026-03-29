@@ -639,6 +639,7 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
 
     override fun onClose() { minecraft?.setScreen(parent) }
 
+    //? if HAS_NEW_VERTEX_API {
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean {
         if (activeTab == Tab.VROID_HUB && vroidHubState == VRoidHubState.LOGGED_IN) {
             if (mouseX < width / 2.0) {
@@ -650,4 +651,17 @@ class VrmModScreen(private val parent: Screen?) : Screen(Component.translatable(
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
     }
+    //?} else {
+    /*override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollY: Double): Boolean {
+        if (activeTab == Tab.VROID_HUB && vroidHubState == VRoidHubState.LOGGED_IN) {
+            if (mouseX < width / 2.0) {
+                scrollOffset = (scrollOffset - scrollY.toInt()).coerceIn(0, maxOf(0, getAllDisplayModels().size - 1)); buildWidgets()
+            } else {
+                detailScrollOffset = (detailScrollOffset - scrollY.toInt()).coerceAtLeast(0)
+            }
+            return true
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollY)
+    }*/
+    //?}
 }

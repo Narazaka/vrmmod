@@ -9,6 +9,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener
 import net.minecraft.client.gui.narration.NarratableEntry
 import net.minecraft.network.chat.Component
 
+//? if HAS_CUSTOM_PAYLOAD {
 class VrmSettingsList(
     minecraft: Minecraft,
     width: Int,
@@ -16,8 +17,21 @@ class VrmSettingsList(
     y: Int,
     itemHeight: Int = 25,
 ) : ContainerObjectSelectionList<VrmSettingsList.Entry>(minecraft, width, height, y, itemHeight) {
+//?} else {
+/*class VrmSettingsList(
+    minecraft: Minecraft,
+    width: Int,
+    height: Int,
+    y: Int,
+    itemHeight: Int = 25,
+) : ContainerObjectSelectionList<VrmSettingsList.Entry>(minecraft, width, y + height, y, y + height, itemHeight) {
+*/
+//?}
 
     override fun getRowWidth(): Int = width - 30
+    //? if !HAS_CUSTOM_PAYLOAD {
+    /*override fun getScrollbarPosition(): Int = width - 6*/
+    //?}
 
     fun addCategory(label: Component) {
         addEntry(CategoryEntry(label))

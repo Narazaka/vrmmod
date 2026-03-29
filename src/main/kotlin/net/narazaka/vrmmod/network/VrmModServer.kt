@@ -40,7 +40,13 @@ object VrmModServer {
         )
         for (otherPlayer in player.server.playerList.players) {
             if (otherPlayer.uuid != uuid) {
+                //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(otherPlayer, broadcastPayload)
+                //?} else {
+                /*val broadcastBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                PlayerModelPayload.encode(broadcastBuf, broadcastPayload)
+                NetworkManager.sendToPlayer(otherPlayer, PlayerModelPayload.PACKET_ID, broadcastBuf)*/
+                //?}
             }
         }
 
@@ -55,7 +61,13 @@ object VrmModServer {
                         scale = info.scale,
                         normalMode = info.normalMode,
                     )
+                    //? if HAS_CUSTOM_PAYLOAD {
                     NetworkManager.sendToPlayer(player, existingPayload)
+                    //?} else {
+                    /*val existingBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                    PlayerModelPayload.encode(existingBuf, existingPayload)
+                    NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID, existingBuf)*/
+                    //?}
                 }
             }
         }
@@ -72,7 +84,13 @@ object VrmModServer {
                 scale = 1.0f,
             )
             for (player in server.playerList.players) {
+                //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(player, clearPayload)
+                //?} else {
+                /*val clearBuf = net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer())
+                PlayerModelPayload.encode(clearBuf, clearPayload)
+                NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID, clearBuf)*/
+                //?}
             }
         }
     }
