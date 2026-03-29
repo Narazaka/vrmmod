@@ -192,12 +192,47 @@ afterEvaluate {
 }
 ```
 
+## バージョン条件分岐の実例
+
+### Stonecutter 定数
+
+`build.gradle.kts` で定義:
+```kotlin
+stonecutter {
+    val mcVersion = stonecutter.current.version
+    constants["HAS_RENDER_STATE"] = eval(mcVersion, ">=1.21.2")      // EntityRenderState
+    constants["HAS_ITEM_RENDER_STATE"] = eval(mcVersion, ">=1.21.2") // ItemStackRenderState
+    constants["HAS_APPROXIMATE_NEAREST"] = eval(mcVersion, ">=1.21.4") // Direction API rename
+    constants["HAS_INTERACTION_RANGE"] = eval(mcVersion, ">=1.20.5")
+    constants["HAS_CUSTOM_PAYLOAD"] = eval(mcVersion, ">=1.20.5")
+}
+```
+
+### 条件分岐が必要だったファイル（Phase 2: 1.21.1 対応）
+
+| ファイル | 分岐内容 |
+|----------|----------|
+| `PlayerRendererMixin.java` | `extractRenderState` (1.21.2+) vs `render` (1.21.1) |
+| `LivingEntityRendererMixin.java` | RenderState vs Entity ベースの render フック |
+| `GameRendererMixin.java` | `EntitySelector.CAN_BE_PICKED` (1.21.4) vs inline predicate |
+| `MixinHelper.kt` | `buildPoseContext(RenderState)` vs `buildPoseContextFromEntity(Entity)` |
+| `MixinHelper.kt` | `Direction.getApproximateNearest` vs `getNearest` |
+| `VrmRenderType.kt` | `TriState` vs `boolean` in TextureStateShard |
+| `VrmRenderer.kt` | `ItemStackRenderState` vs `ItemStack` + `ItemRenderer.renderStatic()` |
+| `VrmFirstPersonRenderer.kt` | `ItemModelResolver` vs player entity ベースのアイテム描画 |
+
+### NeoForge 1.21.1 の Jackson 問題
+
+`forgeRuntimeLibrary` で JglTF を追加する際、Jackson を除外してはいけない。NeoForge 1.21.1 は JglTF が必要とする Jackson クラス（`PropertyNamingStrategy` 等）を全て提供していない。
+
 ## ビルドコマンド
 
 ```bash
 # 個別ビルド
 ./gradlew "1.21.4-fabric:build"
 ./gradlew "1.21.4-neoforge:build"
+./gradlew "1.21.1-fabric:build"
+./gradlew "1.21.1-neoforge:build"
 
 # 全バージョン一括ビルド
 ./gradlew chiseledBuild
@@ -205,6 +240,8 @@ afterEvaluate {
 # 開発実行
 ./gradlew "1.21.4-fabric:runClient"
 ./gradlew "1.21.4-neoforge:runClient"
+./gradlew "1.21.1-fabric:runClient"
+./gradlew "1.21.1-neoforge:runClient"
 
 # マルチプレイテスト用（Player2として起動）
 ./gradlew "1.21.4-fabric:runClient2"
