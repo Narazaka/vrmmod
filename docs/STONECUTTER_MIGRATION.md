@@ -507,3 +507,47 @@ vertexConsumer
 ```
 
 成果物: `versions/{version}-{loader}/build/libs/`
+
+---
+
+## Modrinth / CurseForge 公開
+
+Stonecraft は `me.modmuss50.mod-publish-plugin` を内蔵。`build.gradle.kts` に `publishMods` ブロックを追加し、CI から `chiseledPublishMods` で全バリアントを公開。
+
+### 必要な環境変数（GitHub Secrets）
+
+| 環境変数 | 用途 |
+|----------|------|
+| `MODRINTH_TOKEN` | Modrinth API トークン |
+| `MODRINTH_ID` | Modrinth プロジェクト ID |
+| `CURSEFORGE_TOKEN` | CurseForge API トークン |
+| `CURSEFORGE_ID` | CurseForge プロジェクト ID |
+| `CURSEFORGE_SLUG` | CurseForge プロジェクト slug |
+| `DO_PUBLISH` | `false` で実際に公開。`true` または未設定でドライラン |
+
+### `DO_PUBLISH` の罠（重要）
+
+Stonecraft のソースコード（`Publishing.kt`）:
+```kotlin
+dryRun.set(project.providers.environmentVariable("DO_PUBLISH").getOrElse("true").toBoolean())
+```
+
+`DO_PUBLISH` の値が**そのまま** `dryRun` に渡される。つまり名前と動作が逆:
+
+| `DO_PUBLISH` | `dryRun` | 結果 |
+|---|---|---|
+| 未設定 | `true` | ドライラン |
+| `"true"` | `true` | ドライラン |
+| `"false"` | `false` | **実際に公開** |
+
+Stonecraft のドキュメント（stonecraft.meza.gg）は「`DO_PUBLISH=true` で公開」と記載しているが、ソースコードの動作はその逆。**ソースコードが正しい。**
+
+### リリース手順
+
+```bash
+# 1. バージョンを設定してタグを打つ
+release 0.1.0          # (release.cmd) gradle.properties書き換え + commit + tag
+
+# 2. プッシュ → CI が自動で公開
+git push origin master v0.1.0
+```
