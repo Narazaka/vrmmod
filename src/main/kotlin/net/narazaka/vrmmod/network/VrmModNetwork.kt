@@ -8,6 +8,7 @@ object VrmModNetwork {
     fun register() {
         VrmMod.logger.info("Registering VRM mod network packets")
 
+        //? if HAS_CUSTOM_PAYLOAD {
         // Register C2S receiver (server handles ModelAnnounce)
         NetworkManager.registerReceiver(
             NetworkManager.c2s(),
@@ -32,5 +33,31 @@ object VrmModNetwork {
                 MultiplayModelHandler.handlePlayerModel(payload)
             }
         }
+        //?} else {
+        /*// Register C2S receiver (server handles ModelAnnounce)
+        NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
+            ModelAnnouncePayload.PACKET_ID,
+        ) { buf, context ->
+            val payload = ModelAnnouncePayload.decode(buf)
+            context.queue {
+                val player = context.player
+                if (player is ServerPlayer) {
+                    VrmModServer.handleModelAnnounce(player, payload)
+                }
+            }
+        }
+
+        // Register S2C receiver (client handles PlayerModel)
+        NetworkManager.registerReceiver(
+            NetworkManager.Side.S2C,
+            PlayerModelPayload.PACKET_ID,
+        ) { buf, context ->
+            val payload = PlayerModelPayload.decode(buf)
+            context.queue {
+                MultiplayModelHandler.handlePlayerModel(payload)
+            }
+        }*/
+        //?}
     }
 }

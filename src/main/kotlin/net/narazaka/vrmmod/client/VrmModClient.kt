@@ -195,9 +195,16 @@ object VrmModClient {
     private fun announceModel(uuid: UUID, modelId: String?, scale: Float, normalMode: net.narazaka.vrmmod.animation.NormalMode = net.narazaka.vrmmod.animation.NormalMode.AUTO) {
         if (modelId == null) {
             try {
+                //? if HAS_CUSTOM_PAYLOAD {
                 dev.architectury.networking.NetworkManager.sendToServer(
                     net.narazaka.vrmmod.network.ModelAnnouncePayload(null, null, 1.0f)
                 )
+                //?} else {
+                /*val clearPayload = net.narazaka.vrmmod.network.ModelAnnouncePayload(null, null, 1.0f)
+                dev.architectury.networking.NetworkManager.sendToServer(
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID
+                ) { buf -> net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(buf, clearPayload) }*/
+                //?}
             } catch (e: Exception) {
                 VrmMod.logger.debug("Could not send model clear (server may not have mod): {}", e.message)
             }
@@ -217,6 +224,7 @@ object VrmModClient {
             }
         }.thenAccept { license ->
             try {
+                //? if HAS_CUSTOM_PAYLOAD {
                 dev.architectury.networking.NetworkManager.sendToServer(
                     net.narazaka.vrmmod.network.ModelAnnouncePayload(
                         vroidHubModelId = modelId,
@@ -225,6 +233,17 @@ object VrmModClient {
                         normalMode = normalMode,
                     )
                 )
+                //?} else {
+                /*val announcePayload = net.narazaka.vrmmod.network.ModelAnnouncePayload(
+                    vroidHubModelId = modelId,
+                    multiplayLicenseId = license?.id,
+                    scale = scale,
+                    normalMode = normalMode,
+                )
+                dev.architectury.networking.NetworkManager.sendToServer(
+                    net.narazaka.vrmmod.network.ModelAnnouncePayload.PACKET_ID
+                ) { buf -> net.narazaka.vrmmod.network.ModelAnnouncePayload.encode(buf, announcePayload) }*/
+                //?}
                 VrmMod.logger.info("Announced VRM model to server: {} (license: {})", modelId, license?.id != null)
             } catch (e: Exception) {
                 VrmMod.logger.debug("Could not send model announce (server may not have mod): {}", e.message)

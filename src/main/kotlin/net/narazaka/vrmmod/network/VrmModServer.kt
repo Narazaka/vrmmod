@@ -40,7 +40,11 @@ object VrmModServer {
         )
         for (otherPlayer in player.server.playerList.players) {
             if (otherPlayer.uuid != uuid) {
+                //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(otherPlayer, broadcastPayload)
+                //?} else {
+                /*NetworkManager.sendToPlayer(otherPlayer, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, broadcastPayload) }*/
+                //?}
             }
         }
 
@@ -55,7 +59,11 @@ object VrmModServer {
                         scale = info.scale,
                         normalMode = info.normalMode,
                     )
+                    //? if HAS_CUSTOM_PAYLOAD {
                     NetworkManager.sendToPlayer(player, existingPayload)
+                    //?} else {
+                    /*NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, existingPayload) }*/
+                    //?}
                 }
             }
         }
@@ -72,7 +80,11 @@ object VrmModServer {
                 scale = 1.0f,
             )
             for (player in server.playerList.players) {
+                //? if HAS_CUSTOM_PAYLOAD {
                 NetworkManager.sendToPlayer(player, clearPayload)
+                //?} else {
+                /*NetworkManager.sendToPlayer(player, PlayerModelPayload.PACKET_ID) { buf -> PlayerModelPayload.encode(buf, clearPayload) }*/
+                //?}
             }
         }
     }
