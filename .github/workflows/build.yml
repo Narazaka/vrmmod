@@ -100,6 +100,16 @@ jobs:
           VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
           VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
 
+      - name: Set Modrinth environment (client+server optional)
+        run: |
+          curl -s -X PATCH "https://api.modrinth.com/v2/project/$MODRINTH_ID" \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"client_side":"required","server_side":"optional"}'
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_ID: ${{ vars.MODRINTH_ID }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
