@@ -1,4 +1,4 @@
-# VRM Mod 現状と残課題（2026-03-27時点）
+# VRM Mod 現状と残課題（2026-03-29時点）
 
 ## 完成済み機能
 
@@ -154,7 +154,7 @@
 - Architectury Loom 1.13.467、Gradle 9.3.1
 - Architectury API (15.0.3) で Fabric / NeoForge 両対応
 - Kotlin + Java (Mixin のみ)、Java 21
-- MC 1.21.4（マルチバージョン対応進行中）
+- MC 1.21.4 / 1.21.1（Fabric + NeoForge 各2バージョン = 4バリアント）
 - JglTF を shadow JAR にバンドル（Jackson は NeoForge 向けに除外）
 - 移行の詳細な知見: [docs/STONECUTTER_MIGRATION.md](STONECUTTER_MIGRATION.md)
 
