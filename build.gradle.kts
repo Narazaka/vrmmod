@@ -126,11 +126,15 @@ tasks.shadowJar {
     tasks.findByName("generatePackMCMetaJson")?.let { dependsOn(it) }
     configurations = listOf(shadowBundle)
     archiveClassifier.set("dev-shadow")
-    // Exclude transitive deps already provided by MC/loader
-    exclude("com/fasterxml/**")
+    // Gson is provided by MC in all versions
     exclude("com/google/gson/**")
-    exclude("META-INF/maven/com.fasterxml*/**")
-    exclude("META-INF/services/com.fasterxml*")
+    // Jackson is only provided by NeoForge 1.21.4 — all other versions need it bundled.
+    // Exclude only for NeoForge on >=1.21.4 to avoid module conflicts.
+    if (mod.isNeoforge && stonecutter.eval(stonecutter.current.version, ">=1.21.4")) {
+        exclude("com/fasterxml/**")
+        exclude("META-INF/maven/com.fasterxml*/**")
+        exclude("META-INF/services/com.fasterxml*")
+    }
     exclude("META-INF/LICENSE*")
     exclude("META-INF/NOTICE*")
 }
