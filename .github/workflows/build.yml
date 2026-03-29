@@ -20,17 +20,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - run: ./gradlew build
+      - run: ./gradlew chiseledBuild -x test
         env:
           VROIDHUB_CLIENT_ID: ${{ secrets.VROIDHUB_CLIENT_ID }}
           VROIDHUB_CLIENT_SECRET: ${{ secrets.VROIDHUB_CLIENT_SECRET }}
 
+      # Collect only the final remapped JARs (exclude -dev-shadow intermediate artifacts)
+      - run: |
+          mkdir -p build/release-jars
+          find versions/*/build/libs/ -name "*.jar" ! -name "*-dev-shadow*" -exec cp {} build/release-jars/ \;
+
       - uses: actions/upload-artifact@v4
         with:
           name: mod-jars
-          path: |
-            fabric/build/libs/*.jar
-            neoforge/build/libs/*.jar
+          path: build/release-jars/*.jar
           if-no-files-found: error
 
       - name: Set build timestamp
@@ -44,9 +47,7 @@ jobs:
           tag_name: build-${{ env.BUILD_TIME }}-${{ github.sha }}
           name: Build ${{ env.BUILD_TIME }} (${{ github.sha }})
           prerelease: true
-          files: |
-            fabric/build/libs/!(*-@(sources|dev)).jar
-            neoforge/build/libs/!(*-@(sources|dev)).jar
+          files: build/release-jars/*.jar
 
       - name: Clean up old build releases
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
