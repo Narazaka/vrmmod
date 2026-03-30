@@ -293,7 +293,7 @@ publishMods {
     }
     curseforge {
         clientRequired = true
-        serverRequired = false
+        serverRequired = true  // Server-side enables multiplayer VRM sync
         if (mod.isFabric) {
             requires("fabric-api")
             requires("fabric-language-kotlin")

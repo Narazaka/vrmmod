@@ -40,3 +40,4 @@ rendertype_full.txt
 
 # VRoid Hub OAuth credentials (build-time injection)
 /vrmmod-vroidhub-secrets.json
+.playwright-mcp/
